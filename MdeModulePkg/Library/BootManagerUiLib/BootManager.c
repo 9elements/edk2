@@ -493,6 +493,7 @@ UpdateBootManager (
   BOOLEAN                       IsLegacyOption;
   BOOLEAN                       NeedEndOp;
   UINTN                         MaxLen;
+  UINTN                         OptionCount;
 
   DeviceType = (UINT16)-1;
 
@@ -550,6 +551,8 @@ UpdateBootManager (
       continue;
     }
 
+    OptionCount++;
+
     //
     // Group the legacy boot option in the sub title created dynamically
     //
@@ -603,6 +606,10 @@ UpdateBootManager (
       EFI_IFR_FLAG_CALLBACK,
       0
       );
+  }
+
+  if (OptionCount == 0) {
+    HiiCreateSubTitleOpCode (StartOpCodeHandle, STRING_TOKEN (STR_NO_BOOTABLE_MEDIA), 0, 0, 0);
   }
 
   if (NeedEndOp) {
