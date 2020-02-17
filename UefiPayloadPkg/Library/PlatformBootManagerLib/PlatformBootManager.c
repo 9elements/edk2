@@ -221,6 +221,9 @@ PlatformBootManagerAfterConsole (
   gST->ConOut->ClearScreen (gST->ConOut);
   BootLogoEnableLogo ();
 
+  // FIXME: USB devices are not being detected unless we wait a bit.
+  gBS->Stall (100 * 1000);
+
   EfiBootManagerConnectAll ();
   EfiBootManagerRefreshAllBootOption ();
 
