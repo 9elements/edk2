@@ -94,6 +94,10 @@ APRIORI DXE {
   INF MdeModulePkg/Universal/FaultTolerantWriteDxe/FaultTolerantWriteDxe.inf # After BlSMMStoreDxe, RuntimeDxe
 !endif
   INF  MdeModulePkg/Universal/Variable/RuntimeDxe/VariableRuntimeDxe.inf # After FaultTolerantWriteDxe
+!if $(SECURE_BOOT_ENABLE) == TRUE
+  INF  PcAtChipsetPkg/PcatRealTimeClockRuntimeDxe/PcatRealTimeClockRuntimeDxe.inf
+  INF  SecurityPkg/VariableAuthenticated/SecureBootDefaultKeysDxe/SecureBootDefaultKeysDxe.inf # After SMBusConfigLoader and PcatRealTimeClockRuntimeDxe, before Tcg2Dxe
+!endif
 }
 
 #
@@ -231,6 +235,35 @@ INF  MdeModulePkg/Universal/Acpi/AcpiTableDxe/AcpiTableDxe.inf
 INF SecurityPkg/RandomNumberGenerator/RngDxe/RngDxe.inf
 
 #
+# Security
+#
+!if $(SECURE_BOOT_ENABLE) == TRUE
+  INF  SecurityPkg/VariableAuthenticated/SecureBootConfigDxe/SecureBootConfigDxe.inf
+  INF  SecurityPkg/VariableAuthenticated/SecureBootDefaultKeysDxe/SecureBootDefaultKeysDxe.inf
+
+  FILE FREEFORM = 85254ea7-4759-4fc4-82d4-5eed5fb0a4a0 {
+    SECTION RAW = UefiPayloadPkg/SecureBootEnrollDefaultKeys/keys/pk.crt
+    SECTION UI = "PK Default"
+  }
+
+  FILE FREEFORM = 6f64916e-9f7a-4c35-b952-cd041efb05a3 {
+    SECTION RAW = UefiPayloadPkg/SecureBootEnrollDefaultKeys/keys/kek.crt
+    SECTION UI = "KEK Default"
+  }
+
+  FILE FREEFORM = c491d352-7623-4843-accc-2791a7574421 {
+    SECTION RAW = UefiPayloadPkg/SecureBootEnrollDefaultKeys/keys/db-1.crt
+    SECTION RAW = UefiPayloadPkg/SecureBootEnrollDefaultKeys/keys/db-2.crt
+    SECTION UI = "DB Default"
+  }
+
+  FILE FREEFORM = 5740766a-718e-4dc0-9935-c36f7d3f884f {
+    SECTION RAW = UefiPayloadPkg/SecureBootEnrollDefaultKeys/keys/crl.bin
+    SECTION UI = "DBX Default"
+  }
+!endif
+
+#
 # Shell
 #
 !if $(SHELL_TYPE) == BUILD_SHELL
@@ -365,4 +398,17 @@ SET gEfiMdeModulePkgTokenSpaceGuid.PcdFlashNvStorageFtwSpareSize = $(BLOCK_SIZE)
 [Rule.Common.SEC.RESET_VECTOR]
   FILE RAW = $(NAMED_GUID) {
     RAW RAW                |.raw
+  }
+
+[RULE.COMMON.USER_DEFINED]
+  FILE FREEFORM = $(NAMED_GUID) {
+    RAW BIN                |.crt
+    RAW BIN                |.bin
+  }
+
+[RULE.COMMON.USER_DEFINED.BINARY]
+  FILE FREEFORM = $(NAMED_GUID) {
+    RAW BIN                |.crt
+    RAW BIN                |.bin
+    UI       STRING="$(MODULE_NAME)" Optional
   }
