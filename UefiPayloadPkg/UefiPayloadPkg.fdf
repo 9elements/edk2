@@ -87,6 +87,13 @@ APRIORI DXE {
   INF  MdeModulePkg/Universal/DevicePathDxe/DevicePathDxe.inf
   INF  MdeModulePkg/Universal/PCD/Dxe/Pcd.inf
   INF  UefiPayloadPkg/BlSupportDxe/BlSupportDxe.inf
+  INF  UefiPayloadPkg/SmbusDxe/SMBusi801Dxe.inf # After BlSupportDxe
+  INF  MdeModulePkg/Core/RuntimeDxe/RuntimeDxe.inf
+  INF  UefiPayloadPkg/BlSMMStoreDxe/BlSMMStoreDxe.inf # After DevicePathDxe
+!if $(EMU_VARIABLE_ENABLE) == FALSE
+  INF MdeModulePkg/Universal/FaultTolerantWriteDxe/FaultTolerantWriteDxe.inf # After BlSMMStoreDxe, RuntimeDxe
+!endif
+  INF  MdeModulePkg/Universal/Variable/RuntimeDxe/VariableRuntimeDxe.inf # After FaultTolerantWriteDxe
 }
 
 #
@@ -114,9 +121,10 @@ INF MdeModulePkg/Universal/ResetSystemRuntimeDxe/ResetSystemRuntimeDxe.inf
 
 INF PcAtChipsetPkg/PcatRealTimeClockRuntimeDxe/PcatRealTimeClockRuntimeDxe.inf
 
-!if $(EMU_VARIABLE_ENABLE) == TRUE
-INF MdeModulePkg/Universal/Variable/RuntimeDxe/VariableRuntimeDxe.inf
+!if $(EMU_VARIABLE_ENABLE) == FALSE
+INF MdeModulePkg/Universal/FaultTolerantWriteDxe/FaultTolerantWriteDxe.inf
 !endif
+INF MdeModulePkg/Universal/Variable/RuntimeDxe/VariableRuntimeDxe.inf
 
 INF UefiCpuPkg/CpuIo2Dxe/CpuIo2Dxe.inf
 INF MdeModulePkg/Universal/DevicePathDxe/DevicePathDxe.inf
@@ -128,6 +136,7 @@ INF UefiPayloadPkg/BlSupportDxe/BlSupportDxe.inf
 
 INF MdeModulePkg/Universal/SmbiosDxe/SmbiosDxe.inf
 INF MdeModulePkg/Logo/LogoDxe.inf
+INF UefiPayloadPkg/BlSMMStoreDxe/BlSMMStoreDxe.inf
 
 #
 # PCI Support
@@ -244,6 +253,19 @@ INF  RuleOverride = BINARY USE = X64 ShellBinPkg/UefiShell/UefiShell.inf
 !endif
 !endif
 
+# Constrains:
+# PcdFlashNvStorageVariableSize <= FtwMaxBlockSize
+# GetNonVolatileMaxVariableSize () < (VariableStoreLength - sizeof (VARIABLE_STORE_HEADER))
+DEFINE BLOCK_SIZE        = 0x10000
+
+SET gEfiMdeModulePkgTokenSpaceGuid.PcdFlashNvStorageVariableBase = 0
+SET gEfiMdeModulePkgTokenSpaceGuid.PcdFlashNvStorageVariableSize = $(BLOCK_SIZE)
+
+SET gEfiMdeModulePkgTokenSpaceGuid.PcdFlashNvStorageFtwWorkingBase = gEfiMdeModulePkgTokenSpaceGuid.PcdFlashNvStorageVariableBase + gEfiMdeModulePkgTokenSpaceGuid.PcdFlashNvStorageVariableSize
+SET gEfiMdeModulePkgTokenSpaceGuid.PcdFlashNvStorageFtwWorkingSize = $(BLOCK_SIZE)
+
+SET gEfiMdeModulePkgTokenSpaceGuid.PcdFlashNvStorageFtwSpareBase = gEfiMdeModulePkgTokenSpaceGuid.PcdFlashNvStorageFtwWorkingBase + gEfiMdeModulePkgTokenSpaceGuid.PcdFlashNvStorageFtwWorkingSize
+SET gEfiMdeModulePkgTokenSpaceGuid.PcdFlashNvStorageFtwSpareSize = $(BLOCK_SIZE)
 
 ################################################################################
 #
