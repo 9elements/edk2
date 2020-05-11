@@ -323,6 +323,11 @@ INF MdeModulePkg/Application/BootManagerMenuApp/BootManagerMenuApp.inf
 !endif
 
 #
+# Random Number Generator
+#
+INF SecurityPkg/RandomNumberGenerator/RngDxe/RngDxe.inf
+
+#
 # Shell
 #
 !if $(SHELL_TYPE) == BUILD_SHELL
