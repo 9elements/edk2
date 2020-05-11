@@ -124,6 +124,11 @@
   DEFINE DISABLE_RESET_SYSTEM  = FALSE
   DEFINE NETWORK_DRIVER_ENABLE = FALSE
 
+  #
+  # IPXE support
+  #
+  DEFINE NETWORK_IPXE                   = FALSE
+
   # Dfine the maximum size of the capsule image without a reset flag that the platform can support.
   DEFINE MAX_SIZE_NON_POPULATE_CAPSULE = 0xa00000
 
