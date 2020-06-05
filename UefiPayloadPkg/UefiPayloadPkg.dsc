@@ -330,6 +330,7 @@
 !if $(PERFORMANCE_MEASUREMENT_ENABLE)
   PerformanceLib|MdeModulePkg/Library/DxeCorePerformanceLib/DxeCorePerformanceLib.inf
 !endif
+  SmbusLib|MdePkg/Library/DxeSmbusLib/DxeSmbusLib.inf
 
 [LibraryClasses.common.DXE_DRIVER]
   PcdLib|MdePkg/Library/DxePcdLib/DxePcdLib.inf
@@ -344,6 +345,7 @@
 !if $(PERFORMANCE_MEASUREMENT_ENABLE)
   PerformanceLib|MdeModulePkg/Library/DxePerformanceLib/DxePerformanceLib.inf
 !endif
+  SmbusLib|MdePkg/Library/DxeSmbusLib/DxeSmbusLib.inf
 
 [LibraryClasses.common.DXE_RUNTIME_DRIVER]
   PcdLib|MdePkg/Library/DxePcdLib/DxePcdLib.inf
@@ -761,6 +763,11 @@
 !if $(PS2_MOUSE_ENABLE) == TRUE
   MdeModulePkg/Bus/Isa/Ps2MouseDxe/Ps2MouseDxe.inf
 !endif
+
+  #
+  # SMBUS Support
+  #
+  UefiPayloadPkg/SmbusDxe/SMBusi801Dxe.inf
 
   #
   # Console Support
