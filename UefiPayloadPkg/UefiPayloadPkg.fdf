@@ -174,6 +174,12 @@ INF MdeModulePkg/Logo/LogoDxe.inf
 !endif
 
 #
+# SMBUS Support
+#
+INF UefiPayloadPkg/SmbusDxe/SMBusi801Dxe.inf
+INF UefiPayloadPkg/SmbusConfigLoaderDxe/SMBusConfigLoader.inf
+
+#
 # PCI Support
 #
 INF MdeModulePkg/Bus/Pci/PciBusDxe/PciBusDxe.inf
@@ -194,11 +200,6 @@ INF MdeModulePkg/Bus/Isa/Ps2KeyboardDxe/Ps2KeyboardDxe.inf
 !if $(PS2_MOUSE_ENABLE) == TRUE
 INF MdeModulePkg/Bus/Isa/Ps2MouseDxe/Ps2MouseDxe.inf
 !endif
-
-#
-# SMBUS Support
-#
-INF UefiPayloadPkg/SmbusDxe/SMBusi801Dxe.inf
 
 #
 # Console Support

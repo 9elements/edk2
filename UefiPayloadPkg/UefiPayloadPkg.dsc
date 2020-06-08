@@ -776,6 +776,7 @@
   # SMBUS Support
   #
   UefiPayloadPkg/SmbusDxe/SMBusi801Dxe.inf
+  UefiPayloadPkg/SmbusConfigLoaderDxe/SMBusConfigLoader.inf
 
   #
   # Console Support
