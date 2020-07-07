@@ -514,6 +514,10 @@
   }
 
 !if $(SECURE_BOOT_ENABLE) == TRUE
+   UefiPayloadPkg/SmbusConfigLoaderDxe/SMBusConfigLoader.inf {
+    <LibraryClasses>
+      SmbusLib|MdePkg/Library/DxeSmbusLib/DxeSmbusLib.inf
+  }
   SecurityPkg/VariableAuthenticated/SecureBootConfigDxe/SecureBootConfigDxe.inf
   OvmfPkg/EnrollDefaultKeys/EnrollDefaultKeys.inf
   UefiPayloadPkg/SecureBootEnrollDefaultKeys/SecureBootSetup.inf
