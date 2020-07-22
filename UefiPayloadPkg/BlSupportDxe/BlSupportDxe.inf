@@ -56,5 +56,8 @@
   gEfiMdePkgTokenSpaceGuid.PcdPciExpressBaseAddress
   gEfiMdePkgTokenSpaceGuid.PcdPciExpressBaseSize
 
+[Protocols]
+  gEfiSmbiosProtocolGuid
+
 [Depex]
-  TRUE
+  gEfiSmbiosProtocolGuid
