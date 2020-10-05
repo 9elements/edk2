@@ -37,6 +37,7 @@
 #include <UniversalPayload/ExtraData.h>
 #include <Guid/PcdDataBaseSignatureGuid.h>
 #include <Guid/SMMSTOREInfoGuid.h>
+#include <Guid/TcgPhysicalPresenceGuid.h>
 
 
 #define LEGACY_8259_MASK_REGISTER_MASTER  0x21
