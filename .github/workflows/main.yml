@@ -74,3 +74,10 @@ jobs:
         with:
           name: IPXE_UEFIPAYLOAD.fd
           path: /home/runner/work/edk2-1/edk2-1/Build/UefiPayloadPkgX64/DEBUG_GCC5/FV/UEFIPAYLOAD.fd
+
+      - name: Build with TPM support
+        run: |
+          export extraFlags="-D TPM_ENABLE=TRUE"
+          source ./edksetup.sh
+          build $extraFlags -D BOOTLOADER=COREBOOT -a IA32 -a X64 -t GCC5 -b DEBUG -p UefiPayloadPkg/UefiPayloadPkgIa32X64.dsc
+
