@@ -480,8 +480,11 @@
   MdeModulePkg/Universal/StatusCodeHandler/Pei/StatusCodeHandlerPei.inf
 
   UefiPayloadPkg/BlSupportPei/BlSupportPei.inf
+  UefiPayloadPkg/BlSMMStorePei/BlSMMStorePei.inf
+
   MdeModulePkg/Core/DxeIplPeim/DxeIpl.inf
   UefiPayloadPkg/NullVariable/NullVariablePei.inf
+  MdeModulePkg/Universal/FaultTolerantWritePei/FaultTolerantWritePei.inf
 
 !if $(TPM_ENABLE) == TRUE
   SecurityPkg/Tcg/Tcg2Config/Tcg2ConfigPei.inf
@@ -496,6 +499,9 @@
       NULL|SecurityPkg/Library/HashInstanceLibSm3/HashInstanceLibSm3.inf
   }
 !endif
+
+  # SMMSTORE
+  #
 
 [Components.X64]
   #
