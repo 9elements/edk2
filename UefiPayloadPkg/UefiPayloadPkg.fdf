@@ -51,6 +51,8 @@ INF MdeModulePkg/Universal/StatusCodeHandler/Pei/StatusCodeHandlerPei.inf
 INF UefiPayloadPkg/BlSupportPei/BlSupportPei.inf
 INF MdeModulePkg/Core/DxeIplPeim/DxeIpl.inf
 INF UefiPayloadPkg/NullVariable/NullVariablePei.inf
+INF UefiPayloadPkg/BlSMMStorePei/BlSMMStorePei.inf
+INF MdeModulePkg/Universal/FaultTolerantWritePei/FaultTolerantWritePei.inf
 
 !if $(TPM_ENABLE) == TRUE
 INF  SecurityPkg/Tcg/Tcg2Config/Tcg2ConfigPei.inf
@@ -88,7 +90,19 @@ APRIORI DXE {
   # Initialize VariableStore and update PCDs before VariableRuntimeDxe
   INF  UefiPayloadPkg/BlSMMStoreDxe/BlSMMStoreDxe.inf
 !endif
+
+  # Init Test Driver before Secure Boot
+  # INF  UefiPayloadPkg/TestDriverDxe/TestDriver.inf
+  INF  MdeModulePkg/Universal/Variable/RuntimeDxe/VariableRuntimeDxe.inf
+  INF  UefiPayloadPkg/SmbusDxe/SMBusi801Dxe.inf
+  INF  UefiPayloadPkg/SmbusConfigLoaderDxe/SMBusConfigLoader.inf
 }
+
+#
+# SMBUS Support
+#
+INF UefiPayloadPkg/SmbusDxe/SMBusi801Dxe.inf
+INF UefiPayloadPkg/SmbusConfigLoaderDxe/SMBusConfigLoader.inf
 
 #
 # DXE Phase modules
@@ -141,12 +155,6 @@ INF MdeModulePkg/Universal/SerialDxe/SerialDxe.inf
 INF OvmfPkg/SioBusDxe/SioBusDxe.inf
 INF MdeModulePkg/Bus/Isa/Ps2KeyboardDxe/Ps2KeyboardDxe.inf
 !endif
-
-#
-# SMBUS Support
-#
-INF UefiPayloadPkg/SmbusDxe/SMBusi801Dxe.inf
-INF UefiPayloadPkg/SmbusConfigLoaderDxe/SMBusConfigLoader.inf
 
 #
 # Console Support

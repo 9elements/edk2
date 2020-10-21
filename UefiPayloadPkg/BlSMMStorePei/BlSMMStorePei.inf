@@ -1,0 +1,54 @@
+#/** @file
+#
+#  Component description file for SMMSTORE module
+#
+#  Copyright (c) 2020, 9elements Agency GmbH<BR>
+#
+#  SPDX-License-Identifier: BSD-2-Clause-Patent
+#
+#**/
+[Defines]
+  INF_VERSION                    = 0x00010005
+  BASE_NAME                      = UefiPayloadBlSMMStorePei
+  FILE_GUID                      = 78491794-1228-4591-BB1E-D6C4063BCFDB
+  MODULE_TYPE                    = PEIM
+  VERSION_STRING                 = 1.0
+  ENTRY_POINT                    = BlSMMSTOREEntryPoint
+
+#
+# The following information is for reference only and not required by the build tools.
+#
+#  VALID_ARCHITECTURES           = IA32 X64
+#
+
+[Sources.common]
+  BlSMMStorePei.h
+  BlSMMStorePei.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+  MdeModulePkg/MdeModulePkg.dec
+  EmbeddedPkg/EmbeddedPkg.dec
+  UefiPayloadPkg/UefiPayloadPkg.dec
+
+[LibraryClasses]
+  BaseLib
+  DebugLib
+  HobLib
+  PcdLib
+  PeimEntryPoint
+
+[Guids]
+  gEfiSMMSTOREInfoHobGuid
+
+[Pcd]
+  gEfiMdeModulePkgTokenSpaceGuid.PcdFlashNvStorageVariableBase
+  gEfiMdeModulePkgTokenSpaceGuid.PcdFlashNvStorageVariableSize
+  gEfiMdeModulePkgTokenSpaceGuid.PcdFlashNvStorageFtwWorkingBase
+  gEfiMdeModulePkgTokenSpaceGuid.PcdFlashNvStorageFtwWorkingSize
+  gEfiMdeModulePkgTokenSpaceGuid.PcdFlashNvStorageFtwSpareBase
+  gEfiMdeModulePkgTokenSpaceGuid.PcdFlashNvStorageFtwSpareSize
+  gEfiMdeModulePkgTokenSpaceGuid.PcdEmuVariableNvModeEnable
+
+[Depex]
+  gEfiPeiMasterBootModePpiGuid

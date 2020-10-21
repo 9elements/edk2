@@ -218,14 +218,6 @@ BlSMMSTOREInitialise (
     return Status;
   }
 
-  // Update PCDs for Variable/RuntimeDxe
-  PcdSet32S (PcdFlashNvStorageVariableBase,
-      PcdGet32 (PcdFlashNvStorageVariableBase) + SMMStoreInfoHob->MmioAddress);
-  PcdSet32S (PcdFlashNvStorageFtwWorkingBase,
-      PcdGet32 (PcdFlashNvStorageFtwWorkingBase) + SMMStoreInfoHob->MmioAddress);
-  PcdSet32S (PcdFlashNvStorageFtwSpareBase,
-      PcdGet32 (PcdFlashNvStorageFtwSpareBase) + SMMStoreInfoHob->MmioAddress);
-
   mSMMStoreInstance = AllocateRuntimePool (sizeof(SMMSTORE_INSTANCE*));
   if (!mSMMStoreInstance) {
     DEBUG((EFI_D_ERROR, "%a: Out of resources\n", __FUNCTION__));
