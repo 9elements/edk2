@@ -432,41 +432,6 @@ DetectAndPreparePlatformPciDevicePaths (
   return VisitAllPciInstances (DetectAndPreparePlatformPciDevicePath);
 }
 
-
-/**
-  The function will connect root bridge
-
-   @return EFI_SUCCESS      Connect RootBridge successfully.
-
-**/
-EFI_STATUS
-ConnectRootBridge (
-  VOID
-)
-{
-  EFI_STATUS                Status;
-  EFI_HANDLE                RootHandle;
-
-  //
-  // Make all the PCI_IO protocols on PCI Seg 0 show up
-  //
-  Status = gBS->LocateDevicePath (
-             &gEfiDevicePathProtocolGuid,
-             &gPlatformRootBridges[0],
-             &RootHandle
-           );
-  if (EFI_ERROR (Status)) {
-    return Status;
-  }
-
-  Status = gBS->ConnectController (RootHandle, NULL, NULL, FALSE);
-  if (EFI_ERROR (Status)) {
-    return Status;
-  }
-
-  return EFI_SUCCESS;
-}
-
 /**
   Platform console init. Include the platform firmware vendor, revision
   and so crc check.
@@ -482,8 +447,6 @@ PlatformConsoleInit (
   gUartDeviceNode.DataBits = PcdGet8 (PcdUartDefaultDataBits);
   gUartDeviceNode.Parity   = PcdGet8 (PcdUartDefaultParity);
   gUartDeviceNode.StopBits = PcdGet8 (PcdUartDefaultStopBits);
-
-  ConnectRootBridge ();
 
   //
   // Do platform specific PCI Device check and add them to ConOut, ConIn, ErrOut
