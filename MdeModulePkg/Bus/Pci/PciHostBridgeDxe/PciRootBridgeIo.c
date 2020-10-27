@@ -117,25 +117,25 @@ CreateRootBridge (
   // Make sure Mem and MemAbove4G apertures are valid
   //
   if (RESOURCE_VALID (&Bridge->Mem)) {
-    ASSERT (Bridge->Mem.Limit < SIZE_4GB);
+    //ASSERT (Bridge->Mem.Limit < SIZE_4GB);
     if (Bridge->Mem.Limit >= SIZE_4GB) {
       return NULL;
     }
   }
   if (RESOURCE_VALID (&Bridge->MemAbove4G)) {
-    ASSERT (Bridge->MemAbove4G.Base >= SIZE_4GB);
+    //ASSERT (Bridge->MemAbove4G.Base >= SIZE_4GB);
     if (Bridge->MemAbove4G.Base < SIZE_4GB) {
       return NULL;
     }
   }
   if (RESOURCE_VALID (&Bridge->PMem)) {
-    ASSERT (Bridge->PMem.Limit < SIZE_4GB);
+    //ASSERT (Bridge->PMem.Limit < SIZE_4GB);
     if (Bridge->PMem.Limit >= SIZE_4GB) {
       return NULL;
     }
   }
   if (RESOURCE_VALID (&Bridge->PMemAbove4G)) {
-    ASSERT (Bridge->PMemAbove4G.Base >= SIZE_4GB);
+    //ASSERT (Bridge->PMemAbove4G.Base >= SIZE_4GB);
     if (Bridge->PMemAbove4G.Base < SIZE_4GB) {
       return NULL;
     }

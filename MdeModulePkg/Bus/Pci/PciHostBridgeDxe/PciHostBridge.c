@@ -420,7 +420,7 @@ InitializePciHostBridge (
     // Create Root Bridge Handle Instance
     //
     RootBridge = CreateRootBridge (&RootBridges[Index]);
-    ASSERT (RootBridge != NULL);
+    //ASSERT (RootBridge != NULL);
     if (RootBridge == NULL) {
       continue;
     }
