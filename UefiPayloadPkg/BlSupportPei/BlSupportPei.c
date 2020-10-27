@@ -372,7 +372,7 @@ MemInfoCallback (
       }
     } else if (Type == EFI_RESOURCE_MEMORY_MAPPED_IO) {
       BuildResourceDescriptorHob (
-          EFI_RESOURCE_MEMORY_RESERVED,
+          EFI_RESOURCE_MEMORY_MAPPED_IO,
           (EFI_RESOURCE_ATTRIBUTE_PRESENT    |
           EFI_RESOURCE_ATTRIBUTE_INITIALIZED |
           EFI_RESOURCE_ATTRIBUTE_UNCACHEABLE |
@@ -556,7 +556,7 @@ BlPeiEntryPoint (
   //
   // Report Local APIC range
   //
-  BuildMemoryMappedIoRangeHob (0xFEC80000, SIZE_512KB);
+  //BuildMemoryMappedIoRangeHob (0xFEC80000, SIZE_512KB);
 
   //
   // Boot mode
