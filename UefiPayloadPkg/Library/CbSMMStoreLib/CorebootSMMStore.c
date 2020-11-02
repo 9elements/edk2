@@ -8,23 +8,46 @@
 #include <Uefi.h>
 
 #include <Library/DebugLib.h>
+#include <Library/BaseLib.h>
 #include <Library/BaseMemoryLib.h>
 #include <Library/UefiRuntimeLib.h>
 #include <Library/SMMStoreLib.h>
 
 /*
- * calls into SMM with the given cmd and subcmd in eax, and arg in ebx
- *
- * static inline because the resulting assembly is often smaller than
- * the call sequence due to constant folding.
+ * calls into SMM to use the SMMSTORE implementation for persistent storage.
+ * The given cmd and subcmd is in eax and the argument in ebx.
+ * On successful invocation the result is in eax.
  */
-static inline UINT32 call_smm(UINT8 cmd, UINT8 subcmd, UINT32 arg) {
-	UINT32 res = ~0;
+static UINT32 call_smm(UINT8 cmd, UINT8 subcmd, UINT32 arg) {
+  CONST UINT32 eax = ((subcmd << 8) | cmd);
+  CONST UINT32 ebx = arg;
+  UINT32 res;
+  UINTN i;
+
+  /* Retry a few times to make sure it works */
+  for (i = 0; i < 5; i++) {
 	__asm__ __volatile__ (
-		"outb %b0, $0xb2"
-		: "=a" (res)
-		: "a" ((subcmd << 8) | cmd), "b" (arg)
-		: "memory");
+		"\toutb %b0, $0xb2\n"
+    : "=a" (res)
+    : "a" (eax), "b" (ebx)
+    : "memory");
+    if (res == eax) {
+      /**
+        There might ba a delay between writing the SMI trigger register and
+        entering SMM, in which case the SMI handler will do nothing as only
+        synchronous SMIs are handled. In addition when there's no SMI handler
+        or the SMMSTORE feature isn't compiled in, no register will be modified.
+
+        As there's no livesign from SMM, just wait a bit for the handler to fire,
+        and then try again.
+      **/
+      for (UINTN j = 0; j < 0x10000; j++)
+        CpuPause();
+    } else {
+      break;
+    }
+  }
+
 	return res;
 }
 
