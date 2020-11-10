@@ -24,6 +24,7 @@ A. INTRODUCTION
 B. HOW TO BUILD
 C. HOW TO INTEGRATE INTO COREBOOT
 D. HOW TO INTEGRATE INTO SLIM BOOTLOADER
+E. BOOTLOADER REQUIREMENTS
 
 ================================================================================
 A. INTRODUCTION
@@ -78,3 +79,38 @@ Please refer https://slimbootloader.github.io/how-tos/integrate-multiple-payload
 2. Update config data to make UEFI payload as default payload if required.
 3. Build Slim Bootloader with UEFI payload:
    BuildLoader.py build <Platform> -p "OsLoader.efi:LLDR:Lz4;UefiPld.fd:UEFI:Lzma"
+
+================================================================================
+E. BOOTLOADER REQUIREMENTS
+================================================================================
+The bootloader has done the following steps prior to running this software:
+1. It has initialized the core hardware
+   The core hardware consists out of the following, but not limited to:
+     - CPU
+     - DRAM
+     - Northbridge
+     - Southbridge
+     - GPIOs
+     - PCI devices
+   The following hardware is initialized and usable, but might not have been
+   initialized in an user visible manner (for example no video):
+     - USB
+     - PS/2
+     - Video controllers
+     - Network devices
+     - Serial
+2. It has secured the hardware registers
+   This includes but is not limited to:
+     - SMM has been installed and locked
+     - Microcode updates have been loaded
+     - Platform registers have been locked
+3. It has enumerated PCI devices and assigned all BARs, including Option ROMs BARs
+   This includes but is not limited to:
+     - Configured PREFMEM on PCI bridge devices
+     - Assigned PCI BARs not conflicting with other resources
+     - Assigned PCI BARs are decoding cycles
+     - Assigned PCI Option ROM BARs not conflicting with other resources
+     - Assigned PCI Option ROM BARs cycle decoding might be enabled, but don't have to
+     - Enabled PCIe ASPM where supported
+4. It has set up MTRRs to best match
+5. It has actived the ACPI PM timer and provides it's address in a handoff table
