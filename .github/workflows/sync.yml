@@ -4,18 +4,19 @@ name: Sync Tianocore master
 
 on:
   schedule:
-    - cron: '0 6 * * *'   # every day at 6:00 a.m.
+    - cron: '0 6 * * 1'   # every monday at 6:00 a.m.
   workflow_dispatch:   # on button click
 
 jobs:
   sync:
     runs-on: ubuntu-latest
     steps:
-      - name: Rebase master
+      - name: Merge upstream master
         uses: tgymnich/fork-sync@v1.2.1
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
+          pr_title: "Sync master upstream"
           owner: tianocore
           base: master
           head: master
-          merge_method: rebase
+          merge_method: merge
