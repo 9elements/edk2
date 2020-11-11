@@ -397,8 +397,7 @@ DetectAndPreparePlatformPciDevicePath (
     // Add them to ConOut.
     //
     DEBUG ((DEBUG_INFO, "Found PCI Display device\n"));
-    Status = EfiBootManagerConnectVideoController(Handle);
-    ASSERT_EFI_ERROR (Status);
+    EfiBootManagerConnectVideoController(Handle);
 
     return EFI_SUCCESS;
   }
