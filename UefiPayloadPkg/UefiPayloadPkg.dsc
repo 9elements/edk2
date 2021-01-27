@@ -755,6 +755,7 @@
   MdeModulePkg/Universal/EbcDxe/EbcDxe.inf
 
   UefiPayloadPkg/BlSupportDxe/BlSupportDxe.inf
+  UefiPayloadPkg/BlSupportDxe/BlSupportDxeSmbios.inf
 
   #
   # SMBIOS Support

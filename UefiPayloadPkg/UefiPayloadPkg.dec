@@ -64,6 +64,11 @@
 
   gUniversalPayloadPlatformBootManagerOverrideProtocolGuid = { 0xdb3fc2df, 0x7376, 0x4a8d, { 0x82, 0xab, 0x91, 0x54, 0xa1, 0x36, 0xa6, 0x5a } }
 
+  #
+  # Mainboard NULL protocol GUIDs
+  #
+  gEfiProdriveHermesBoardNullGuid = { 0x7ac6a647, 0x1067, 0x4738, { 0xb9, 0x99, 0x62, 0x96, 0xcc, 0x04, 0x8e, 0xe8 } }
+
 ################################################################################
 #
 # PCD Declarations section - list of all PCDs Declared by this Package
