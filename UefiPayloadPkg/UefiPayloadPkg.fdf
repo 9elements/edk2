@@ -94,6 +94,7 @@ APRIORI DXE {
   INF MdeModulePkg/Universal/FaultTolerantWriteDxe/FaultTolerantWriteDxe.inf # After BlSMMStoreDxe, RuntimeDxe
 !endif
   INF  MdeModulePkg/Universal/Variable/RuntimeDxe/VariableRuntimeDxe.inf # After FaultTolerantWriteDxe
+  INF  UefiPayloadPkg/SmbusConfigLoaderDxe/SMBusConfigLoader.inf
 !if $(SECURE_BOOT_ENABLE) == TRUE
   INF  PcAtChipsetPkg/PcatRealTimeClockRuntimeDxe/PcatRealTimeClockRuntimeDxe.inf
   INF  SecurityPkg/VariableAuthenticated/SecureBootDefaultKeysDxe/SecureBootDefaultKeysDxe.inf # After SMBusConfigLoader and PcatRealTimeClockRuntimeDxe, before Tcg2Dxe
