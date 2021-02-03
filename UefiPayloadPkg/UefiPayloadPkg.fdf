@@ -143,6 +143,18 @@ APRIORI DXE {
   INF  MdeModulePkg/Universal/ReportStatusCodeRouter/RuntimeDxe/ReportStatusCodeRouterRuntimeDxe.inf
   INF  MdeModulePkg/Universal/StatusCodeHandler/RuntimeDxe/StatusCodeHandlerRuntimeDxe.inf
   INF  UefiPayloadPkg/BlSupportDxe/BlSupportDxe.inf
+  INF  MdeModulePkg/Core/RuntimeDxe/RuntimeDxe.inf
+!if $(VARIABLE_SUPPORT) == "SMMSTORE"
+  INF  UefiPayloadPkg/SmmStoreFvb/SmmStoreFvbRuntimeDxe.inf # After DevicePathDxe
+  INF  MdeModulePkg/Universal/FaultTolerantWriteDxe/FaultTolerantWriteDxe.inf # After SmmStoreFvbRuntimeDxe, RuntimeDxe
+!endif
+!if $(VARIABLE_SUPPORT) == "EMU" || $(VARIABLE_SUPPORT) == "SMMSTORE"
+  INF  MdeModulePkg/Universal/Variable/RuntimeDxe/VariableRuntimeDxe.inf # After FaultTolerantWriteDxe
+!endif
+!if $(SECURE_BOOT_ENABLE) == TRUE
+  INF  PcAtChipsetPkg/PcatRealTimeClockRuntimeDxe/PcatRealTimeClockRuntimeDxe.inf
+  INF  UefiPayloadPkg/SecureBootEnrollDefaultKeys/SecureBootSetup.inf # After PcatRealTimeClockRuntimeDxe, before Tcg2Dxe
+!endif
 }
 
 #
