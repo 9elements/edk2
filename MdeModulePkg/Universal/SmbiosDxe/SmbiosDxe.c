@@ -1409,6 +1409,177 @@ SmbiosTableConstruction (
 }
 
 /**
+  Validates a SMBIOS 2.0 table entry point.
+
+  @param  EntryPointStructure   The SMBIOS_TABLE_ENTRY_POINT to validate.
+
+  @retval TRUE           SMBIOS table entry point is valid.
+  @retval FALSE          SMBIOS table entry point is malformed.
+
+**/
+STATIC
+BOOLEAN
+ValidateSmbios20Table(
+  IN SMBIOS_TABLE_ENTRY_POINT      *EntryPointStructure
+) {
+  UINT8 Checksum;
+
+  if (CompareMem (EntryPointStructure->AnchorString, "_SM_", 4) != 0) {
+    return FALSE;
+  }
+  if (EntryPointStructure->EntryPointLength < 0x1E) {
+    return FALSE;
+  }
+  if (EntryPointStructure->MajorVersion < 2) {
+    return FALSE;
+  }
+  if (EntryPointStructure->SmbiosBcdRevision > 0 &&
+    (EntryPointStructure->SmbiosBcdRevision >> 4) < 2) {
+    return FALSE;
+  }
+  if (EntryPointStructure->TableLength == 0) {
+    return FALSE;
+  }
+  if (EntryPointStructure->TableAddress == 0 ||
+    EntryPointStructure->TableAddress == ~0) {
+    return FALSE;
+  }
+
+  Checksum = CalculateSum8((UINT8 *) EntryPointStructure,
+    EntryPointStructure->EntryPointLength);
+  if (Checksum != 0) {
+    return FALSE;
+  }
+
+  Checksum = CalculateSum8((UINT8 *) EntryPointStructure + 0x10,
+    EntryPointStructure->EntryPointLength - 0x10);
+  if (Checksum != 0) {
+    return FALSE;
+  }
+  return TRUE;
+}
+
+/**
+  Validates a SMBIOS 3.0 table entry point.
+
+  @param  Smbios30EntryPointStructure   The SMBIOS_TABLE_3_0_ENTRY_POINT to validate.
+
+  @retval TRUE           SMBIOS table entry point is valid.
+  @retval FALSE          SMBIOS table entry point is malformed.
+
+**/
+STATIC
+BOOLEAN
+ValidateSmbios30Table(
+  IN SMBIOS_TABLE_3_0_ENTRY_POINT  *Smbios30EntryPointStructure
+) {
+  UINT8 Checksum;
+
+  if (CompareMem (Smbios30EntryPointStructure->AnchorString, "_SM3_", 5) != 0) {
+    return FALSE;
+  }
+  if (Smbios30EntryPointStructure->EntryPointLength < 0x18) {
+    return FALSE;
+  }
+  if (Smbios30EntryPointStructure->MajorVersion < 3) {
+    return FALSE;
+  }
+  if (Smbios30EntryPointStructure->TableMaximumSize == 0) {
+    return FALSE;
+  }
+  if (Smbios30EntryPointStructure->TableAddress == 0 ||
+    Smbios30EntryPointStructure->TableAddress == ~0) {
+    return FALSE;
+  }
+
+  Checksum = CalculateSum8((UINT8 *) Smbios30EntryPointStructure,
+    Smbios30EntryPointStructure->EntryPointLength);
+  if (Checksum != 0) {
+    return FALSE;
+  }
+  return TRUE;
+}
+
+/**
+  Parse an existing SMBIOS table and insert it using SmbiosAdd.
+
+  @param  ImageHandle           The EFI_HANDLE to this driver.
+  @param  Smbios                The SMBIOS table to parse.
+  @param  Length                The length of the SMBIOS table.
+
+  @retval EFI_SUCCESS           SMBIOS table was parsed and installed.
+  @retval EFI_OUT_OF_RESOURCES  Record was not added due to lack of system resources.
+
+**/
+STATIC
+EFI_STATUS
+ParseAndAddExistingSmbiosTable(
+  IN EFI_HANDLE                    ImageHandle,
+  IN SMBIOS_STRUCTURE_POINTER      Smbios,
+  IN UINTN                         Length
+) {
+  EFI_STATUS                    Status;
+  CHAR8                         *String;
+  EFI_SMBIOS_HANDLE             SmbiosHandle;
+  SMBIOS_STRUCTURE_POINTER      SmbiosEnd;
+
+  SmbiosEnd.Raw = Smbios.Raw + Length;
+
+  do {
+    // Check for end marker
+    if (Smbios.Hdr->Type == 127) {
+      break;
+    }
+
+    // Install the table
+    SmbiosHandle = SMBIOS_HANDLE_PI_RESERVED;
+    Status = SmbiosAdd (
+      &mPrivateData.Smbios,
+      ImageHandle,
+      &SmbiosHandle,
+      Smbios.Hdr
+      );
+
+    ASSERT_EFI_ERROR (Status);
+    if (EFI_ERROR (Status)) {
+      return Status;
+    }
+    //
+    // Go to the next SMBIOS structure. Each SMBIOS structure may include 2 parts:
+    // 1. Formatted section; 2. Unformatted string section. So, 2 steps are needed
+    // to skip one SMBIOS structure.
+    //
+
+    //
+    // Step 1: Skip over formatted section.
+    //
+    String = (CHAR8 *) (Smbios.Raw + Smbios.Hdr->Length);
+
+    //
+    // Step 2: Skip over unformatted string section.
+    //
+    do {
+      //
+      // Each string is terminated with a NULL(00h) BYTE and the sets of strings
+      // is terminated with an additional NULL(00h) BYTE.
+      //
+      for ( ; *String != 0; String++) {
+      }
+
+      if (*(UINT8*)++String == 0) {
+        //
+        // Pointer to the next SMBIOS structure.
+        //
+        Smbios.Raw = (UINT8 *)++String;
+        break;
+      }
+    } while (TRUE);
+  } while (Smbios.Raw < SmbiosEnd.Raw);
+
+  return EFI_SUCCESS;
+}
+
+/**
 
   Driver to produce Smbios protocol and pre-allocate 1 page for the final SMBIOS table.
 
@@ -1426,7 +1597,10 @@ SmbiosDriverEntryPoint (
   IN EFI_SYSTEM_TABLE     *SystemTable
   )
 {
-  EFI_STATUS            Status;
+  EFI_STATUS                    Status;
+  SMBIOS_TABLE_ENTRY_POINT      *SmbiosTable;
+  SMBIOS_TABLE_3_0_ENTRY_POINT  *Smbios30Table;
+  SMBIOS_STRUCTURE_POINTER      Smbios;
 
   mPrivateData.Signature                = SMBIOS_INSTANCE_SIGNATURE;
   mPrivateData.Smbios.Add               = SmbiosAdd;
@@ -1450,6 +1624,51 @@ SmbiosDriverEntryPoint (
                   EFI_NATIVE_INTERFACE,
                   &mPrivateData.Smbios
                   );
+  //
+  // Scan for existing SMBIOS tables installed by bootloader
+  //
+  Status = EfiGetSystemConfigurationTable (
+               &gEfiSmbios3TableGuid,
+               (VOID **) &Smbios30Table
+               );
+  if (!EFI_ERROR (Status) && ValidateSmbios30Table(Smbios30Table)) {
+    Smbios.Raw = AllocatePool(Smbios30Table->TableMaximumSize);
+    if (!Smbios.Raw) {
+      return EFI_OUT_OF_RESOURCES;
+    }
+    //
+    // Backup old table in case it gets overwritten while parsing it
+    //
+    CopyMem (Smbios.Raw, (VOID *)Smbios30Table, Smbios30Table->TableMaximumSize);
+    Status = ParseAndAddExistingSmbiosTable(ImageHandle, Smbios, Smbios30Table->TableMaximumSize);
+    FreePool(Smbios.Raw);
+    if (EFI_ERROR (Status)) {
+      DEBUG ((DEBUG_ERROR, "SmbiosDriverEntryPoint: Failed to parse preinstalled tables\n"));
+      Status = EFI_SUCCESS;
+    }
+  }
 
-  return Status;
+  Status = EfiGetSystemConfigurationTable (
+               &gEfiSmbiosTableGuid,
+               (VOID **) &SmbiosTable
+               );
+  if (!EFI_ERROR (Status) && ValidateSmbios20Table(SmbiosTable)) {
+    Smbios.Raw = AllocatePool(SmbiosTable->TableLength);
+    if (!Smbios.Raw) {
+      return EFI_OUT_OF_RESOURCES;
+    }
+    //
+    // Backup old table in case it gets overwritten while parsing it
+    //
+    CopyMem (Smbios.Raw, (VOID *)(UINTN)SmbiosTable->TableAddress, SmbiosTable->TableLength);
+
+    Status = ParseAndAddExistingSmbiosTable(ImageHandle, Smbios, SmbiosTable->TableLength);
+    FreePool(Smbios.Raw);
+    if (EFI_ERROR (Status)) {
+      DEBUG ((DEBUG_ERROR, "SmbiosDriverEntryPoint: Failed to parse preinstalled tables\n"));
+      Status = EFI_SUCCESS;
+    }
+  }
+
+  return EFI_SUCCESS;
 }
