@@ -260,6 +260,7 @@
   #
   # Misc
   #
+  CbmemConsoleLib|UefiPayloadPkg/Library/CbmemConsoleLib/CbmemConsoleLib.inf
   DebugPrintErrorLevelLib|MdePkg/Library/BaseDebugPrintErrorLevelLib/BaseDebugPrintErrorLevelLib.inf
   PerformanceLib|MdePkg/Library/BasePerformanceLibNull/BasePerformanceLibNull.inf
 !if $(SOURCE_DEBUG_ENABLE) == TRUE
