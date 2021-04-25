@@ -866,6 +866,7 @@
   OvmfPkg/VirtioBlkDxe/VirtioBlk.inf
   OvmfPkg/VirtioScsiDxe/VirtioScsi.inf
   OvmfPkg/VirtioSerialDxe/VirtioSerial.inf
+  OvmfPkg/IgdAssignmentDxe/IgdAssignment.inf
 !if $(PVSCSI_ENABLE) == TRUE
   OvmfPkg/PvScsiDxe/PvScsiDxe.inf
 !endif
