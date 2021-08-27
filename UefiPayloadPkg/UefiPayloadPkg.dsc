@@ -63,6 +63,9 @@
   # Enabling the serial terminal will slow down the boot menu redering!
   DEFINE DISABLE_SERIAL_TERMINAL      = FALSE
 
+  # Enabling the stub console disables the real console
+  DEFINE USE_STUB_CONSOLE             = FALSE
+
   #
   #  typedef struct {
   #    UINT16  VendorId;          ///< Vendor ID to match the PCI device.  The value 0xFFFF terminates the list of entries.
@@ -220,8 +223,13 @@
   #
   TimerLib|UefiPayloadPkg/Library/AcpiTimerLib/AcpiTimerLib.inf
   ResetSystemLib|UefiPayloadPkg/Library/ResetSystemLib/ResetSystemLib.inf
+!if $(USE_STUB_CONSOLE) == TRUE
+  SerialPortLib|UefiPayloadPkg/Library/StubSerialPortLib/StubSerialPortLib.inf
+  PlatformHookLib|MdeModulePkg/Library/BasePlatformHookLibNull/BasePlatformHookLibNull.inf
+!else
   SerialPortLib|MdeModulePkg/Library/BaseSerialPortLib16550/BaseSerialPortLib16550.inf
   PlatformHookLib|UefiPayloadPkg/Library/PlatformHookLib/PlatformHookLib.inf
+!endif
   PlatformBootManagerLib|UefiPayloadPkg/Library/PlatformBootManagerLib/PlatformBootManagerLib.inf
   IoApicLib|PcAtChipsetPkg/Library/BaseIoApicLib/BaseIoApicLib.inf
 
