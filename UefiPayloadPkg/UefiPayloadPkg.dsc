@@ -261,6 +261,7 @@
   # Misc
   #
   CbmemConsoleLib|UefiPayloadPkg/Library/CbmemConsoleLib/CbmemConsoleLib.inf
+  DebugLib|UefiPayloadPkg/Library/BaseDebugConsoleLib/BaseDebugLibConsole.inf
   DebugPrintErrorLevelLib|MdePkg/Library/BaseDebugPrintErrorLevelLib/BaseDebugPrintErrorLevelLib.inf
   PerformanceLib|MdePkg/Library/BasePerformanceLibNull/BasePerformanceLibNull.inf
 !if $(SOURCE_DEBUG_ENABLE) == TRUE
@@ -279,7 +280,6 @@
   !endif
 !endif
 
-  DebugLib|MdePkg/Library/BaseDebugLibSerialPort/BaseDebugLibSerialPort.inf
   LockBoxLib|MdeModulePkg/Library/LockBoxNullLib/LockBoxNullLib.inf
   FileExplorerLib|MdeModulePkg/Library/FileExplorerLib/FileExplorerLib.inf
   ShellCEntryLib|ShellPkg/Library/UefiShellCEntryLib/UefiShellCEntryLib.inf
