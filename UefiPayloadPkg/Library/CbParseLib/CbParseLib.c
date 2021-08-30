@@ -445,6 +445,33 @@ ParseSystemTable (
 
 
 /**
+  Find the in-memory console log buffer information
+
+  @param  SERIAL_PORT_INFO   Pointer to serial port info structure
+
+  @retval RETURN_SUCCESS     Successfully find the serial port information.
+  @retval RETURN_NOT_FOUND   Failed to find the serial port information .
+
+**/
+RETURN_STATUS
+EFIAPI
+ParseCbMemConsoleLogBufferInfo (
+  OUT VOID     **CbmemPhysAddress
+  )
+{
+  struct cb_cbmem_ref          *CbMemRef;
+
+  CbMemRef = FindCbTag (CB_TAG_CBMEM_CONSOLE);
+  if (CbMemRef == NULL) {
+    return RETURN_NOT_FOUND;
+  }
+
+  *CbmemPhysAddress = (VOID *)(UINTN)CbMemRef->cbmem_addr;
+
+  return RETURN_SUCCESS;
+}
+
+/**
   Find the serial port information
 
   @param  SERIAL_PORT_INFO   Pointer to serial port info structure

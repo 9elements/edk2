@@ -73,6 +73,22 @@ ParseSystemTable (
   );
 
 
+
+/**
+  Find the in-memory console log buffer information
+
+  @param  VOID**   Pointer to the console log buffer's pointer
+
+  @retval RETURN_SUCCESS     Successfully find the serial port information.
+  @retval RETURN_NOT_FOUND   Failed to find the serial port information .
+
+**/
+RETURN_STATUS
+EFIAPI
+ParseCbMemConsoleLogBufferInfo (
+  OUT VOID     **BufferPhysAddress
+  );
+
 /**
   Find the serial port information
 
