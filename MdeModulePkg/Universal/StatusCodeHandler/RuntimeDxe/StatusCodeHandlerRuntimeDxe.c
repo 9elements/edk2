@@ -79,7 +79,7 @@ InitializationDispatcherWorker (
     // Call Serial Port Lib API to initialize serial port.
     //
     Status = SerialPortInitialize ();
-    ASSERT_EFI_ERROR (Status);
+    if (Status != RETURN_SUCCESS) return;
   }
   if (PcdGetBool (PcdStatusCodeUseMemory)) {
     Status = RtMemoryStatusCodeInitializeWorker ();

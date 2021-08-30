@@ -49,7 +49,7 @@ PlatformHookSerialPortInitialize (
 
   Status = ParseSerialInfo (&SerialPortInfo);
   if (RETURN_ERROR (Status)) {
-    return Status;
+    return RETURN_SUCCESS;
   }
 
   if (SerialPortInfo.Type == PLD_SERIAL_TYPE_MEMORY_MAPPED) {
