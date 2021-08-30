@@ -96,6 +96,7 @@ APRIORI DXE {
 !if $(SECURE_BOOT_ENABLE) == TRUE
   INF  PcAtChipsetPkg/PcatRealTimeClockRuntimeDxe/PcatRealTimeClockRuntimeDxe.inf
   INF  SecurityPkg/VariableAuthenticated/SecureBootDefaultKeysDxe/SecureBootDefaultKeysDxe.inf # After SMBusConfigLoader and PcatRealTimeClockRuntimeDxe, before Tcg2Dxe
+  INF  UefiPayloadPkg/SecureBootEnrollDefaultKeys/SecureBootSetup.inf
 !endif
 }
 
@@ -293,6 +294,7 @@ INF SecurityPkg/RandomNumberGenerator/RngDxe/RngDxe.inf
 !if $(SECURE_BOOT_ENABLE) == TRUE
   INF  SecurityPkg/VariableAuthenticated/SecureBootConfigDxe/SecureBootConfigDxe.inf
   INF  SecurityPkg/VariableAuthenticated/SecureBootDefaultKeysDxe/SecureBootDefaultKeysDxe.inf
+  INF  UefiPayloadPkg/SecureBootEnrollDefaultKeys/SecureBootSetup.inf
 
   FILE FREEFORM = 85254ea7-4759-4fc4-82d4-5eed5fb0a4a0 {
     SECTION RAW = UefiPayloadPkg/SecureBootEnrollDefaultKeys/keys/pk.crt

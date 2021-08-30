@@ -19,6 +19,7 @@
 #include <Library/UefiRuntimeServicesTableLib.h>
 #include <Library/SecureBootVariableLib.h>
 #include <Library/SecureBootVariableProvisionLib.h>
+#include <Library/DxeServicesLib.h>
 
 /**
   Enroll a key/certificate based on a default variable.
@@ -111,6 +112,7 @@ SecureBootInitPKDefault (
   }
 
   if (EFI_ERROR (Status) && (Status != EFI_NOT_FOUND)) {
+    DEBUG ((DEBUG_INFO, "Variable %s read error.\n", EFI_PK_DEFAULT_VARIABLE_NAME));
     return Status;
   }
 
@@ -259,10 +261,10 @@ SecureBootInitDbxDefault (
   IN VOID
   )
 {
-  EFI_SIGNATURE_LIST *EfiSig;
-  UINTN               SigListsSize;
+  UINTN               Size;
   EFI_STATUS          Status;
   UINT8              *Data;
+  VOID               *Buffer;
   UINTN               DataSize;
 
   //
@@ -284,7 +286,13 @@ SecureBootInitDbxDefault (
   //
   DEBUG ((DEBUG_INFO, "Variable %s does not exist.\n", EFI_DBX_DEFAULT_VARIABLE_NAME));
 
-  Status = SecureBootFetchData (&gDefaultdbxFileGuid, &SigListsSize, &EfiSig);
+  Status = GetSectionFromAnyFv (
+             &gDefaultdbxFileGuid,
+             EFI_SECTION_RAW,
+             0,
+             &Buffer,
+             &Size
+             );
   if (EFI_ERROR (Status)) {
     DEBUG ((DEBUG_INFO, "Content for %s not found\n", EFI_DBX_DEFAULT_VARIABLE_NAME));
     return Status;
@@ -294,14 +302,12 @@ SecureBootInitDbxDefault (
                   EFI_DBX_DEFAULT_VARIABLE_NAME,
                   &gEfiGlobalVariableGuid,
                   EFI_VARIABLE_RUNTIME_ACCESS | EFI_VARIABLE_BOOTSERVICE_ACCESS,
-                  SigListsSize,
-                  (VOID *)EfiSig
+                  Size,
+                  (VOID *)Buffer
                   );
   if (EFI_ERROR (Status)) {
     DEBUG ((DEBUG_INFO, "Failed to set %s\n", EFI_DBX_DEFAULT_VARIABLE_NAME));
   }
-
-  FreePool (EfiSig);
 
   return Status;
 }

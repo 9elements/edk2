@@ -45,6 +45,8 @@
   UefiDriverEntryPoint
   DxeServicesLib
   UefiBootServicesTableLib
+  SecureBootVariableProvisionLib
+  SecureBootVariableLib
 
 [Protocols]
   gEfiTcgProtocolGuid                                ## CONSUMES

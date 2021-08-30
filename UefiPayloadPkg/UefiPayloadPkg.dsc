@@ -577,6 +577,7 @@
 !if $(SECURE_BOOT_ENABLE) == TRUE
   SecurityPkg/VariableAuthenticated/SecureBootConfigDxe/SecureBootConfigDxe.inf
   SecurityPkg/VariableAuthenticated/SecureBootDefaultKeysDxe/SecureBootDefaultKeysDxe.inf
+  UefiPayloadPkg/SecureBootEnrollDefaultKeys/SecureBootSetup.inf
 !endif
 
   UefiCpuPkg/CpuDxe/CpuDxe.inf
