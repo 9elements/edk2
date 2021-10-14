@@ -870,6 +870,11 @@ UsbIoPortReset (
   DEBUG (( EFI_D_INFO, "UsbIoPortReset: device is now ADDRESSED at %d\n", Dev->Address));
 
   //
+  // The description will be invalid after reset, should rebuild it as well
+  //
+  UsbBuildDescTable (Dev);
+
+  //
   // Reset the current active configure, after this device
   // is in CONFIGURED state.
   //
