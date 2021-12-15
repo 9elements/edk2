@@ -132,6 +132,9 @@
   # IPXE support
   #
   DEFINE NETWORK_IPXE                   = FALSE
+  DEFINE NETWORK_IPXE_IP4_IP6           = FALSE
+  DEFINE NETWORK_IPXE_IP4               = FALSE
+  DEFINE NETWORK_IPXE_IP6               = FALSE
 
   # Dfine the maximum size of the capsule image without a reset flag that the platform can support.
   DEFINE MAX_SIZE_NON_POPULATE_CAPSULE = 0xa00000

@@ -278,9 +278,11 @@ PlatformBootManagerAfterConsole (
   PlatformRegisterFvBootOption (PcdGetPtr (PcdShellFile), L"UEFI Shell", LOAD_OPTION_ACTIVE);
 
   //
-  // Register iPXE
+  // Register iPXE's
   //
-  PlatformRegisterFvBootOption (PcdGetPtr (PcdiPXEFile), L"iPXE Network boot", LOAD_OPTION_ACTIVE);
+  PlatformRegisterFvBootOption (PcdGetPtr (PcdiPXEFileIp4Ip6), L"iPXE Network boot IPv4 and IPV6", LOAD_OPTION_ACTIVE);
+  PlatformRegisterFvBootOption (PcdGetPtr (PcdiPXEFileIp4), L"iPXE Network boot IPv4", LOAD_OPTION_ACTIVE);
+  PlatformRegisterFvBootOption (PcdGetPtr (PcdiPXEFileIp6), L"iPXE Network boot IPv6", LOAD_OPTION_ACTIVE);
 
   if (FixedPcdGetBool (PcdBootManagerEscape)) {
     Print (
