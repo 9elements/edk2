@@ -1,0 +1,50 @@
+## @file
+# Instance of MCTP core library.
+#
+# MCTP core implementation that uses the MCTP transport library to provide MCTP
+# message and endpoint support.
+#
+# Copyright (c) 2022 9elements GmbH
+#
+#  SPDX-License-Identifier: BSD-2-Clause-Patent
+#
+#
+##
+
+[Defines]
+  INF_VERSION                    = 0x00010005
+  BASE_NAME                      = MctpCoreLib
+  FILE_GUID                      = F3FC4653-408C-4B4D-9477-572CE9CBFB00
+  MODULE_TYPE                    = BASE
+  VERSION_STRING                 = 1.0
+  LIBRARY_CLASS                  = MctpCoreLib
+  CONSTRUCTOR                    = MctpCoreLibConstructor
+
+#
+#  VALID_ARCHITECTURES           = IA32 X64 ARM AARCH64 RISCV64
+#
+
+[Sources]
+  Control.c
+  Core.c
+  Endpoints.c
+  Requests.c
+  Requests.h
+
+[Packages]
+  MdePkg/MdePkg.dec
+
+[LibraryClasses]
+  BaseLib
+  BaseMemoryLib
+  DebugLib
+  MctpTransportLib
+
+[Guids]
+  gEfiHobMemoryAllocStackGuid                   ## SOMETIMES_PRODUCES ## HOB # MemoryAllocation StackHob
+  gEfiHobMemoryAllocBspStoreGuid                ## SOMETIMES_PRODUCES ## HOB # MemoryAllocation BspStoreHob
+  gEfiHobMemoryAllocModuleGuid                  ## SOMETIMES_PRODUCES ## HOB # MemoryAllocation ModuleHob
+
+[Pcd]
+  gEfiMdePkgTokenSpaceGuid.PcdMctpPhysicalMtu            ##CONSUMED
+  gEfiMdePkgTokenSpaceGuid.PcdMctpPhysicalContextSize    ##CONSUMED

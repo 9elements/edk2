@@ -2357,6 +2357,29 @@
   # @Prompt USB Transfer Timeout (ms).
   gEfiMdePkgTokenSpaceGuid.PcdUsbTransferTimeoutValue|3000|UINT32|0x00000026
 
+  ## This value is used to set the base address of the Aspeed LPC MMIO window.
+  gEfiMdePkgTokenSpaceGuid.PcdAspeedLPCWindowBaseAddress|0|UINT32|0x00000050
+
+  ## This value is used to set the size of the Aspeed LPC MMIO window.
+  gEfiMdePkgTokenSpaceGuid.PcdAspeedLPCWindowSize|0|UINT32|0x00000051
+
+  ## This value is used to set the base address of the MCTP I/O KCS interface
+  gEfiMdePkgTokenSpaceGuid.PcdMctpKcsPort|0|UINT32|0x00000052
+
+  ## Use 0 for memory mapped I/O. 1 for I/O port access.
+  gEfiMdePkgTokenSpaceGuid.PcdMctpKcsType|0|UINT8|0x00000053
+
+  ## The maximum medium specific MTU to use for MCTP messages
+  gEfiMdePkgTokenSpaceGuid.PcdMctpMtu|64|UINT32|0x00000054
+
+  ## The maximum possible packetsize on the MCTP physical layer.
+  ## This must be at least as big as PcdMctpMtu. Usually a medium specific
+  ## header or checksum is transceived which must be accounted here as well.
+  gEfiMdePkgTokenSpaceGuid.PcdMctpPhysicalMtu|64|UINT32|0x00000055
+
+  ## The maximum possible context size of the MCTP physical library.
+  gEfiMdePkgTokenSpaceGuid.PcdMctpPhysicalContextSize|64|UINT32|0x00000056
+
   ## This value is used to set the available memory address to store Guided Extract Handlers.
   #  The required memory space is decided by the value of PcdMaximumGuidedExtractHandler.
   # @Prompt Memory Address of GuidedExtractHandler Table.

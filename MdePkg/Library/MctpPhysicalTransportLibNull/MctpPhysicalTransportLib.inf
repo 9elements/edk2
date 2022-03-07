@@ -1,0 +1,35 @@
+## @file
+# Instance of Aspeed LPC MCTP Physical transport lib.
+#
+# Aspeed platform specific Library implementation that provides a MCTP physical transport.
+#
+# Copyright (c) 2022 9elements GmbH
+#
+#  SPDX-License-Identifier: BSD-2-Clause-Patent
+#
+#
+##
+
+[Defines]
+  INF_VERSION                    = 0x00010005
+  BASE_NAME                      = AspeedLPCMctpPhysicalTransportLib
+  FILE_GUID                      = 0F588E5E-6A65-4C81-89E5-D617DDF024DF
+  MODULE_TYPE                    = BASE
+  VERSION_STRING                 = 1.0
+  LIBRARY_CLASS                  = MctpPhysicalTransportLib
+#  CONSTRUCTOR                    = MctpTransportLibConstructor
+
+#
+#  VALID_ARCHITECTURES           = IA32 X64 ARM AARCH64 RISCV64
+#
+
+[Sources]
+  PhysicalTransport.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+
+[Guids]
+  gEfiHobMemoryAllocStackGuid                   ## SOMETIMES_PRODUCES ## HOB # MemoryAllocation StackHob
+  gEfiHobMemoryAllocBspStoreGuid                ## SOMETIMES_PRODUCES ## HOB # MemoryAllocation BspStoreHob
+  gEfiHobMemoryAllocModuleGuid                  ## SOMETIMES_PRODUCES ## HOB # MemoryAllocation ModuleHob
