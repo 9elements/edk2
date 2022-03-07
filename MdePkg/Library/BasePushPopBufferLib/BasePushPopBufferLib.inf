@@ -1,0 +1,27 @@
+## @file
+#
+# @copyright
+# Copyright 2022 9elements GmbH <BR>
+#
+##
+
+[Defines]
+  INF_VERSION                    = 0x00010005
+  BASE_NAME                      = BasePushPopBufferLib
+  FILE_GUID                      = D33DBC75-D19F-4A7A-95E1-E1E0C0DC0319
+  MODULE_TYPE                    = BASE
+  VERSION_STRING                 = 1.0
+  LIBRARY_CLASS                  = BasePushPopBufferLib
+
+[Sources]
+  Buffer.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+  WhitleyOpenboardPkg/PlatformPkg.dec
+  ServerSiliconPkg/SiliconPkg.dec
+
+[LibraryClasses]
+  BaseLib
+  BaseMemoryLib
+

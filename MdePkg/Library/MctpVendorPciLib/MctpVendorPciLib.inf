@@ -1,0 +1,46 @@
+## @file
+# Instance of MCTP Vendor PCI messages.
+#
+# MCTP Vendor PCI implementation that uses MCTP core library to provide vendor
+# specific MCTP message support.
+#
+# Copyright (c) 2022 9elements GmbH
+#
+#  SPDX-License-Identifier: BSD-2-Clause-Patent
+#
+#
+##
+
+[Defines]
+  INF_VERSION                    = 0x00010005
+  BASE_NAME                      = MctpVendorPCILib
+  FILE_GUID                      = 92EDC6F8-4326-4207-A938-124772D6CC52
+  MODULE_TYPE                    = BASE
+  VERSION_STRING                 = 1.0
+  LIBRARY_CLASS                  = MctpVendorPCILib
+  CONSTRUCTOR                    = MctpVendorPCILibConstructor
+
+#
+#  VALID_ARCHITECTURES           = IA32 X64 ARM AARCH64 RISCV64
+#
+
+[Sources]
+  PCIVendor.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+
+[LibraryClasses]
+  BaseLib
+  BaseMemoryLib
+  DebugLib
+  MctpCoreLib
+
+[Guids]
+  gEfiHobMemoryAllocStackGuid                   ## SOMETIMES_PRODUCES ## HOB # MemoryAllocation StackHob
+  gEfiHobMemoryAllocBspStoreGuid                ## SOMETIMES_PRODUCES ## HOB # MemoryAllocation BspStoreHob
+  gEfiHobMemoryAllocModuleGuid                  ## SOMETIMES_PRODUCES ## HOB # MemoryAllocation ModuleHob
+
+[Pcd]
+  gEfiMdePkgTokenSpaceGuid.PcdMctpPhysicalMtu            ##CONSUMED
+  gEfiMdePkgTokenSpaceGuid.PcdMctpPhysicalContextSize    ##CONSUMED

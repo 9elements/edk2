@@ -1,0 +1,51 @@
+## @file
+# Instance of MCTP Transport library.
+#
+# MCTP transport implementation intended for PEI to provide MCTP message fragmentation
+# and MCTP message assembly.
+#
+# Copyright (c) 2022 9elements GmbH
+#
+#  SPDX-License-Identifier: BSD-2-Clause-Patent
+#
+#
+##
+
+[Defines]
+  INF_VERSION                    = 0x00010005
+  BASE_NAME                      = MctpTransportLib
+  FILE_GUID                      = E1D240A7-171D-477B-A0EA-E3899FBDD193
+  MODULE_TYPE                    = BASE
+  VERSION_STRING                 = 1.0
+  LIBRARY_CLASS                  = MctpTransportLib
+  CONSTRUCTOR                    = MctpTransportLibConstructor
+
+#
+#  VALID_ARCHITECTURES           = IA32 X64 ARM AARCH64 RISCV64
+#
+
+[Sources]
+  Transport.c
+
+
+[Packages]
+  MdePkg/MdePkg.dec
+
+
+[LibraryClasses]
+  BaseMemoryLib
+  BaseLib
+  TimerLib
+  DebugLib
+  MctpPhysicalTransportLib
+
+[Guids]
+  gEfiHobMemoryAllocStackGuid                   ## SOMETIMES_PRODUCES ## HOB # MemoryAllocation StackHob
+  gEfiHobMemoryAllocBspStoreGuid                ## SOMETIMES_PRODUCES ## HOB # MemoryAllocation BspStoreHob
+  gEfiHobMemoryAllocModuleGuid                  ## SOMETIMES_PRODUCES ## HOB # MemoryAllocation ModuleHob
+
+[Pcd]
+  gEfiMdePkgTokenSpaceGuid.PcdMctpPhysicalMtu            ##CONSUMED
+  gEfiMdePkgTokenSpaceGuid.PcdMctpPhysicalContextSize    ##CONSUMED
+
+  
