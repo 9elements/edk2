@@ -160,7 +160,6 @@
   PpiListLib|EmulatorPkg/Library/SecPpiListLib/SecPpiListLib.inf
   PeiServicesLib|EmulatorPkg/Library/SecPeiServicesLib/SecPeiServicesLib.inf
 
-
 [LibraryClasses.common.PEIM, LibraryClasses.common.PEI_CORE]
   HobLib|MdePkg/Library/PeiHobLib/PeiHobLib.inf
   MemoryAllocationLib|MdePkg/Library/PeiMemoryAllocationLib/PeiMemoryAllocationLib.inf
@@ -179,6 +178,8 @@
   PcdLib|MdePkg/Library/PeiPcdLib/PeiPcdLib.inf
 
 [LibraryClasses.common.DXE_CORE]
+  DebugLib|MdePkg/Library/BaseDebugLibSerialPort/BaseDebugLibSerialPort.inf
+  SerialPortLib|EmulatorPkg/Library/DxeEmuStdErrSerialPortLib/DxeEmuStdErrSerialPortLib.inf
   HobLib|MdePkg/Library/DxeCoreHobLib/DxeCoreHobLib.inf
   MemoryAllocationLib|MdeModulePkg/Library/DxeCoreMemoryAllocationLib/DxeCoreMemoryAllocationLib.inf
   ReportStatusCodeLib|MdeModulePkg/Library/DxeReportStatusCodeLib/DxeReportStatusCodeLib.inf
@@ -187,6 +188,10 @@
   PcdLib|MdePkg/Library/BasePcdLibNull/BasePcdLibNull.inf
   TimerLib|EmulatorPkg/Library/DxeCoreTimerLib/DxeCoreTimerLib.inf
   EmuThunkLib|EmulatorPkg/Library/DxeEmuLib/DxeEmuLib.inf
+
+[LibraryClasses.common.DXE_DRIVER]
+  DebugLib|MdePkg/Library/BaseDebugLibSerialPort/BaseDebugLibSerialPort.inf
+  SerialPortLib|EmulatorPkg/Library/DxeEmuStdErrSerialPortLib/DxeEmuStdErrSerialPortLib.inf
 
 [LibraryClasses.common.DXE_DRIVER, LibraryClasses.common.UEFI_DRIVER, LibraryClasses.common.UEFI_APPLICATION]
 !if $(SECURE_BOOT_ENABLE) == TRUE
@@ -216,9 +221,9 @@
 [PcdsFixedAtBuild]
   gEfiMdeModulePkgTokenSpaceGuid.PcdImageProtectionPolicy|0x00000000
   gEfiMdeModulePkgTokenSpaceGuid.PcdResetOnMemoryTypeInformationChange|FALSE
-  gEfiMdePkgTokenSpaceGuid.PcdDebugPrintErrorLevel|0x80000040
+  gEfiMdePkgTokenSpaceGuid.PcdDebugPrintErrorLevel|0x8000004F
   gEfiMdePkgTokenSpaceGuid.PcdReportStatusCodePropertyMask|0x0f
-  gEfiMdePkgTokenSpaceGuid.PcdDebugPropertyMask|0x1f
+  gEfiMdePkgTokenSpaceGuid.PcdDebugPropertyMask|0xff
   gEfiMdeModulePkgTokenSpaceGuid.PcdMaxSizeNonPopulateCapsule|0x0
   gEfiMdeModulePkgTokenSpaceGuid.PcdMaxSizePopulateCapsule|0x0
   gEfiMdeModulePkgTokenSpaceGuid.PcdStatusCodeUseSerial|TRUE
@@ -420,6 +425,14 @@
   MdeModulePkg/Bus/Pci/PciBusDxe/PciBusDxe.inf
   MdeModulePkg/Bus/Scsi/ScsiBusDxe/ScsiBusDxe.inf
   MdeModulePkg/Bus/Scsi/ScsiDiskDxe/ScsiDiskDxe.inf
+
+  MdeModulePkg/Universal/MctpTestDxe/MctpTestDxe.inf {
+    <LibraryClasses>
+      MctpVendorPciLib|MdePkg/Library/MctpVendorPciLib/MctpVendorPciLib.inf
+      MctpCoreLib|MdePkg/Library/MctpCoreLib/MctpCoreLib.inf
+      MctpTransportLib|MdePkg/Library/MctpSimpleTransportLib/MctpSimpleTransportLib.inf
+      MctpPhysicalTransportLib|MdePkg/Library/MctpPhysicalTransportLibNull/MctpPhysicalTransportLib.inf
+  }
 
   EmulatorPkg/EmuBusDriverDxe/EmuBusDriverDxe.inf
   EmulatorPkg/EmuGopDxe/EmuGopDxe.inf

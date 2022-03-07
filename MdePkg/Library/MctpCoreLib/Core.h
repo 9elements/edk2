@@ -1,0 +1,9 @@
+
+
+#define MCTP_MAX_SUPPORTED_VENDOR_MSG 8
+
+extern UINT8 SupportedMessageTypes[MCTP_MAX_DEFINED_MESSAGE_TYPES];
+extern UINT8 NumSupportedMessageTypes;
+
+extern MCTP_CONTROL_VENDOR_ID SupportedVendorMessage[MCTP_MAX_SUPPORTED_VENDOR_MSG];
+extern UINT8 NumSupportedVendorDefinedMessages;

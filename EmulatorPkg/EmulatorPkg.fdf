@@ -174,6 +174,8 @@ INF  MdeModulePkg/Bus/Scsi/ScsiBusDxe/ScsiBusDxe.inf
 INF  MdeModulePkg/Bus/Scsi/ScsiDiskDxe/ScsiDiskDxe.inf
 INF  MdeModulePkg/Universal/SmbiosDxe/SmbiosDxe.inf
 
+INF  MdeModulePkg/Universal/MctpTestDxe/MctpTestDxe.inf
+
 INF  EmulatorPkg/EmuBusDriverDxe/EmuBusDriverDxe.inf
 INF  EmulatorPkg/EmuGopDxe/EmuGopDxe.inf
 INF  EmulatorPkg/EmuSimpleFileSystemDxe/EmuSimpleFileSystemDxe.inf

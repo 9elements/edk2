@@ -1,0 +1,45 @@
+## @file
+#   This driver installs Generic Memory Test Protocol which does not perform real memory test.
+#
+#  Copyright (c) 2006 - 2018, Intel Corporation. All rights reserved.<BR>
+#  SPDX-License-Identifier: BSD-2-Clause-Patent
+#
+##
+
+[Defines]
+  INF_VERSION                    = 0x00010005
+  BASE_NAME                      = MctpTestDxe
+  FILE_GUID                      = 172CFAF2-D376-4CFB-ACFD-F46370E0844B
+  MODULE_TYPE                    = DXE_DRIVER
+  VERSION_STRING                 = 1.0
+  ENTRY_POINT                    = MctpTestEntryPoint
+
+#
+# The following information is for reference only and not required by the build tools.
+#
+#  VALID_ARCHITECTURES           = IA32 X64 EBC
+#
+
+[Sources]
+  MctpTest.c
+
+[Packages]
+  MdeModulePkg/MdeModulePkg.dec
+  MdePkg/MdePkg.dec
+
+[LibraryClasses]
+  MemoryAllocationLib
+  UefiBootServicesTableLib
+  DxeServicesTableLib
+  UefiDriverEntryPoint
+  DebugLib
+  MctpVendorPciLib
+
+[Protocols]
+  gEfiGenericMemTestProtocolGuid                ## PRODUCES
+
+[Depex]
+  TRUE
+
+[UserExtensions.TianoCore."ExtraFiles"]
+  NullMemoryTestDxeExtra.uni
