@@ -79,14 +79,14 @@ MctpResetEID(
   );
 
 EFIAPI
-VOID
+EFI_STATUS
 MctpSetStaticEID(
   UINT8 EndpointID
   );
 
 EFIAPI
 UINT8
-MctpSGetStaticEID(
+MctpGetStaticEID(
   VOID
   );
 

@@ -7,6 +7,7 @@
 #include <Library/BaseMemoryLib.h>
 
 #include "Core.h"
+#include "Requests.h"
 
 /**  Fill the MCTP transport header and the control message header.
 
@@ -17,7 +18,6 @@
   @retval EFI_SUCCESS            The command is executed successfully.
   @retval EFI_INVALID_PARAMETER  The command has some invalid parameters.
 **/
-STATIC
 EFI_STATUS
 MctpResponseConstructHeader(
   IN MCTP_MSG   *Msg,
@@ -25,17 +25,28 @@ MctpResponseConstructHeader(
   OUT MCTP_MSG  *Response
   )
 {
-  MCTP_CONTROL_MSG_HEADER       *Hdr;
+  MCTP_CONTROL_MSG_HEADER       *ControlHdr;
   MCTP_CONTROL_MSG_RESP_HEADER  *ResponseHdr;
 
   if (Msg == NULL || Response == NULL) {
     return EFI_INVALID_PARAMETER;
   }
-  Hdr = &Msg->Body.ControlMsg.Header;
+
+  Response->Header.DestEID = Msg->Header.SourceEID;
+  Response->Header.SourceEID = MctpGetOwnEndpointID();
+  Response->Header.TO = 0;
+  Response->Header.MsgTag = Msg->Header.MsgTag;
+
+  ControlHdr = &Msg->Body.ControlMsg.Header;
   ResponseHdr = &Response->Body.ControlResponseMsg.Header;
 
-  CopyMem(ResponseHdr, Hdr, sizeof(MCTP_CONTROL_MSG_HEADER));
+  ResponseHdr->IC = 0;
+  ResponseHdr->MsgType = MCTP_TYPE_CONTROL_MSG;
   ResponseHdr->Rq = 0;
+  ResponseHdr->D = 0;
+  ResponseHdr->rsvd = 0;
+  ResponseHdr->InstanceID = ControlHdr->InstanceID;
+  ResponseHdr->CommandCode = ControlHdr->CommandCode;
   ResponseHdr->CompletionCode = CompletionCode;
 
   return EFI_SUCCESS;
@@ -44,12 +55,7 @@ MctpResponseConstructHeader(
 /**  Converts the en EFI error to MCTP completition code.
 
   @param  [in]  CompletionCode   The completion code to decode.
-
-  @retval EFI_SUCCESS            The completion code contains no error.
-  @retval EFI_INVALID_PARAMETER  The completion code is unknown.
-  @retval others                 See below.
 **/
-STATIC
 UINT8
 MctpResponseErrorToCompletionCode(
   IN EFI_STATUS Error
@@ -70,6 +76,8 @@ MctpResponseErrorToCompletionCode(
       return MCTP_ERR_NOT_READY;
     case EFI_UNSUPPORTED:
       return MCTP_ERR_UNSUPPORTED;
+    case EFI_INVALID_LANGUAGE:
+      return MCTP_ERR_INVALID_MSG_TYPE;
     default:
       return MCTP_ERR;
   }
@@ -83,7 +91,6 @@ MctpResponseErrorToCompletionCode(
   @retval EFI_SUCCESS            The command is executed successfully.
   @retval EFI_PROTOCOL_ERROR     The command was incomplete.
 **/
-STATIC
 EFI_STATUS
 MctpValidateSetEndpointID (
   IN MCTP_MSG  *Msg,
@@ -100,27 +107,27 @@ MctpValidateSetEndpointID (
 /**  This command should only be issued by a bus owner to assign
      an EID to an endpoint at a particular physical address.
 
-  @param  [in]  Msg             The received message to answer.
-  @param  [in]  TimeoutUsec     The timeout in microseconds for this command to take.
+  @param  [in]  ControlMsg      The received control message to answer.
+  @param  [in]  SourceEID       The endpoint EID of the requester.
+  @param  [in]  Length          The message body length to transmit. Doesn't include the MCTP response header.
+  @param  [in]  Response        The message to transmit as answer.
 
   @retval EFI_SUCCESS            The command is executed successfully.
   @retval EFI_INVALID_PARAMETER  The command has some invalid parameters.
 **/
-STATIC
 EFI_STATUS
 MctpResponseSetEndpointID(
-  IN MCTP_MSG *Msg,
-  IN UINTN    TimeoutUsec
+  IN     MCTP_CONTROL_MSG  *ControlMsg,
+  IN     UINT8             SourceEID,
+  OUT    UINTN             *Length,
+  IN OUT MCTP_MSG          *Response
   )
 {
   MCTP_CONTROL_SET_ENDPOINT_REQ_MSG  *Req;
   MCTP_CONTROL_SET_ENDPOINT_RESP_MSG Resp;
-  MCTP_MSG                           RespMsg;
-  UINTN                              Length;
   EFI_STATUS                         Status;
-  UINT8                              CompletionCode;
 
-  Req = &Msg->Body.ControlMsg.Body.SetEndpointReq;
+  Req = &ControlMsg->Body.SetEndpointReq;
 
   if (!MctpIsAssignableEndpointID(Req->EndpointID)) {
     Status = EFI_INVALID_PARAMETER;
@@ -134,12 +141,15 @@ MctpResponseSetEndpointID(
         // Only support one BUS for now. Accept all requests.
         //
         MctpSetOwnEndpointID(Req->EndpointID);
-        MctpSetBusOwnerEndpointID(Msg->Header.SourceEID);
+        MctpSetBusOwnerEndpointID(SourceEID);
+        Status = EFI_SUCCESS;
+        break;
       case 2:
         if (!MctpSupportsStaticEID()) {
           Status = EFI_INVALID_PARAMETER;
         } else {
           MctpResetEID();
+          Status = EFI_SUCCESS;
         }
       break;
       case 3:
@@ -148,108 +158,60 @@ MctpResponseSetEndpointID(
     }
   }
   if (!EFI_ERROR(Status)) {
+    ZeroMem(&Resp, sizeof(Resp));
+
     Resp.Status = 0;
     Resp.EIDSetting = MctpGetOwnEndpointID();
     Resp.EIDPoolSize = 0;
-  }
 
-  CompletionCode = MctpResponseErrorToCompletionCode(Status);
-  ZeroMem(&RespMsg, sizeof(RespMsg));
-
-  //
-  // Install transport and control header
-  //
-  Status = MctpResponseConstructHeader(
-      Msg,
-      CompletionCode,
-      &RespMsg
-    );
-  if (EFI_ERROR(Status)) {
-    return Status;
-  }
-  Length = sizeof(MCTP_CONTROL_MSG_RESP_HEADER);
-  if (CompletionCode == MCTP_SUCCESS) {
     //
     // Install control body
     //
-    RespMsg.Body.ControlResponseMsg.Body.SetEndpointResp = Resp;
-    Length += sizeof(Resp);
+    Response->Body.ControlResponseMsg.Body.SetEndpointResp = Resp;
+    *Length += sizeof(Resp);
   }
 
-  return MctpTransportSendMessage(&RespMsg.Header,
-    NULL,
-    0,
-    RespMsg.Body.Raw,
-    Length,
-    TimeoutUsec
-  );
+  return Status;
 }
 
 /**  This command is typically issued only by a bus owner to retrieve the
      EID that was assigned to a particular physical address..
 
-  @param  [in]  Msg             The received message to answer.
-  @param  [in]  TimeoutUsec     The timeout in microseconds for this command to take.
+  @param  [in]  Length          The message body length to transmit. Doesn't include the MCTP response header.
+  @param  [in]  Response        The message to transmit as answer.
 
   @retval EFI_SUCCESS            The command is executed successfully.
-  @retval EFI_INVALID_PARAMETER  The command has some invalid parameters.
 **/
-STATIC
 EFI_STATUS
 MctpResponseGetEndpointID(
-  IN MCTP_MSG *Msg,
-  IN UINTN    TimeoutUsec
+  OUT    UINTN             *Length,
+  IN OUT MCTP_MSG          *Response
   )
 {
   MCTP_CONTROL_GET_ENDPOINT_RESP_MSG Resp;
-  MCTP_MSG                           RespMsg;
-  UINTN                              Length;
-  EFI_STATUS                         Status;
-  UINT8                              CompletionCode;
+
+  ZeroMem(&Resp, sizeof(Resp));
 
   Resp.EndpointID = MctpGetOwnEndpointID();
   Resp.EndpointType = 0;
   if (MctpIsBusOwner()) {
     Resp.EndpointType |= 0x10;
   }
-  if (MctpSupportsStaticEID() && (MctpSGetStaticEID() != MctpGetOwnEndpointID())) {
+  if (MctpSupportsStaticEID() && (MctpGetStaticEID() != MctpGetOwnEndpointID())) {
     Resp.EndpointType |= 0x3;
-  } else if (MctpSupportsStaticEID() && (MctpSGetStaticEID() == MctpGetOwnEndpointID())) {
+  } else if (MctpSupportsStaticEID() && (MctpGetStaticEID() == MctpGetOwnEndpointID())) {
     Resp.EndpointType |= 0x2;
   }
 
   Resp.MediumSpecific = MctpPhysicalGetEndpointInformation();
 
-  CompletionCode = MCTP_SUCCESS;
-  ZeroMem(&RespMsg, sizeof(RespMsg));
-
   //
-  // Install transport and control header
+  // Install control body
   //
-  Status = MctpResponseConstructHeader(
-      Msg,
-      CompletionCode,
-      &RespMsg
-    );
-  if (EFI_ERROR(Status)) {
-    return Status;
-  }
-  Length = sizeof(MCTP_CONTROL_MSG_RESP_HEADER);
-  if (CompletionCode == MCTP_SUCCESS) {
-    //
-    // Install control body
-    //
-    RespMsg.Body.ControlResponseMsg.Body.GetEndpointResp = Resp;
-    Length += sizeof(Resp);
-  }
+  Response->Body.ControlResponseMsg.Body.GetEndpointResp = Resp;
+  *Length += sizeof(Resp);
 
-  return MctpTransportSendMessage(&RespMsg.Header,
-    NULL,
-    0,
-    RespMsg.Body.Raw,
-    Length,
-    TimeoutUsec
-  );
+  return EFI_SUCCESS;
 }
 
 /**  Verify that a full GetMctpVersionReq message had been received.
@@ -260,7 +222,6 @@ MctpResponseGetEndpointID(
   @retval EFI_SUCCESS            The command is executed successfully.
   @retval EFI_PROTOCOL_ERROR     The command was incomplete.
 **/
-STATIC
 EFI_STATUS
 MctpValidateGetMCTPVersionSupport (
   IN MCTP_MSG  *Msg,
@@ -278,27 +239,26 @@ MctpValidateGetMCTPVersionSupport (
      that the endpoint supports, and also the message type specification versions 
      upported for each message type. 
 
-  @param  [in]  Msg             The received message to answer.
-  @param  [in]  TimeoutUsec     The timeout in microseconds for this command to take.
+  @param  [in]  ControlMsg      The received control message to answer.
+  @param  [in]  Length          The message body length to transmit. Doesn't include the MCTP response header.
+  @param  [in]  Response        The message to transmit as answer.
 
-  @retval EFI_SUCCESS            The command is executed successfully.
-  @retval EFI_INVALID_PARAMETER  The command has some invalid parameters.
+  @retval EFI_SUCCESS           The command is executed successfully.
 **/
-STATIC
 EFI_STATUS
 MctpResponseGetMCTPVersionSupport(
-  IN MCTP_MSG *Msg,
-  IN UINTN    TimeoutUsec
+  IN     MCTP_CONTROL_MSG  *ControlMsg,
+  OUT    UINTN             *Length,
+  IN OUT MCTP_MSG          *Response
   )
 {
   MCTP_CONTROL_GET_MCTP_VERSION_RESP_MSG Resp;
   MCTP_CONTROL_GET_MCTP_VERSION_REQ_MSG  *Req;
-  MCTP_MSG                               RespMsg;
-  UINTN                                  Length;
   EFI_STATUS                             Status;
-  UINT8                                  CompletionCode;
 
-  Req = &Msg->Body.ControlMsg.Body.GetMctpVersionReq;
+  Req = &ControlMsg->Body.GetMctpVersionReq;
+
+  ZeroMem(&Resp, sizeof(Resp));
 
   switch (Req->MessageTypeNumber) {
     case 0x00:
@@ -308,103 +268,59 @@ MctpResponseGetMCTPVersionSupport(
       Resp.Entry[0].Minor = 0xF1;
       Resp.Entry[0].Update = 0xFF;
       Resp.Entry[0].Alpha = 0x00;
-      CompletionCode = MCTP_SUCCESS;
+      Status = EFI_SUCCESS;
       break;
     default:
-    CompletionCode = MCTP_ERR_INVALID_MSG_TYPE;
+      Status = EFI_INVALID_LANGUAGE;
   }
 
-  ZeroMem(&RespMsg, sizeof(RespMsg));
-
-  //
-  // Install transport and control header
-  //
-  Status = MctpResponseConstructHeader(
-      Msg,
-      CompletionCode,
-      &RespMsg
-    );
-  if (EFI_ERROR(Status)) {
-    return Status;
-  }
-  Length = sizeof(MCTP_CONTROL_MSG_RESP_HEADER);
-  if (CompletionCode == MCTP_SUCCESS) {
+  if (!EFI_ERROR(Status)) {
     //
     // Install control body
     //
-    RespMsg.Body.ControlResponseMsg.Body.GetMctpVersionResp = Resp;
-    Length += sizeof(Resp.EntryCount) + Resp.EntryCount * sizeof(Resp.Entry[0]);
+    Response->Body.ControlResponseMsg.Body.GetMctpVersionResp = Resp;
+    *Length = sizeof(Resp.EntryCount) + Resp.EntryCount * sizeof(Resp.Entry[0]);
   }
 
-  return MctpTransportSendMessage(&RespMsg.Header,
-    NULL,
-    0,
-    RespMsg.Body.Raw,
-    Length,
-    TimeoutUsec
-  );
+  return Status;
 }
 
-/**  This command can be used to retrieve the MCTP base specification versions
-     that the endpoint supports, and also the message type specification versions 
-     upported for each message type. 
+/**  This command can be used to retrieve the MCTP base specification message types
+     that the endpoint supports.
 
-  @param  [in]  Msg             The received message to answer.
-  @param  [in]  TimeoutUsec     The timeout in microseconds for this command to take.
+  @param  [in]  Length          The message body length to transmit. Doesn't include the MCTP response header.
+  @param  [in]  Response        The message to transmit as answer.
 
-  @retval EFI_SUCCESS            The command is executed successfully.
-  @retval EFI_INVALID_PARAMETER  The command has some invalid parameters.
+  @retval EFI_SUCCESS           The command is executed successfully.
 **/
-STATIC
 EFI_STATUS
 MctpResponseGetMCTPMessageTypeSupport(
-  IN MCTP_MSG *Msg,
-  IN UINTN    TimeoutUsec
+  OUT    UINTN             *Length,
+  IN OUT MCTP_MSG          *Response
   )
 {
   MCTP_CONTROL_GET_MSG_TYPE_RESP_MSG Resp;
-  MCTP_MSG                           RespMsg;
-  UINTN                              Length;
   EFI_STATUS                         Status;
-  UINT8                              CompletionCode;
   UINTN                              Index;
+
+  ZeroMem(&Resp, sizeof(Resp));
 
   for (Index = 0; Index < NumSupportedMessageTypes; Index++) {
     Resp.Entry[Index] = SupportedMessageTypes[Index];
   }
   Resp.MessageTypeCount = NumSupportedMessageTypes;
 
-  CompletionCode = MCTP_SUCCESS;
+  Status = EFI_SUCCESS;
 
-  ZeroMem(&RespMsg, sizeof(RespMsg));
-
-  //
-  // Install transport and control header
-  //
-  Status = MctpResponseConstructHeader(
-      Msg,
-      CompletionCode,
-      &RespMsg
-    );
-  if (EFI_ERROR(Status)) {
-    return Status;
-  }
-  Length = sizeof(MCTP_CONTROL_MSG_RESP_HEADER);
-  if (CompletionCode == MCTP_SUCCESS) {
+  if (!EFI_ERROR(Status)) {
     //
     // Install control body
     //
-    RespMsg.Body.ControlResponseMsg.Body.GetMessageTypeResp = Resp;
-    Length += sizeof(Resp.MessageTypeCount) + Resp.MessageTypeCount * sizeof(Resp.Entry[0]);
+    Response->Body.ControlResponseMsg.Body.GetMessageTypeResp = Resp;
+    *Length += sizeof(Resp.MessageTypeCount) + Resp.MessageTypeCount * sizeof(Resp.Entry[0]);
   }
 
-  return MctpTransportSendMessage(&RespMsg.Header,
-    NULL,
-    0,
-    RespMsg.Body.Raw,
-    Length,
-    TimeoutUsec
-  );
+  return Status;
 }
 
 /**  Verify that a full GetVendorDefinedMessageTypeReq message had been received.
@@ -415,7 +331,6 @@ MctpResponseGetMCTPMessageTypeSupport(
   @retval EFI_SUCCESS            The command is executed successfully.
   @retval EFI_PROTOCOL_ERROR     The command was incomplete.
 **/
-STATIC
 EFI_STATUS
 MctpValidateVendorDefinedMessageType (
   IN MCTP_MSG  *Msg,
@@ -432,27 +347,28 @@ MctpValidateVendorDefinedMessageType (
 /**  The Get Vendor Defined Message Support operation enables management
      controllers to discover whether the endpoint supports vendor-defined messages.
 
-  @param  [in]  Msg             The received message to answer.
-  @param  [in]  TimeoutUsec     The timeout in microseconds for this command to take.
+  @param  [in]  ControlMsg      The received control message to answer.
+  @param  [in]  Length          The message body length to transmit. Doesn't include the MCTP response header.
+  @param  [in]  Response        The message to transmit as answer.
+
 
   @retval EFI_SUCCESS            The command is executed successfully.
   @retval EFI_INVALID_PARAMETER  The command has some invalid parameters.
 **/
-STATIC
 EFI_STATUS
 MctpResponseVendorDefinedMessageType(
-  IN MCTP_MSG *Msg,
-  IN UINTN    TimeoutUsec
+  IN     MCTP_CONTROL_MSG  *ControlMsg,
+  OUT    UINTN             *Length,
+  IN OUT MCTP_MSG          *Response
   )
 {
   MCTP_CONTROL_GET_VENDOR_MSG_TYPE_RESP_MSG Resp;
   MCTP_CONTROL_GET_VENDOR_MSG_TYPE_REQ_MSG  *Req;
-  MCTP_MSG                                  RespMsg;
-  UINTN                                     Length;
   EFI_STATUS                                Status;
-  UINT8                                     CompletionCode;
 
-  Req = &Msg->Body.ControlMsg.Body.GetVendorDefinedMessageTypeReq;
+  Req = &ControlMsg->Body.GetVendorDefinedMessageTypeReq;
+
+  ZeroMem(&Resp, sizeof(Resp));
 
   if (Req->VendorIDSelector < NumSupportedVendorDefinedMessages) {
     Resp.VendorID = SupportedVendorMessage[Req->VendorIDSelector];
@@ -461,88 +377,20 @@ MctpResponseVendorDefinedMessageType(
     } else {
       Resp.VendorIDSelector = 0xff;
     }
-    CompletionCode = MCTP_SUCCESS;
+    Status = EFI_SUCCESS;
   } else {
-    CompletionCode = MCTP_ERR;
+    Status = EFI_DEVICE_ERROR;
   }
 
-  ZeroMem(&RespMsg, sizeof(RespMsg));
-
-  //
-  // Install transport and control header
-  //
-  Status = MctpResponseConstructHeader(
-      Msg,
-      CompletionCode,
-      &RespMsg
-    );
-  if (EFI_ERROR(Status)) {
-    return Status;
-  }
-  Length = sizeof(MCTP_CONTROL_MSG_RESP_HEADER);
-  if (CompletionCode == MCTP_SUCCESS) {
+  if (!EFI_ERROR(Status)) {
     //
     // Install control body
     //
-    RespMsg.Body.ControlResponseMsg.Body.GetVendorDefinedMessageTypeResp = Resp;
-    Length += sizeof(Resp.VendorIDSelector);
+    Response->Body.ControlResponseMsg.Body.GetVendorDefinedMessageTypeResp = Resp;
+    *Length += sizeof(Resp.VendorIDSelector);
   }
 
-  return MctpTransportSendMessage(&RespMsg.Header,
-    NULL,
-    0,
-    RespMsg.Body.Raw,
-    Length,
-    TimeoutUsec
-  );
-}
-
-/**  Answeres the request that it's not supported.
-
-  @param  [in]  Msg             The received message to answer.
-  @param  [in]  CompletionCode  The completion code to transmit.
-  @param  [in]  TimeoutUsec     The timeout in microseconds for this command to take.
-
-  @retval EFI_SUCCESS            The command is executed successfully.
-  @retval EFI_INVALID_PARAMETER  The command has some invalid parameters.
-**/
-STATIC
-EFI_STATUS
-MctpResponseUnsupported(
-  IN MCTP_MSG *Msg,
-  IN UINT8    CompletionCode,
-  IN UINTN    TimeoutUsec
-  )
-{
-  MCTP_MSG   RespMsg;
-  UINTN      Length;
-  EFI_STATUS Status;
-
-  if (Msg == NULL) {
-    return EFI_INVALID_PARAMETER;  
-  }
-
-  ZeroMem(&RespMsg, sizeof(RespMsg));
-  Length = sizeof(MCTP_CONTROL_MSG_RESP_HEADER);
-
-  //
-  // Install transport and control header
-  //
-  Status = MctpResponseConstructHeader(
-      Msg,
-      CompletionCode,
-      &RespMsg
-    );
-  if (EFI_ERROR(Status)) {
-    return Status;
-  }
-  return MctpTransportSendMessage(&RespMsg.Header,
-    NULL,
-    0,
-    RespMsg.Body.Raw,
-    Length,
-    TimeoutUsec
-  );
+  return Status;
 }
 
 /**  Handle a received MCTP control message. Will automatically send an answer
@@ -564,6 +412,9 @@ MctpHandleControlMsg(
 {
   MCTP_CONTROL_MSG_HEADER *Hdr;
   EFI_STATUS              Status;
+  MCTP_MSG                ResponseMsg;
+  UINT8                   CompletionCode;
+  UINTN                   Length;
 
   if (Msg == NULL) {
     return EFI_INVALID_PARAMETER;
@@ -578,37 +429,63 @@ MctpHandleControlMsg(
     return EFI_PROTOCOL_ERROR;
   }
 
+  ZeroMem(&ResponseMsg, sizeof(ResponseMsg));
+  Length = sizeof(MCTP_CONTROL_MSG_RESP_HEADER);
+
   switch (Hdr->CommandCode) {
   case MctpCmdSetEndpointID:
     Status = MctpValidateSetEndpointID(Msg, BodyLength);
     if (EFI_ERROR(Status)) {
-      return Status;
+      break;
     }
-    Status = MctpResponseSetEndpointID(Msg, TimeoutUsec);
+    Status = MctpResponseSetEndpointID(&Msg->Body.ControlMsg, Msg->Header.SourceEID, &Length, &ResponseMsg);
     break;
   case MctpCmdGetEndpointID:
-    Status = MctpResponseGetEndpointID(Msg, TimeoutUsec);
+    Status = MctpResponseGetEndpointID(&Length, &ResponseMsg);
     break;
   case MctpCmdGetMCTPVersionSupport:
     Status = MctpValidateGetMCTPVersionSupport(Msg, BodyLength);
     if (EFI_ERROR(Status)) {
-      return Status;
+      break;
     }
-    Status = MctpResponseGetMCTPVersionSupport(Msg, TimeoutUsec);
+    Status = MctpResponseGetMCTPVersionSupport(&Msg->Body.ControlMsg, &Length, &ResponseMsg);
     break;
   case MctpCmdGetMCTPMessageTypeSupport:
-    Status = MctpResponseGetMCTPMessageTypeSupport(Msg, TimeoutUsec);
+    Status = MctpResponseGetMCTPMessageTypeSupport(&Length, &ResponseMsg);
     break;
   case MctpCmdGetMCTPVendorMessageSupport:
     Status = MctpValidateVendorDefinedMessageType(Msg, BodyLength);
     if (EFI_ERROR(Status)) {
-      return Status;
+      break;
     }
-    Status = MctpResponseVendorDefinedMessageType(Msg, TimeoutUsec);
+    Status = MctpResponseVendorDefinedMessageType(&Msg->Body.ControlMsg, &Length, &ResponseMsg);
     break;
   case MctpCmdReserved:
   default:
-    Status = MctpResponseUnsupported(Msg, MCTP_ERR_UNSUPPORTED, TimeoutUsec);
+    Status = EFI_UNSUPPORTED;
   }
+
+  CompletionCode = MctpResponseErrorToCompletionCode(Status);
+
+  //
+  // Install transport and control header
+  //
+  Status = MctpResponseConstructHeader(
+      Msg,
+      CompletionCode,
+      &ResponseMsg
+    );
+  if (EFI_ERROR(Status)) {
+    return Status;
+  }
+
+  return MctpTransportSendMessage(&ResponseMsg.Header,
+    NULL,
+    0,
+    ResponseMsg.Body.Raw,
+    Length,
+    TimeoutUsec
+  );
+
   return Status;
 }

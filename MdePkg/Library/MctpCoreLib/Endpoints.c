@@ -16,7 +16,7 @@ MctpIsAssignableEndpointID(
   IN UINT8 ID
   )
 {
-  return (ID > 8 && ID != MCTP_EID_BROADCAST);
+  return (ID >= 8 && ID != MCTP_EID_BROADCAST);
 }
 
 EFIAPI
@@ -118,22 +118,43 @@ MctpResetEID(
   return EFI_SUCCESS;
 }
 
+/**  Assign a static endpoint ID to this node. If the current endpoint ID hasn't been
+     assigned by the bus master yet, the current endpoint ID will be updated to the
+     static endpoint ID.
+
+  @param  [in]  EndpointID    The static endpoint ID to use.
+
+  @retval EFI_SUCCESS            The command is executed successfully.
+  @retval EFI_INVALID_PARAMETER  The given endpoint ID was invalid.
+  @retval EFI_ALREADY_STARTED    A valid endpoint ID already had been assigned.
+**/
 EFIAPI
-VOID
+EFI_STATUS
 MctpSetStaticEID(
   UINT8 EndpointID
   )
 {
+  if (!MctpIsValidEndpointID(EndpointID) ||
+      !MctpIsAssignableEndpointID(EndpointID)) {
+    return EFI_INVALID_PARAMETER;
+  }
+
   SupportsStaticEID = TRUE;
   StaticEID = EndpointID;
   if (OwnEID == MCTP_EID_NULL) {
     OwnEID = EndpointID;
+    return EFI_SUCCESS;
   }
+  return EFI_ALREADY_STARTED;
 }
 
+/**  Returns the static endpoint ID.
+
+  @retval The current static endpoint ID
+**/
 EFIAPI
 UINT8
-MctpSGetStaticEID(
+MctpGetStaticEID(
   VOID
   )
 {

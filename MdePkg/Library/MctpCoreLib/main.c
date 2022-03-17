@@ -72,7 +72,6 @@ MctpPhysicalGetEndpointInformation(
 
 /* UNIT TESTS */
 
-/* A test case that does nothing and succeeds. */
 static void test_MctpCoreRegisterMessageClass(void **state) {
 	EFI_STATUS Status;
 	UINT8 tests[] = {
@@ -94,6 +93,28 @@ static void test_MctpCoreRegisterMessageClass(void **state) {
 	assert_int_equal(Status, EFI_INVALID_PARAMETER);
 }
 
+static void test_MctpSetStaticEID(void **state) {
+	EFI_STATUS Status;
+
+	for (size_t i = 0; i < 8; i++) {
+		Status = MctpSetStaticEID(i);
+		assert_int_equal(Status, EFI_INVALID_PARAMETER);
+	}
+
+	Status = MctpSetStaticEID(0xff);
+	assert_int_equal(Status, EFI_INVALID_PARAMETER);
+
+	Status = MctpSetStaticEID(8);
+	assert_int_equal(Status, EFI_SUCCESS);
+	assert_int_equal(MctpGetStaticEID(), 8);
+
+	Status = MctpSetStaticEID(9);
+	assert_int_equal(Status, EFI_ALREADY_STARTED);
+	assert_int_equal(MctpGetStaticEID(), 9);
+
+	assert_int_equal(MctpGetOwnEndpointID(), 8);
+}
+
 extern EFI_STATUS
 EFIAPI
 MctpCoreLibConstructor (
@@ -107,6 +128,8 @@ int main(void) {
 
 	const struct CMUnitTest tests[] = {
 		cmocka_unit_test(test_MctpCoreRegisterMessageClass),
+		cmocka_unit_test(test_MctpSetStaticEID),
+
 	};
 	return cmocka_run_group_tests(tests, NULL, NULL);
 }
