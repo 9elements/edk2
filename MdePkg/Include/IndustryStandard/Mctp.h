@@ -151,7 +151,7 @@ typedef struct {
   };
 } MCTP_CONTROL_VENDOR_ID;
 
-typedef union {
+typedef struct {
   UINT8                  VendorIDSelector;
   MCTP_CONTROL_VENDOR_ID VendorID;
 } MCTP_CONTROL_GET_VENDOR_MSG_TYPE_RESP_MSG;

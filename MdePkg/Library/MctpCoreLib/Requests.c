@@ -366,6 +366,10 @@ MctpResponseVendorDefinedMessageType(
   MCTP_CONTROL_GET_VENDOR_MSG_TYPE_REQ_MSG  *Req;
   EFI_STATUS                                Status;
 
+  if (ControlMsg == NULL || Length == NULL || Response == NULL) {
+    return EFI_INVALID_PARAMETER;
+  }
+
   Req = &ControlMsg->Body.GetVendorDefinedMessageTypeReq;
 
   ZeroMem(&Resp, sizeof(Resp));
@@ -379,7 +383,7 @@ MctpResponseVendorDefinedMessageType(
     }
     Status = EFI_SUCCESS;
   } else {
-    Status = EFI_DEVICE_ERROR;
+    Status = EFI_UNSUPPORTED;
   }
 
   if (!EFI_ERROR(Status)) {
@@ -387,7 +391,13 @@ MctpResponseVendorDefinedMessageType(
     // Install control body
     //
     Response->Body.ControlResponseMsg.Body.GetVendorDefinedMessageTypeResp = Resp;
-    *Length += sizeof(Resp.VendorIDSelector);
+    *Length += sizeof(Resp.VendorIDSelector) + sizeof(Resp.VendorID.VendorIDFormat);
+
+    if (Resp.VendorID.VendorIDFormat == MCTP_VENDOR_ID_FORMAT_PCI) {
+      *Length += sizeof(MCTP_CONTROL_VENDOR_ID_PCI);
+    } else {
+      *Length += sizeof(MCTP_CONTROL_VENDOR_ID_IANA);
+    }
   }
 
   return Status;

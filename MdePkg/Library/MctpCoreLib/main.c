@@ -10,6 +10,10 @@
 #include <Uefi.h>
 #include <Library/MctpTransportLib.h>
 #include <Library/MctpCoreLib.h>
+#include <Library/BaseMemoryLib.h>
+
+#include "Requests.h"
+#include "Core.h"
 
 static EFI_STATUS TransportSendMessageRetval;
 static BOOLEAN TransportSendMessageCalled;
@@ -115,6 +119,56 @@ static void test_MctpSetStaticEID(void **state) {
 	assert_int_equal(MctpGetOwnEndpointID(), 8);
 }
 
+
+static void test_MctpResponseVendorDefinedMessageType(void **state) {
+	EFI_STATUS        Status;
+	MCTP_CONTROL_MSG  ControlMsg;
+	UINTN             Length;
+	MCTP_MSG          Response;
+
+	ZeroMem(&ControlMsg, sizeof(ControlMsg));
+	ZeroMem(&Response, sizeof(Response));
+	Length = 0;
+
+	Status = MctpResponseVendorDefinedMessageType(NULL, &Length, &Response);
+	assert_int_equal(Status, EFI_INVALID_PARAMETER);
+	Status = MctpResponseVendorDefinedMessageType(&ControlMsg, NULL, &Response);
+	assert_int_equal(Status, EFI_INVALID_PARAMETER);
+	Status = MctpResponseVendorDefinedMessageType(&ControlMsg, &Length, NULL);
+	assert_int_equal(Status, EFI_INVALID_PARAMETER);
+
+	for (size_t i = 0; i < 0xff; i++) {
+		ControlMsg.Body.GetVendorDefinedMessageTypeReq.VendorIDSelector = i;
+		Status = MctpResponseVendorDefinedMessageType(&ControlMsg, &Length, &Response);
+		assert_int_equal(Status, EFI_UNSUPPORTED);
+	}
+	MctpCoreRegisterMessageClass(MCTP_TYPE_PCI_VENDOR);
+	MctpCoreRegisterMessageClass(MCTP_TYPE_IANA_VENDOR);
+	MctpCoreRegisterPCIVendor(0xcafe, 0xdead);
+	MctpCoreRegisterIANAVendor(0xabcdefab, 0x1234);
+
+	for (size_t i = 0; i < 0xff; i++) {
+		ControlMsg.Body.GetVendorDefinedMessageTypeReq.VendorIDSelector = i;
+		Status = MctpResponseVendorDefinedMessageType(&ControlMsg, &Length, &Response);
+		if (i == 0) {
+			assert_int_equal(Status, EFI_SUCCESS);
+			assert_int_equal(Response.Body.ControlResponseMsg.Body.GetVendorDefinedMessageTypeResp.VendorIDSelector, 1);
+			assert_int_equal(Response.Body.ControlResponseMsg.Body.GetVendorDefinedMessageTypeResp.VendorID.VendorIDFormat, MCTP_VENDOR_ID_FORMAT_PCI);
+			assert_int_equal(Response.Body.ControlResponseMsg.Body.GetVendorDefinedMessageTypeResp.VendorID.Pci.PCIVendorID, 0xcafe);
+		} else if (i == 1) {
+			assert_int_equal(Status, EFI_SUCCESS);
+			assert_int_equal(Response.Body.ControlResponseMsg.Body.GetVendorDefinedMessageTypeResp.VendorIDSelector, 0xff);
+			assert_int_equal(Response.Body.ControlResponseMsg.Body.GetVendorDefinedMessageTypeResp.VendorID.VendorIDFormat, MCTP_VENDOR_ID_FORMAT_IANA);
+			assert_int_equal(Response.Body.ControlResponseMsg.Body.GetVendorDefinedMessageTypeResp.VendorID.Iana.IANAEnterpriseID, 0xabcdefab);
+		}
+		else
+			assert_int_equal(Status, EFI_UNSUPPORTED);
+	}
+
+	NumSupportedMessageTypes = 1;
+	NumSupportedVendorDefinedMessages = 0;
+}
+
 extern EFI_STATUS
 EFIAPI
 MctpCoreLibConstructor (
@@ -129,6 +183,7 @@ int main(void) {
 	const struct CMUnitTest tests[] = {
 		cmocka_unit_test(test_MctpCoreRegisterMessageClass),
 		cmocka_unit_test(test_MctpSetStaticEID),
+		cmocka_unit_test(test_MctpResponseVendorDefinedMessageType),
 
 	};
 	return cmocka_run_group_tests(tests, NULL, NULL);

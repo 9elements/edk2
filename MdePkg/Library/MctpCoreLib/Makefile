@@ -48,4 +48,4 @@ test_mocka : test
 
 .PHONY: clean
 clean:
-	rm -f test *.o
+	rm -f test $(OBJ_DIR)/*.o
