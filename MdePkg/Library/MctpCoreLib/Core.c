@@ -21,6 +21,7 @@ MctpCoreValidateMessageType(
   )
 {
   switch (Type) {
+    case MCTP_TYPE_CONTROL_MSG:
     case MCTP_TYPE_PLDM_MSG:
     case MCTP_TYPE_NCSI_MSG:
     case MCTP_TYPE_ETHERNET_MSG:
@@ -215,7 +216,8 @@ MctpCoreReceiveMessage (
   if (Length >= sizeof(MCTP_CONTROL_MSG)) {
     if (Msg->Body.ControlMsg.Header.MsgType == MCTP_TYPE_CONTROL_MSG &&
         Msg->Body.ControlMsg.Header.Rq == 1) {
-      return MctpHandleControlMsg(Msg, Length, TimeoutUsec);
+      MctpHandleControlMsg(Msg, Length, TimeoutUsec);
+      return EFI_NOT_READY;
     }
   }
   *ExternalMessage = Msg;
