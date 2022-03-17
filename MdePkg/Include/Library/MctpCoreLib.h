@@ -159,6 +159,13 @@ MctpCoreRegisterPCIVendor (
 
 EFI_STATUS
 EFIAPI
+MctpCoreRegisterIANAVendor (
+  IN UINT32 IANAEnterpriseID,
+  IN UINT16 BitField
+  );
+
+EFI_STATUS
+EFIAPI
 MctpCoreReceiveMessage (
   OUT MCTP_MSG     **ExternalMessage,
   OUT UINTN        *ExternalMessageLength,

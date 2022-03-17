@@ -127,6 +127,10 @@ MctpResponseSetEndpointID(
   MCTP_CONTROL_SET_ENDPOINT_RESP_MSG Resp;
   EFI_STATUS                         Status;
 
+  if (ControlMsg == NULL || Length == NULL || Response == NULL) {
+    return EFI_INVALID_PARAMETER;
+  }
+
   Req = &ControlMsg->Body.SetEndpointReq;
 
   if (!MctpIsAssignableEndpointID(Req->EndpointID)) {
@@ -189,6 +193,10 @@ MctpResponseGetEndpointID(
   )
 {
   MCTP_CONTROL_GET_ENDPOINT_RESP_MSG Resp;
+
+  if (Length == NULL || Response == NULL) {
+    return EFI_INVALID_PARAMETER;
+  }
 
   ZeroMem(&Resp, sizeof(Resp));
 
@@ -256,6 +264,10 @@ MctpResponseGetMCTPVersionSupport(
   MCTP_CONTROL_GET_MCTP_VERSION_REQ_MSG  *Req;
   EFI_STATUS                             Status;
 
+  if (ControlMsg == NULL || Length == NULL || Response == NULL) {
+    return EFI_INVALID_PARAMETER;
+  }
+
   Req = &ControlMsg->Body.GetMctpVersionReq;
 
   ZeroMem(&Resp, sizeof(Resp));
@@ -302,6 +314,10 @@ MctpResponseGetMCTPMessageTypeSupport(
   MCTP_CONTROL_GET_MSG_TYPE_RESP_MSG Resp;
   EFI_STATUS                         Status;
   UINTN                              Index;
+
+  if (Length == NULL || Response == NULL) {
+    return EFI_INVALID_PARAMETER;
+  }
 
   ZeroMem(&Resp, sizeof(Resp));
 
