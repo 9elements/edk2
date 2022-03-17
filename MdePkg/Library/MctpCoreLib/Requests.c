@@ -393,6 +393,31 @@ MctpResponseVendorDefinedMessageType(
   return Status;
 }
 
+STATIC
+EFI_STATUS
+MctpIsValidControlRequest(
+  IN MCTP_CONTROL_MSG_HEADER  *Hdr
+  )
+{
+  if (Hdr == NULL) {
+    return EFI_INVALID_PARAMETER;
+  }
+
+  if (Hdr->MsgType != MCTP_TYPE_CONTROL_MSG) {
+    return EFI_UNSUPPORTED;
+  }
+
+  if (Hdr->IC == 1) {
+    return EFI_COMPROMISED_DATA;
+  }
+
+  if (Hdr->Rq == 1) {
+    return EFI_PROTOCOL_ERROR;
+  }
+
+  return EFI_SUCCESS;
+}
+
 /**  Handle a received MCTP control message. Will automatically send an answer
      if the request is well formed, supported and contains valid data.
 
@@ -424,9 +449,9 @@ MctpHandleControlMsg(
   }
 
   Hdr = &Msg->Body.ControlMsg.Header;
-
-  if (Hdr->IC == 1 || Hdr->Rq == 0) {
-    return EFI_PROTOCOL_ERROR;
+  Status = MctpIsValidControlRequest(Hdr);
+  if (EFI_ERROR(Status)) {
+    return Status;
   }
 
   ZeroMem(&ResponseMsg, sizeof(ResponseMsg));
