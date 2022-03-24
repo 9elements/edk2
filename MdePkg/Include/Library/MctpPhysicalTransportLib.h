@@ -1,4 +1,3 @@
-
 /** @file
   Provide services to MCTP physical message transceiving.
 
@@ -13,37 +12,51 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 
 #include <IndustryStandard/Mctp.h>
 
+typedef struct {
+  // Msg points to a buffer where the message is (to be) placed
+  MCTP_MSG    *Msg;
+  // Length is the actual message length
+  UINTN       Length;
+  // Mtu holds the maximum available message size. This is the
+  // buffer size.
+  UINTN       Mtu;
+} MCTP_PHYSICAL_MSG;
+
 EFI_STATUS
 EFIAPI
-MctpPhysicalSend(
-  IN MCTP_MSG *Msg,
-  IN UINTN Length,
-  IN UINTN TimeoutUsec
+MctpPhysicalSend (
+  IN MCTP_PHYSICAL_MSG  *Msg,
+  IN UINTN              TimeoutUsec
   );
 
 EFI_STATUS
 EFIAPI
-MctpPhysicalReceive(
-  IN MCTP_MSG *Msg,
-  IN UINTN *Length,
-  IN UINTN TimeoutUsec
+MctpPhysicalReceive (
+  IN MCTP_PHYSICAL_MSG  *Msg,
+  IN UINTN              TimeoutUsec
   );
 
 BOOLEAN
 EFIAPI
-MctpPhysicalReadyToSend(
+MctpPhysicalReadyToSend (
   VOID
   );
 
 BOOLEAN
 EFIAPI
-MctpPhysicalHasMessage(
+MctpPhysicalHasMessage (
   VOID
   );
 
 UINT8
 EFIAPI
-MctpPhysicalGetEndpointInformation(
+MctpPhysicalGetEndpointInformation (
+  VOID
+  );
+
+EFI_STATUS
+EFIAPI
+MctpPhysicalConnect (
   VOID
   );
 

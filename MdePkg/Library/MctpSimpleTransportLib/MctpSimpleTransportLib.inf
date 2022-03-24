@@ -1,9 +1,10 @@
 ## @file
-# Instance of HOB Library using PEI Services.
+# Instance of MCTP Transport library.
 #
-# HOB Library implementation that uses PEI Services to retrieve the HOB List.
+# MCTP transport implementation intended for PEI to provide MCTP message fragmentation
+# and MCTP message assembly.
 #
-# Copyright (c) 2006 - 2018, Intel Corporation. All rights reserved.<BR>
+# Copyright (c) 2022 9elements GmbH
 #
 #  SPDX-License-Identifier: BSD-2-Clause-Patent
 #

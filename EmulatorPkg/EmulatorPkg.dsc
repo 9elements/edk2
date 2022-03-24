@@ -431,7 +431,9 @@
       MctpVendorPciLib|MdePkg/Library/MctpVendorPciLib/MctpVendorPciLib.inf
       MctpCoreLib|MdePkg/Library/MctpCoreLib/MctpCoreLib.inf
       MctpTransportLib|MdePkg/Library/MctpSimpleTransportLib/MctpSimpleTransportLib.inf
-      MctpPhysicalTransportLib|MdePkg/Library/MctpPhysicalTransportLibNull/MctpPhysicalTransportLib.inf
+      MctpPhysicalTransportLib|MdePkg/Library/AspeedLPCMctpPhysicalTransportLib/MctpPhysicalTransportLib.inf
+        IoLib|MdePkg/Library/BaseIoLibIntrinsic/BaseIoLibIntrinsic.inf
+
   }
 
   EmulatorPkg/EmuBusDriverDxe/EmuBusDriverDxe.inf

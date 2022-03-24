@@ -6,12 +6,12 @@
 #include <Library/MctpPhysicalTransportLib.h>
 #include <Library/DebugLib.h>
 
-STATIC UINTN MTU = MCTP_BTU;
-STATIC MCTP_MSG RxBuffer;
-STATIC MCTP_MSG *RxMsg;
+STATIC UINTN     MTU = MCTP_BTU;
+STATIC MCTP_MSG  RxBuffer;
+STATIC MCTP_MSG  *RxMsg;
 
-STATIC UINT8 ExpectSourceEID;
-STATIC UINT8 ExpectDestinationEID;
+STATIC UINT8  ExpectSourceEID;
+STATIC UINT8  ExpectDestinationEID;
 
 /** Requests a new Maximum Transmission Unit. The default ist 64.
 
@@ -24,15 +24,16 @@ STATIC UINT8 ExpectDestinationEID;
 **/
 EFI_STATUS
 EFIAPI
-MctpSetNewMTU(
-  IN UINTN Size,
-  IN UINT8 *Buffer
+MctpSetNewMTU (
+  IN UINTN  Size,
+  IN UINT8  *Buffer
   )
 {
   if (Size < MCTP_BTU) {
     return EFI_INVALID_PARAMETER;
   }
-  MTU = Size;
+
+  MTU   = Size;
   RxMsg = (MCTP_MSG *)Buffer;
 
   return EFI_SUCCESS;
@@ -45,7 +46,7 @@ MctpSetNewMTU(
 **/
 UINTN
 EFIAPI
-MctpGetMTU(
+MctpGetMTU (
   VOID
   )
 {
@@ -60,15 +61,16 @@ MctpGetMTU(
 **/
 STATIC
 UINTN
-CalculateAmountMessages(
-  IN UINTN Size
+CalculateAmountMessages (
+  IN UINTN  Size
   )
 {
-  if (Size == 0)
+  if (Size == 0) {
     return 0;
+  }
+
   return ((Size + MTU - 1) / MTU);
 }
-
 
 /** Constructs a fragment message.
 
@@ -85,46 +87,48 @@ CalculateAmountMessages(
 **/
 STATIC
 VOID
-FillMessage(
-  IN  MCTP_TRANSPORT_HEADER * Hdr,
+FillMessage (
+  IN  MCTP_TRANSPORT_HEADER  *Hdr,
   IN  UINT8                  *MessageBodyHeader,
-  IN  UINTN                   MessageBodyHeaderLength,
+  IN  UINTN                  MessageBodyHeaderLength,
   IN  UINT8                  *MessageBody,
-  IN  UINTN                   MessageBodyLength,
-  IN  UINTN                   Index,
-  IN  UINTN                   MaxMessages,
+  IN  UINTN                  MessageBodyLength,
+  IN  UINTN                  Index,
+  IN  UINTN                  MaxMessages,
   OUT MCTP_MSG               *MctpMsg,
   OUT UINTN                  *Length
 
   )
 {
-  UINTN OffsetDest;
-  UINTN OffsetSource;
+  UINTN  OffsetDest;
+  UINTN  OffsetSource;
 
-  CopyMem(&MctpMsg->Header, Hdr, sizeof(MCTP_TRANSPORT_HEADER));
+  CopyMem (&MctpMsg->Header, Hdr, sizeof (MCTP_TRANSPORT_HEADER));
 
   // Fill transport header
-  if (Index == 0)
+  if (Index == 0) {
     MctpMsg->Header.SOM = 1;
-  else
+  } else {
     MctpMsg->Header.SOM = 0;
+  }
 
-  if (Index == (MaxMessages - 1))
+  if (Index == (MaxMessages - 1)) {
     MctpMsg->Header.EOM = 1;
-  else
+  } else {
     MctpMsg->Header.EOM = 0;
+  }
 
   MctpMsg->Header.PktSeq = Index % 4;
 
   OffsetSource = MTU * Index;
-  OffsetDest = OffsetSource;
-  *Length = MTU;
+  OffsetDest   = OffsetSource;
+  *Length      = MTU;
 
   if (MessageBodyHeaderLength > 0) {
     if (Index == 0) {
-      CopyMem(&MctpMsg->Body.Raw, MessageBodyHeader, MessageBodyHeaderLength);
+      CopyMem (&MctpMsg->Body.Raw, MessageBodyHeader, MessageBodyHeaderLength);
       OffsetDest += MessageBodyHeaderLength;
-      *Length -= MessageBodyHeaderLength;
+      *Length    -= MessageBodyHeaderLength;
     } else {
       OffsetSource -= MessageBodyHeaderLength;
     }
@@ -133,7 +137,8 @@ FillMessage(
   if (OffsetDest + MTU > (MessageBodyLength + MessageBodyHeaderLength)) {
     *Length = (MessageBodyLength + MessageBodyHeaderLength) - OffsetDest;
   }
-  CopyMem(&MctpMsg->Body.Raw[OffsetDest], &MessageBody[OffsetSource], *Length);
+
+  CopyMem (&MctpMsg->Body.Raw[OffsetDest], &MessageBody[OffsetSource], *Length);
 }
 
 /** Fragments the message, fills in missing bits into the header and transmits
@@ -152,50 +157,55 @@ FillMessage(
   @retval EFI_TIMEOUT            The command timed out.
 **/
 EFI_STATUS
-MctpTransportSendMessage(
-  IN MCTP_TRANSPORT_HEADER *Hdr,
-  IN UINT8                 *MessageBodyHeader,
-  IN UINTN                 MessageBodyHeaderLength,
-  IN UINT8                 *MessageBody,
+MctpTransportSendMessage (
+  IN MCTP_TRANSPORT_HEADER  *Hdr,
+  IN UINT8                  *MessageBodyHeader,
+  IN UINTN                  MessageBodyHeaderLength,
+  IN UINT8                  *MessageBody,
   IN UINTN                  MessageBodyLength,
-  IN UINTN                 TimeoutUsec
+  IN UINTN                  TimeoutUsec
   )
 {
-  EFI_STATUS  Status;
-  UINTN       Index;
-  UINTN       Length;
-  UINTN       AmountOfMsgs;
-  MCTP_MSG    Msg;
+  EFI_STATUS         Status;
+  UINTN              Index;
+  UINTN              AmountOfMsgs;
+  MCTP_PHYSICAL_MSG  PhysicalMsg;
+  MCTP_MSG           Msg;
 
   // Sanity checks
-  if (Hdr == NULL || MessageBody == NULL || MessageBodyLength == 0) {
+  if ((Hdr == NULL) || (MessageBody == NULL) || (MessageBodyLength == 0)) {
     return EFI_INVALID_PARAMETER;
   }
 
-  Status = MctpTransportWaitForReadyToSend(TimeoutUsec);
-  if (EFI_ERROR(Status)) {
+  Status = MctpTransportWaitForReadyToSend (TimeoutUsec);
+  if (EFI_ERROR (Status)) {
     DEBUG ((DEBUG_ERROR, "Transport not ready to accept new message: %r\n", Status));
-   return Status;
+    return Status;
   }
 
   // Calculate amount of messages
-  AmountOfMsgs = CalculateAmountMessages(MessageBodyHeaderLength + MessageBodyLength);
+  AmountOfMsgs = CalculateAmountMessages (MessageBodyHeaderLength + MessageBodyLength);
 
   // Construct and send messages
   for (Index = 0; Index < AmountOfMsgs; Index++) {
-    FillMessage(Hdr,
-        MessageBodyHeader,
-        MessageBodyHeaderLength,
-        MessageBody,
-        MessageBodyLength,
-        Index,
-        AmountOfMsgs,
-        &Msg,
-        &Length);
+    PhysicalMsg.Msg    = &Msg;
+    PhysicalMsg.Length = 0;
+
+    FillMessage (
+      Hdr,
+      MessageBodyHeader,
+      MessageBodyHeaderLength,
+      MessageBody,
+      MessageBodyLength,
+      Index,
+      AmountOfMsgs,
+      PhysicalMsg.Msg,
+      &PhysicalMsg.Length
+      );
 
     // Send Message
-    Status = MctpPhysicalSend(&Msg, Length, TimeoutUsec); // TODO: Do we need to wait on an ack here?
-    if (EFI_ERROR(Status)) {
+    Status = MctpPhysicalSend (&PhysicalMsg, TimeoutUsec); // TODO: Do we need to wait on an ack here?
+    if (EFI_ERROR (Status)) {
       DEBUG ((DEBUG_ERROR, "Failed to send the message: %r\n", Status));
       return Status;
     }
@@ -204,57 +214,61 @@ MctpTransportSendMessage(
   return EFI_SUCCESS;
 }
 
-// check the transport layer for pending rx 
+// check the transport layer for pending rx
 BOOLEAN
 EFIAPI
-MctpTransportHasMessage(
+MctpTransportHasMessage (
   VOID
   )
 {
-  return MctpPhysicalHasMessage();
+  return MctpPhysicalHasMessage ();
 }
 
 EFI_STATUS
 EFIAPI
-MctpTransportWaitForMessage(
-  IN     UINTN                 TimeoutUsec
+MctpTransportWaitForMessage (
+  IN     UINTN  TimeoutUsec
   )
 {
-  UINTN Timeout = 0;
-  while (!MctpPhysicalHasMessage()) {
+  UINTN  Timeout = 0;
+
+  while (!MctpPhysicalHasMessage ()) {
     MicroSecondDelay (100);
     Timeout += 100;
     if (Timeout >= TimeoutUsec ) {
       return EFI_TIMEOUT;
     }
   }
+
   return EFI_SUCCESS;
 }
 
 // Ready to accept a new message?
 BOOLEAN
 EFIAPI
-MctpTransportReadyToSend(
+MctpTransportReadyToSend (
   VOID
   )
 {
-  return MctpPhysicalReadyToSend();
+  return MctpPhysicalReadyToSend ();
 }
 
 EFI_STATUS
 EFIAPI
-MctpTransportWaitForReadyToSend(
-  IN     UINTN                 TimeoutUsec
+MctpTransportWaitForReadyToSend (
+  IN     UINTN  TimeoutUsec
   )
 {
-  UINTN Timeout = 0;
-  while (!MctpPhysicalReadyToSend()) {
+  UINTN  Timeout = 0;
+
+  while (!MctpPhysicalReadyToSend ()) {
     MicroSecondDelay (100);
     Timeout += 100;
     if (Timeout >= TimeoutUsec ) {
       return EFI_TIMEOUT;
     }
   }
+
   return EFI_SUCCESS;
 }
 
@@ -276,36 +290,42 @@ MctpTransportWaitForReadyToSend(
 **/
 EFI_STATUS
 EFIAPI
-MctpTransportReceiveMessage(
-  OUT  MCTP_MSG              **Msg,
-  OUT  UINTN                 *MsgLength,
-  IN   UINTN                 TimeoutUsec
+MctpTransportReceiveMessage (
+  OUT  MCTP_MSG  **Msg,
+  OUT  UINTN     *MsgLength,
+  IN   UINTN     TimeoutUsec
   )
 {
-  EFI_STATUS        Status;
-  UINTN             RxMsgLength;
-  UINTN             ExpectSOM;
-  UINTN             Seq;
+  EFI_STATUS         Status;
+  UINTN              ExpectSOM;
+  UINTN              Seq;
+  MCTP_PHYSICAL_MSG  PhysicalMsg;
 
   // Sanity checks
-  if (Msg == NULL || MsgLength == NULL) {
+  if ((Msg == NULL) || (MsgLength == NULL)) {
     return EFI_INVALID_PARAMETER;
   }
 
-  Status = MctpTransportWaitForMessage(TimeoutUsec);
-  if (EFI_ERROR(Status)) {
+  Status = MctpTransportWaitForMessage (TimeoutUsec);
+  if (EFI_ERROR (Status)) {
     return Status;
   }
 
-  RxMsgLength = MTU;
+  PhysicalMsg.Mtu    = MTU;
+  PhysicalMsg.Length = 0;
+  PhysicalMsg.Msg    = RxMsg;
 
   // Underlaying layer will know the exact packet length
-  Status = MctpPhysicalReceive(RxMsg, &RxMsgLength, TimeoutUsec);
-  if (EFI_ERROR(Status)) {
+  Status = MctpPhysicalReceive (&PhysicalMsg, TimeoutUsec);
+  if (EFI_ERROR (Status)) {
     return Status;
   }
 
-  if (RxMsg->Header.SOM == 1 && RxMsg->Header.EOM == 1) {
+  if (PhysicalMsg.Length < sizeof (MCTP_TRANSPORT_HEADER)) {
+    return EFI_PROTOCOL_ERROR;
+  }
+
+  if ((RxMsg->Header.SOM == 1) && (RxMsg->Header.EOM == 1)) {
     //
     // Single fragment packet
     //
@@ -314,7 +334,7 @@ MctpTransportReceiveMessage(
     //
     // Multi fragment packet
     //
-    if (RxMsg->Header.SOM == 0 && ExpectSOM == 1) {
+    if ((RxMsg->Header.SOM == 0) && (ExpectSOM == 1)) {
       // Not a start packet
       Status = EFI_NOT_STARTED;
     } else if (RxMsg->Header.SOM == 1) {
@@ -322,14 +342,15 @@ MctpTransportReceiveMessage(
         // repeated start
         Status = EFI_ALREADY_STARTED;
       }
-      ExpectSOM = 0;
-      ExpectSourceEID = RxMsg->Header.SourceEID;
+
+      ExpectSOM            = 0;
+      ExpectSourceEID      = RxMsg->Header.SourceEID;
       ExpectDestinationEID = RxMsg->Header.DestEID;
-      Seq = RxMsg->Header.PktSeq;
+      Seq                  = RxMsg->Header.PktSeq;
     } else {
       Seq = (Seq + 1) % 4;
       if (Seq != RxMsg->Header.PktSeq) {
-       Status = EFI_PROTOCOL_ERROR;
+        Status = EFI_PROTOCOL_ERROR;
       } else if (ExpectSourceEID != RxMsg->Header.SourceEID) {
         Status = EFI_PROTOCOL_ERROR;
       } else if (ExpectDestinationEID != RxMsg->Header.DestEID) {

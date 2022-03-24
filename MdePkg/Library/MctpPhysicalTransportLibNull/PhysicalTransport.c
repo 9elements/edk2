@@ -5,10 +5,9 @@
 
 EFI_STATUS
 EFIAPI
-MctpPhysicalSend(
-  IN MCTP_MSG *Msg,
-  IN UINTN Length,
-  IN UINTN TimeoutUsec
+MctpPhysicalSend (
+  IN MCTP_PHYSICAL_MSG  *Msg,
+  IN UINTN              TimeoutUsec
   )
 {
   return EFI_SUCCESS;
@@ -16,10 +15,9 @@ MctpPhysicalSend(
 
 EFI_STATUS
 EFIAPI
-MctpPhysicalReceive(
-  IN MCTP_MSG *Msg,
-  IN UINTN *Length,
-  IN UINTN TimeoutUsec
+MctpPhysicalReceive (
+  IN MCTP_PHYSICAL_MSG  *Msg,
+  IN UINTN              TimeoutUsec
   )
 {
   return EFI_SUCCESS;
@@ -27,7 +25,7 @@ MctpPhysicalReceive(
 
 BOOLEAN
 EFIAPI
-MctpPhysicalReadyToSend(
+MctpPhysicalReadyToSend (
   VOID
   )
 {
@@ -36,7 +34,7 @@ MctpPhysicalReadyToSend(
 
 BOOLEAN
 EFIAPI
-MctpPhysicalHasMessage(
+MctpPhysicalHasMessage (
   VOID
   )
 {
@@ -45,7 +43,7 @@ MctpPhysicalHasMessage(
 
 UINT8
 EFIAPI
-MctpPhysicalGetEndpointInformation(
+MctpPhysicalGetEndpointInformation (
   VOID
   )
 {

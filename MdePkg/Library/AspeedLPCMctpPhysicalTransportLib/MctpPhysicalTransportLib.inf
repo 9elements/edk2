@@ -1,0 +1,59 @@
+## @file
+# Instance of HOB Library using PEI Services.
+#
+# HOB Library implementation that uses PEI Services to retrieve the HOB List.
+#
+# Copyright (c) 2006 - 2018, Intel Corporation. All rights reserved.<BR>
+#
+#  SPDX-License-Identifier: BSD-2-Clause-Patent
+#
+#
+##
+
+[Defines]
+  INF_VERSION                    = 0x00010005
+  BASE_NAME                      = MctpPhysicalTransportLibAspeedLpc
+  FILE_GUID                      = 4A28A543-985F-4A48-A197-2A512AEA76AB
+  MODULE_TYPE                    = BASE
+  VERSION_STRING                 = 1.0
+  LIBRARY_CLASS                  = MctpPhysicalTransportLib
+
+#
+#  VALID_ARCHITECTURES           = IA32 X64
+#
+
+[Sources]
+  PhysicalTransport.c
+  Buffer.c
+  Channel.c
+  Common.c
+  Kcs.c
+  Layout.c
+  Lpc.c
+  Protocol.c
+  Version.c
+  AspeedLPCMctpPhysicalTransportLib.h
+
+[Packages]
+  MdePkg/MdePkg.dec
+
+[LibraryClasses]
+  BaseLib
+  BaseMemoryLib
+  DebugLib
+  PcdLib
+  IoLib
+
+[Guids]
+  gEfiHobMemoryAllocStackGuid                   ## SOMETIMES_PRODUCES ## HOB # MemoryAllocation StackHob
+  gEfiHobMemoryAllocBspStoreGuid                ## SOMETIMES_PRODUCES ## HOB # MemoryAllocation BspStoreHob
+  gEfiHobMemoryAllocModuleGuid                  ## SOMETIMES_PRODUCES ## HOB # MemoryAllocation ModuleHob
+
+[Pcd]
+  gEfiMdePkgTokenSpaceGuid.PcdAspeedLPCWindowBaseAddress ##CONSUMED
+  gEfiMdePkgTokenSpaceGuid.PcdAspeedLPCWindowSize        ##CONSUMED
+  gEfiMdePkgTokenSpaceGuid.PcdMctpKcsType                ##CONSUMED
+  gEfiMdePkgTokenSpaceGuid.PcdMctpKcsPort                ##CONSUMED
+  gEfiMdePkgTokenSpaceGuid.PcdMctpMtu                    ##CONSUMED
+  
+
