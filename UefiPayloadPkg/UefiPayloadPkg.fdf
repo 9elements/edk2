@@ -232,12 +232,6 @@ INF SecurityPkg/RandomNumberGenerator/RngDxe/RngDxe.inf
 #
 # iPXE support
 #
-!if (NETWORK_IPXE)
-  FILE FREEFORM = B68653C7-EEA1-4435-A199-A44F59E4476C {
-   SECTION PE32 = UefiPayloadPkg/NetworkDrivers/ipxe.efi
-  }
-!endif
-
 !if (NETWORK_IPXE_IP4_IP6)
   FILE FREEFORM = 35B66AF8-5E35-4D35-9336-AD9FBD801F37 {
    SECTION PE32 = UefiPayloadPkg/NetworkDrivers/ipxe_ipv4_ipv6.efi

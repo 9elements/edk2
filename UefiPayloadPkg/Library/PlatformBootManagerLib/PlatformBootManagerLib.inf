@@ -68,7 +68,6 @@
   gEfiMdeModulePkgTokenSpaceGuid.PcdConOutColumn
   gEfiMdeModulePkgTokenSpaceGuid.PcdConInConnectOnDemand
   gUefiPayloadPkgTokenSpaceGuid.PcdShellFile
-  gUefiPayloadPkgTokenSpaceGuid.PcdiPXEFile
   gUefiPayloadPkgTokenSpaceGuid.PcdiPXEFileIp4Ip6
   gUefiPayloadPkgTokenSpaceGuid.PcdiPXEFileIp4
   gUefiPayloadPkgTokenSpaceGuid.PcdiPXEFileIp6

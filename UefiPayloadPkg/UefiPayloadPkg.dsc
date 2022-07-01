@@ -120,7 +120,6 @@
   #
   # IPXE support
   #
-  DEFINE NETWORK_IPXE                   = FALSE
   DEFINE NETWORK_IPXE_IP4_IP6           = FALSE
   DEFINE NETWORK_IPXE_IP4               = FALSE
   DEFINE NETWORK_IPXE_IP6               = FALSE
