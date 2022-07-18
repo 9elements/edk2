@@ -284,20 +284,22 @@ PlatformBootManagerAfterConsole (
   PlatformRegisterFvBootOption (PcdGetPtr (PcdiPXEFileIp4), L"iPXE Network boot IPv4", LOAD_OPTION_ACTIVE);
   PlatformRegisterFvBootOption (PcdGetPtr (PcdiPXEFileIp6), L"iPXE Network boot IPv6", LOAD_OPTION_ACTIVE);
 
-  if (FixedPcdGetBool (PcdBootManagerEscape)) {
-    Print (
-      L"\n"
-      L"    Esc or Down      to enter Boot Manager Menu.\n"
-      L"    ENTER            to boot directly.\n"
-      L"\n"
-      );
-  } else {
-    Print (
-      L"\n"
-      L"    F2 or Down      to enter Boot Manager Menu.\n"
-      L"    ENTER           to boot directly.\n"
-      L"\n"
-      );
+  if (PcdGet16 (PcdPlatformBootTimeOut) > 0) {
+    if (FixedPcdGetBool (PcdBootManagerEscape)) {
+      Print (
+        L"\n"
+        L"    Esc or Down      to enter Boot Manager Menu.\n"
+        L"    ENTER            to boot directly.\n"
+        L"\n"
+        );
+    } else {
+      Print (
+        L"\n"
+        L"    F2 or Down      to enter Boot Manager Menu.\n"
+        L"    ENTER           to boot directly.\n"
+        L"\n"
+        );
+    }
   }
 }
 
