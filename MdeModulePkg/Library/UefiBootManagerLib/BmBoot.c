@@ -1782,6 +1782,7 @@ EfiBootManagerBoot (
   EFI_INPUT_KEY             Key;
   UINTN                     Index;
   UINT8                     *SecureBoot;
+  BOOLEAN                   IsBootManager;
 
   if (BootOption == NULL) {
     return;
@@ -1816,6 +1817,13 @@ EfiBootManagerBoot (
     }
   }
 
+  // Do not allow Boot Manager to be booted if disabled
+  IsBootManager = BmIsBootManagerMenuFilePath (BootOption->FilePath);
+  if (IsBootManager && PcdGet16 (PcdPlatformBootTimeOut) == 0) {
+      DEBUG ((EFI_D_ERROR, "[Bds] Booting Boot Manager is not allowed!\n"));
+      return;
+  }
+
   //
   // 2. Set BootCurrent
   //
@@ -1832,7 +1840,7 @@ EfiBootManagerBoot (
   // 3. Signal the EVT_SIGNAL_READY_TO_BOOT event when we are about to load and execute
   //    the boot option.
   //
-  if (BmIsBootManagerMenuFilePath (BootOption->FilePath)) {
+  if (IsBootManager) {
     DEBUG ((EFI_D_INFO, "[Bds] Booting Boot Manager Menu.\n"));
     BmStopHotkeyService (NULL, NULL);
   } else {
