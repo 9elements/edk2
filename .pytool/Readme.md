@@ -4,8 +4,8 @@
 
 | Package              | Windows VS2019 (IA32/X64)| Ubuntu GCC (IA32/X64/ARM/AARCH64) | Known Issues |
 | :----                | :-----                   | :----                             | :---         |
-| ArmPkg               |
-| ArmPlatformPkg       |
+| ArmPkg               |                    | :heavy_check_mark: |
+| ArmPlatformPkg       |                    | :heavy_check_mark: |
 | ArmVirtPkg           | SEE PACKAGE README | SEE PACKAGE README |
 | CryptoPkg            | :heavy_check_mark: | :heavy_check_mark: | Spell checking in audit mode
 | DynamicTablesPkg     |                    | :heavy_check_mark: |
@@ -82,7 +82,7 @@ easily and consistently running locally and in a cloud ci environment.  To do
 that a few steps should be followed.  Details of EDKII Tools can be found in the
 [docs folder here](https://github.com/tianocore/edk2-pytool-extensions/tree/master/docs)
 
-### Prerequisets
+### Prerequisites
 
 1. A supported toolchain (others might work but this is what is tested and validated)
    * Windows 10:
@@ -95,7 +95,7 @@ that a few steps should be followed.  Details of EDKII Tools can be found in the
 2. Python 3.7.x or newer on path
 3. git on path
 4. Recommended to setup and activate a python virtual environment
-5. Install the requirements `pip install --upgrade pip-requirements.txt`
+5. Install the requirements `pip install --upgrade -r pip-requirements.txt`
 
 ### Running CI
 
@@ -253,6 +253,20 @@ Install
   2. Run `npm install -g cspell`
 
   More cspell info: https://github.com/streetsidesoftware/cspell
+
+### License Checking - LicenseCheck
+
+Scans all new added files in a package to make sure code is contributed under
+BSD-2-Clause-Patent.
+
+### Ecc tool - EccCheck
+
+Run the Ecc tool on the package. The Ecc tool is available in the BaseTools
+package. It checks that the code complies to the EDKII coding standard.
+
+### Coding Standard Compliance - UncrustifyCheck
+
+Runs the Uncrustify application to check for coding standard compliance issues.
 
 ## PyTool Scopes
 

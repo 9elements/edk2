@@ -73,9 +73,11 @@
   HobLib
   MemoryAllocationLib
   MmServicesTableLib
+  SafeIntLib
   StandaloneMmDriverEntryPoint
   SynchronizationLib
   VarCheckLib
+  VariableFlashInfoLib
   VariablePolicyLib
   VariablePolicyHelperLib
 
@@ -119,10 +121,7 @@
   ## SOMETIMES_PRODUCES   ## Variable:L"VarErrorFlag"
   gEdkiiVarErrorFlagGuid
 
-[FixedPcd]
-  gEfiMdeModulePkgTokenSpaceGuid.PcdFlashNvStorageVariableSize       ## CONSUMES
-  gEfiMdeModulePkgTokenSpaceGuid.PcdFlashNvStorageVariableBase       ## SOMETIMES_CONSUMES
-  gEfiMdeModulePkgTokenSpaceGuid.PcdFlashNvStorageVariableBase64     ## CONSUMES
+[Pcd]
   gEfiMdeModulePkgTokenSpaceGuid.PcdMaxVariableSize                  ## CONSUMES
   gEfiMdeModulePkgTokenSpaceGuid.PcdMaxAuthVariableSize              ## CONSUMES
   gEfiMdeModulePkgTokenSpaceGuid.PcdMaxVolatileVariableSize          ## CONSUMES

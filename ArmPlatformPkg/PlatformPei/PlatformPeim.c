@@ -1,9 +1,9 @@
 /** @file
-*
-*  Copyright (c) 2011, ARM Limited. All rights reserved.
-*
-*  SPDX-License-Identifier: BSD-2-Clause-Patent
-*
+
+  Copyright (c) 2011, ARM Limited. All rights reserved.
+
+  SPDX-License-Identifier: BSD-2-Clause-Patent
+
 **/
 
 #include <PiPei.h>
@@ -76,10 +76,10 @@ InitializePlatformPeim (
   IN CONST EFI_PEI_SERVICES     **PeiServices
   )
 {
-  EFI_STATUS                    Status;
-  EFI_BOOT_MODE                 BootMode;
+  EFI_STATUS     Status;
+  EFI_BOOT_MODE  BootMode;
 
-  DEBUG ((EFI_D_LOAD | EFI_D_INFO, "Platform PEIM Loaded\n"));
+  DEBUG ((DEBUG_LOAD | DEBUG_INFO, "Platform PEIM Loaded\n"));
 
   Status = PeiServicesSetBootMode (ArmPlatformGetBootMode ());
   ASSERT_EFI_ERROR (Status);

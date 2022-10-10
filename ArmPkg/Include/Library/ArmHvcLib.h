@@ -6,22 +6,22 @@
 *
 **/
 
-#ifndef __ARM_HVC_LIB__
-#define __ARM_HVC_LIB__
+#ifndef ARM_HVC_LIB_H_
+#define ARM_HVC_LIB_H_
 
 /**
  * The size of the HVC arguments are different between AArch64 and AArch32.
  * The native size is used for the arguments.
  */
 typedef struct {
-  UINTN  Arg0;
-  UINTN  Arg1;
-  UINTN  Arg2;
-  UINTN  Arg3;
-  UINTN  Arg4;
-  UINTN  Arg5;
-  UINTN  Arg6;
-  UINTN  Arg7;
+  UINTN    Arg0;
+  UINTN    Arg1;
+  UINTN    Arg2;
+  UINTN    Arg3;
+  UINTN    Arg4;
+  UINTN    Arg5;
+  UINTN    Arg6;
+  UINTN    Arg7;
 } ARM_HVC_ARGS;
 
 /**
@@ -34,7 +34,7 @@ typedef struct {
 **/
 VOID
 ArmCallHvc (
-  IN OUT ARM_HVC_ARGS *Args
+  IN OUT ARM_HVC_ARGS  *Args
   );
 
-#endif
+#endif // ARM_HVC_LIB_H_

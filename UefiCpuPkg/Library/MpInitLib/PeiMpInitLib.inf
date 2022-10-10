@@ -1,7 +1,7 @@
 ## @file
 #  MP Initialize Library instance for PEI driver.
 #
-#  Copyright (c) 2016 - 2020, Intel Corporation. All rights reserved.<BR>
+#  Copyright (c) 2016 - 2021, Intel Corporation. All rights reserved.<BR>
 #  SPDX-License-Identifier: BSD-2-Clause-Patent
 #
 ##
@@ -22,14 +22,16 @@
 #
 
 [Sources.IA32]
-  Ia32/MpEqu.inc
+  Ia32/AmdSev.c
   Ia32/MpFuncs.nasm
 
 [Sources.X64]
-  X64/MpEqu.inc
+  X64/AmdSev.c
   X64/MpFuncs.nasm
 
 [Sources.common]
+  AmdSev.c
+  MpEqu.inc
   PeiMpLib.c
   MpLib.c
   MpLib.h
@@ -52,6 +54,7 @@
   PeiServicesLib
   PcdLib
   VmgExitLib
+  MicrocodeLib
 
 [Pcd]
   gUefiCpuPkgTokenSpaceGuid.PcdCpuMaxLogicalProcessorNumber        ## CONSUMES
@@ -62,9 +65,10 @@
   gUefiCpuPkgTokenSpaceGuid.PcdCpuMicrocodePatchRegionSize         ## CONSUMES
   gUefiCpuPkgTokenSpaceGuid.PcdCpuApLoopMode                       ## CONSUMES
   gUefiCpuPkgTokenSpaceGuid.PcdCpuApTargetCstate                   ## SOMETIMES_CONSUMES
-  gUefiCpuPkgTokenSpaceGuid.PcdSevEsIsEnabled                      ## CONSUMES
   gUefiCpuPkgTokenSpaceGuid.PcdSevEsWorkAreaBase                   ## SOMETIMES_CONSUMES
+  gUefiCpuPkgTokenSpaceGuid.PcdGhcbHypervisorFeatures              ## CONSUMES
   gEfiMdeModulePkgTokenSpaceGuid.PcdGhcbBase                       ## CONSUMES
+  gEfiMdePkgTokenSpaceGuid.PcdConfidentialComputingGuestAttr       ## CONSUMES
 
 [Ppis]
   gEdkiiPeiShadowMicrocodePpiGuid        ## SOMETIMES_CONSUMES

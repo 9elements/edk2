@@ -10,72 +10,46 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #define __BOOT_MAINTENANCE_MANAGER_UI_LIB_H__
 
 /**
-  Create Time Out Menu in the page.
+  Create Add Boot option in the page.
 
   @param[in]    HiiHandle           The hii handle for the Uiapp driver.
   @param[in]    StartOpCodeHandle   The opcode handle to save the new opcode.
 
 **/
 VOID
-BmmCreateTimeOutMenu (
-  IN EFI_HII_HANDLE              HiiHandle,
-  IN VOID                        *StartOpCodeHandle
+BmmCreateAddBootOptionMenu (
+  IN EFI_HII_HANDLE  HiiHandle,
+  IN VOID            *StartOpCodeHandle
   );
 
 /**
-  Create the dynamic item to allow user to set the "BootNext" vaule.
+  Create Delete Boot option in the page
 
   @param[in]    HiiHandle           The hii handle for the Uiapp driver.
   @param[in]    StartOpCodeHandle   The opcode handle to save the new opcode.
 
 **/
 VOID
-BmmCreateBootNextMenu(
-  IN EFI_HII_HANDLE              HiiHandle,
-  IN VOID                        *StartOpCodeHandle
+BmmCreateDeleteBootOptionMenu (
+  IN EFI_HII_HANDLE  HiiHandle,
+  IN VOID            *StartOpCodeHandle
   );
 
 /**
-  Create Boot Option menu in the page.
+  Create Change Boot option menu in the page.
 
   @param[in]    HiiHandle           The hii handle for the Uiapp driver.
   @param[in]    StartOpCodeHandle   The opcode handle to save the new opcode.
 
 **/
 VOID
-BmmCreateBootOptionMenu (
-  IN EFI_HII_HANDLE              HiiHandle,
-  IN VOID                        *StartOpCodeHandle
+BmmCreateChangeBootOptionMenu (
+  IN EFI_HII_HANDLE  HiiHandle,
+  IN VOID            *StartOpCodeHandle
   );
 
 /**
-  Create Driver Option menu in the page.
-
-  @param[in]    HiiHandle           The hii handle for the Uiapp driver.
-  @param[in]    StartOpCodeHandle   The opcode handle to save the new opcode.
-
-**/
-VOID
-BmmCreateDriverOptionMenu (
-  IN EFI_HII_HANDLE              HiiHandle,
-  IN VOID                        *StartOpCodeHandle
-  );
-
-/**
-  Create Com Option menu in the page.
-
-  @param[in]    HiiHandle           The hii handle for the Uiapp driver.
-  @param[in]    StartOpCodeHandle   The opcode handle to save the new opcode.
-
-**/
-VOID
-BmmCreateComOptionMenu (
-  IN EFI_HII_HANDLE              HiiHandle,
-  IN VOID                        *StartOpCodeHandle
-  );
-
-/**
-  Create Com Option menu in the page.
+  Create Boot From File menu in the page.
 
   @param[in]    HiiHandle           The hii handle for the Uiapp driver.
   @param[in]    StartOpCodeHandle   The opcode handle to save the new opcode.
@@ -83,8 +57,8 @@ BmmCreateComOptionMenu (
 **/
 VOID
 BmmCreateBootFromFileMenu (
-  IN EFI_HII_HANDLE              HiiHandle,
-  IN VOID                        *StartOpCodeHandle
+  IN EFI_HII_HANDLE  HiiHandle,
+  IN VOID            *StartOpCodeHandle
   );
 
 /**
@@ -96,8 +70,8 @@ BmmCreateBootFromFileMenu (
 **/
 VOID
 BmmCreateEmptyLine (
-  IN EFI_HII_HANDLE              HiiHandle,
-  IN VOID                        *StartOpCodeHandle
+  IN EFI_HII_HANDLE  HiiHandle,
+  IN VOID            *StartOpCodeHandle
   );
 
 /**
@@ -116,7 +90,7 @@ EFI_STATUS
   IN  CHAR16                   *DriverName,
   OUT CHAR16                   **NewName,
   OUT BOOLEAN                  *EmptyLineAfter
-);
+  );
 
 /**
   Search the drivers in the system which need to show in the front page
@@ -132,10 +106,10 @@ EFI_STATUS
 **/
 EFI_STATUS
 BmmListThirdPartyDrivers (
-  IN EFI_HII_HANDLE              HiiHandle,
-  IN EFI_GUID                    *ClassGuid,
-  IN DRIVER_SPECIAL_HANDLER      SpecialHandlerFn,
-  IN VOID                        *StartOpCodeHandle
+  IN EFI_HII_HANDLE          HiiHandle,
+  IN EFI_GUID                *ClassGuid,
+  IN DRIVER_SPECIAL_HANDLER  SpecialHandlerFn,
+  IN VOID                    *StartOpCodeHandle
   );
 
 #endif

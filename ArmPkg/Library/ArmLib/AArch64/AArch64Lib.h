@@ -8,10 +8,12 @@
 
 **/
 
-#ifndef __AARCH64_LIB_H__
-#define __AARCH64_LIB_H__
+#ifndef AARCH64_LIB_H_
+#define AARCH64_LIB_H_
 
-typedef VOID (*AARCH64_CACHE_OPERATION)(UINTN);
+typedef VOID (*AARCH64_CACHE_OPERATION)(
+  UINTN
+  );
 
 VOID
 AArch64AllDataCachesOperation (
@@ -33,7 +35,7 @@ ArmCleanDataCacheEntryBySetWay (
 VOID
 EFIAPI
 ArmCleanInvalidateDataCacheEntryBySetWay (
-  IN  UINTN   SetWayFormat
+  IN  UINTN  SetWayFormat
   );
 
 UINTN
@@ -41,5 +43,15 @@ EFIAPI
 ArmReadIdAA64Pfr0 (
   VOID
   );
-#endif // __AARCH64_LIB_H__
 
+/** Reads the ID_AA64MMFR2_EL1 register.
+
+   @return The contents of the ID_AA64MMFR2_EL1 register.
+**/
+UINTN
+EFIAPI
+ArmReadIdAA64Mmfr2 (
+  VOID
+  );
+
+#endif // AARCH64_LIB_H_

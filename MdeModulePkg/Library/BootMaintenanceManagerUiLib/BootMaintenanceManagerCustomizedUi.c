@@ -25,21 +25,39 @@ UiCustomizeBMMPage (
   )
 {
   //
-  // Create "Boot Option" menu.
+  // Create "Change Boot Order" menu.
   //
-  BmmCreateBootOptionMenu(HiiHandle, StartOpCodeHandle);
+  BmmCreateChangeBootOptionMenu(HiiHandle, StartOpCodeHandle);
+
   //
-  // Create "Driver Option" menu.
+  // Create empty line.
   //
-  BmmCreateDriverOptionMenu(HiiHandle, StartOpCodeHandle);
+  BmmCreateEmptyLine (HiiHandle, StartOpCodeHandle);
+
   //
-  // Create "Com Option" menu.
+  // Create "Add Boot Option" menu.
   //
-  BmmCreateComOptionMenu(HiiHandle, StartOpCodeHandle);
+  BmmCreateAddBootOptionMenu(HiiHandle, StartOpCodeHandle);
+
+  //
+  // Create empty line.
+  //
+  BmmCreateEmptyLine (HiiHandle, StartOpCodeHandle);
+
+  //
+  // Create "Delete Boot Option" menu.
+  //
+   BmmCreateDeleteBootOptionMenu(HiiHandle, StartOpCodeHandle);
+
+  //
+  // Create empty line.
+  //
+  BmmCreateEmptyLine (HiiHandle, StartOpCodeHandle);
+
   //
   // Create "Boot From File" menu.
   //
-  BmmCreateBootFromFileMenu(HiiHandle, StartOpCodeHandle);
+  BmmCreateBootFromFileMenu (HiiHandle, StartOpCodeHandle);
 
   //
   // Find third party drivers which need to be shown in the Bmm page.
@@ -50,15 +68,6 @@ UiCustomizeBMMPage (
   // Create empty line.
   //
   BmmCreateEmptyLine (HiiHandle, StartOpCodeHandle);
-
-  //
-  // Create "Boot Next" menu.
-  //
-  BmmCreateBootNextMenu (HiiHandle, StartOpCodeHandle);
-  //
-  // Create "Time Out" menu.
-  //
-  BmmCreateTimeOutMenu (HiiHandle, StartOpCodeHandle);
 }
 
 /**
@@ -81,12 +90,12 @@ UiCustomizeBMMPage (
 **/
 EFI_STATUS
 UiBMMCallbackHandler (
-  IN  EFI_HII_HANDLE                         HiiHandle,
-  IN  EFI_BROWSER_ACTION                     Action,
-  IN  EFI_QUESTION_ID                        QuestionId,
-  IN  UINT8                                  Type,
-  IN  EFI_IFR_TYPE_VALUE                     *Value,
-  OUT EFI_BROWSER_ACTION_REQUEST             *ActionRequest
+  IN  EFI_HII_HANDLE              HiiHandle,
+  IN  EFI_BROWSER_ACTION          Action,
+  IN  EFI_QUESTION_ID             QuestionId,
+  IN  UINT8                       Type,
+  IN  EFI_IFR_TYPE_VALUE          *Value,
+  OUT EFI_BROWSER_ACTION_REQUEST  *ActionRequest
   )
 {
   return EFI_UNSUPPORTED;

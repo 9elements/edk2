@@ -1,7 +1,7 @@
 /** @file
   Table Helper
 
-  Copyright (c) 2017 - 2020, Arm Limited. All rights reserved.<BR>
+  Copyright (c) 2017 - 2021, Arm Limited. All rights reserved.<BR>
 
   SPDX-License-Identifier: BSD-2-Clause-Patent
 **/
@@ -34,8 +34,8 @@
 EFI_STATUS
 EFIAPI
 GetCgfMgrInfo (
-  IN  CONST EDKII_CONFIGURATION_MANAGER_PROTOCOL      * CONST  CfgMgrProtocol,
-  OUT       CM_STD_OBJ_CONFIGURATION_MANAGER_INFO    **        CfgMfrInfo
+  IN  CONST EDKII_CONFIGURATION_MANAGER_PROTOCOL      *CONST  CfgMgrProtocol,
+  OUT       CM_STD_OBJ_CONFIGURATION_MANAGER_INFO             **CfgMfrInfo
   )
 {
   EFI_STATUS         Status;
@@ -45,12 +45,12 @@ GetCgfMgrInfo (
   ASSERT (CfgMfrInfo != NULL);
 
   *CfgMfrInfo = NULL;
-  Status = CfgMgrProtocol->GetObject (
-                             CfgMgrProtocol,
-                             CREATE_CM_STD_OBJECT_ID (EStdObjCfgMgrInfo),
-                             CM_NULL_TOKEN,
-                             &CmObjectDesc
-                             );
+  Status      = CfgMgrProtocol->GetObject (
+                                  CfgMgrProtocol,
+                                  CREATE_CM_STD_OBJECT_ID (EStdObjCfgMgrInfo),
+                                  CM_NULL_TOKEN,
+                                  &CmObjectDesc
+                                  );
   if (EFI_ERROR (Status)) {
     DEBUG ((
       DEBUG_ERROR,
@@ -72,7 +72,8 @@ GetCgfMgrInfo (
   }
 
   if (CmObjectDesc.Size <
-      (sizeof (CM_STD_OBJ_CONFIGURATION_MANAGER_INFO) * CmObjectDesc.Count)) {
+      (sizeof (CM_STD_OBJ_CONFIGURATION_MANAGER_INFO) * CmObjectDesc.Count))
+  {
     DEBUG ((
       DEBUG_ERROR,
       "ERROR: EStdObjCfgMgrInfo: Buffer too small, size  = 0x%x\n",
@@ -82,7 +83,7 @@ GetCgfMgrInfo (
     return EFI_BAD_BUFFER_SIZE;
   }
 
-  *CfgMfrInfo = (CM_STD_OBJ_CONFIGURATION_MANAGER_INFO*)CmObjectDesc.Data;
+  *CfgMfrInfo = (CM_STD_OBJ_CONFIGURATION_MANAGER_INFO *)CmObjectDesc.Data;
   return Status;
 }
 
@@ -109,26 +110,29 @@ GetCgfMgrInfo (
 EFI_STATUS
 EFIAPI
 AddAcpiHeader (
-  IN      CONST EDKII_CONFIGURATION_MANAGER_PROTOCOL  * CONST CfgMgrProtocol,
-  IN      CONST ACPI_TABLE_GENERATOR                  * CONST Generator,
-  IN OUT  EFI_ACPI_DESCRIPTION_HEADER                 * CONST AcpiHeader,
-  IN      CONST CM_STD_OBJ_ACPI_TABLE_INFO            * CONST AcpiTableInfo,
+  IN      CONST EDKII_CONFIGURATION_MANAGER_PROTOCOL  *CONST  CfgMgrProtocol,
+  IN      CONST ACPI_TABLE_GENERATOR                  *CONST  Generator,
+  IN OUT  EFI_ACPI_DESCRIPTION_HEADER                 *CONST  AcpiHeader,
+  IN      CONST CM_STD_OBJ_ACPI_TABLE_INFO            *CONST  AcpiTableInfo,
   IN      CONST UINT32                                        Length
   )
 {
-  EFI_STATUS                               Status;
-  CM_STD_OBJ_CONFIGURATION_MANAGER_INFO  * CfgMfrInfo;
+  EFI_STATUS                             Status;
+  CM_STD_OBJ_CONFIGURATION_MANAGER_INFO  *CfgMfrInfo;
 
   ASSERT (CfgMgrProtocol != NULL);
   ASSERT (Generator != NULL);
   ASSERT (AcpiHeader != NULL);
+  ASSERT (AcpiTableInfo != NULL);
   ASSERT (Length >= sizeof (EFI_ACPI_DESCRIPTION_HEADER));
 
   if ((CfgMgrProtocol == NULL) ||
       (Generator == NULL) ||
       (AcpiHeader == NULL) ||
+      (AcpiTableInfo == NULL) ||
       (Length < sizeof (EFI_ACPI_DESCRIPTION_HEADER))
-    ) {
+      )
+  {
     return EFI_INVALID_PARAMETER;
   }
 
@@ -183,6 +187,94 @@ error_handler:
   return Status;
 }
 
+/** Build a RootNode containing SSDT ACPI header information using the AmlLib.
+
+  The function utilizes the ACPI table Generator and the Configuration
+  Manager protocol to obtain any information required for constructing the
+  header. It then creates a RootNode. The SSDT ACPI header is part of the
+  RootNode.
+
+  This is essentially a wrapper around AmlCodeGenDefinitionBlock ()
+  from the AmlLib.
+
+  @param [in]   CfgMgrProtocol Pointer to the Configuration Manager
+                               protocol interface.
+  @param [in]   Generator      Pointer to the ACPI table Generator.
+  @param [in]   AcpiTableInfo  Pointer to the ACPI table info structure.
+  @param [out]  RootNode       If success, contains the created RootNode.
+                               The SSDT ACPI header is part of the RootNode.
+
+  @retval EFI_SUCCESS           Success.
+  @retval EFI_INVALID_PARAMETER A parameter is invalid.
+  @retval EFI_NOT_FOUND         The required object information is not found.
+  @retval EFI_BAD_BUFFER_SIZE   The size returned by the Configuration
+                                Manager is less than the Object size for the
+                                requested object.
+**/
+EFI_STATUS
+EFIAPI
+AddSsdtAcpiHeader (
+  IN      CONST EDKII_CONFIGURATION_MANAGER_PROTOCOL  *CONST  CfgMgrProtocol,
+  IN      CONST ACPI_TABLE_GENERATOR                  *CONST  Generator,
+  IN      CONST CM_STD_OBJ_ACPI_TABLE_INFO            *CONST  AcpiTableInfo,
+  OUT       AML_ROOT_NODE_HANDLE                              *RootNode
+  )
+{
+  EFI_STATUS                             Status;
+  UINT64                                 OemTableId;
+  UINT32                                 OemRevision;
+  CM_STD_OBJ_CONFIGURATION_MANAGER_INFO  *CfgMfrInfo;
+
+  ASSERT (CfgMgrProtocol != NULL);
+  ASSERT (Generator != NULL);
+  ASSERT (AcpiTableInfo != NULL);
+
+  if ((CfgMgrProtocol == NULL)  ||
+      (Generator == NULL)       ||
+      (AcpiTableInfo == NULL))
+  {
+    return EFI_INVALID_PARAMETER;
+  }
+
+  Status = GetCgfMgrInfo (CfgMgrProtocol, &CfgMfrInfo);
+  if (EFI_ERROR (Status)) {
+    DEBUG ((
+      DEBUG_ERROR,
+      "ERROR: Failed to get Configuration Manager info. Status = %r\n",
+      Status
+      ));
+    return Status;
+  }
+
+  if (AcpiTableInfo->OemTableId != 0) {
+    OemTableId = AcpiTableInfo->OemTableId;
+  } else {
+    OemTableId = SIGNATURE_32 (
+                   CfgMfrInfo->OemId[0],
+                   CfgMfrInfo->OemId[1],
+                   CfgMfrInfo->OemId[2],
+                   CfgMfrInfo->OemId[3]
+                   ) |
+                 ((UINT64)Generator->AcpiTableSignature << 32);
+  }
+
+  if (AcpiTableInfo->OemRevision != 0) {
+    OemRevision = AcpiTableInfo->OemRevision;
+  } else {
+    OemRevision = CfgMfrInfo->Revision;
+  }
+
+  Status = AmlCodeGenDefinitionBlock (
+             "SSDT",
+             (CONST CHAR8 *)&CfgMfrInfo->OemId,
+             (CONST CHAR8 *)&OemTableId,
+             OemRevision,
+             RootNode
+             );
+  ASSERT_EFI_ERROR (Status);
+  return Status;
+}
+
 /**
   Test and report if a duplicate entry exists in the given array of comparable
   elements.
@@ -200,16 +292,16 @@ error_handler:
 BOOLEAN
 EFIAPI
 FindDuplicateValue (
-  IN  CONST VOID          * Array,
-  IN  CONST UINTN           Count,
-  IN  CONST UINTN           ElementSize,
-  IN        PFN_IS_EQUAL    EqualTestFunction
+  IN  CONST VOID          *Array,
+  IN  CONST UINTN         Count,
+  IN  CONST UINTN         ElementSize,
+  IN        PFN_IS_EQUAL  EqualTestFunction
   )
 {
-  UINTN         Index1;
-  UINTN         Index2;
-  UINT8       * Element1;
-  UINT8       * Element2;
+  UINTN  Index1;
+  UINTN  Index2;
+  UINT8  *Element1;
+  UINT8  *Element2;
 
   if (Array == NULL) {
     DEBUG ((DEBUG_ERROR, "ERROR: FindDuplicateValues: Array is NULL.\n"));
@@ -235,38 +327,14 @@ FindDuplicateValue (
 
   for (Index1 = 0; Index1 < Count - 1; Index1++) {
     for (Index2 = Index1 + 1; Index2 < Count; Index2++) {
-      Element1 = (UINT8*)Array + (Index1 * ElementSize);
-      Element2 = (UINT8*)Array + (Index2 * ElementSize);
+      Element1 = (UINT8 *)Array + (Index1 * ElementSize);
+      Element2 = (UINT8 *)Array + (Index2 * ElementSize);
 
       if (EqualTestFunction (Element1, Element2, Index1, Index2)) {
         return TRUE;
       }
     }
   }
+
   return FALSE;
-}
-
-/** Convert a hex number to its ASCII code.
-
- @param [in]  x   Hex number to convert.
-                  Must be 0 <= x < 16.
-
- @return The ASCII code corresponding to x.
-**/
-UINT8
-EFIAPI
-AsciiFromHex (
-  IN  UINT8   x
-  )
-{
-  if (x < 10) {
-    return (UINT8)(x + '0');
-  }
-
-  if (x < 16) {
-    return (UINT8)(x - 10 + 'A');
-  }
-
-  ASSERT (FALSE);
-  return (UINT8)0;
 }

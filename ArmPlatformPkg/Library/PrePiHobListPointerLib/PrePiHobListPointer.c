@@ -1,9 +1,9 @@
 /** @file
-*
-*  Copyright (c) 2011, ARM Limited. All rights reserved.
-*
-*  SPDX-License-Identifier: BSD-2-Clause-Patent
-*
+
+  Copyright (c) 2011, ARM Limited. All rights reserved.
+
+  SPDX-License-Identifier: BSD-2-Clause-Patent
+
 **/
 
 #include <PiPei.h>
@@ -25,10 +25,8 @@ PrePeiGetHobList (
   VOID
   )
 {
-  return (VOID *)ArmReadTpidrurw();
+  return (VOID *)ArmReadTpidrurw ();
 }
-
-
 
 /**
   Updates the pointer to the HOB list.
@@ -39,10 +37,10 @@ PrePeiGetHobList (
 EFI_STATUS
 EFIAPI
 PrePeiSetHobList (
-  IN  VOID      *HobList
+  IN  VOID  *HobList
   )
 {
-  ArmWriteTpidrurw((UINTN)HobList);
+  ArmWriteTpidrurw ((UINTN)HobList);
 
   return EFI_SUCCESS;
 }

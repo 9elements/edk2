@@ -6,8 +6,8 @@
 
 **/
 
-#ifndef __ARM_MMU_LIB__
-#define __ARM_MMU_LIB__
+#ifndef ARM_MMU_LIB_H_
+#define ARM_MMU_LIB_H_
 
 #include <Uefi/UefiBaseType.h>
 
@@ -24,29 +24,29 @@ ArmConfigureMmu (
 EFI_STATUS
 EFIAPI
 ArmSetMemoryRegionNoExec (
-  IN  EFI_PHYSICAL_ADDRESS      BaseAddress,
-  IN  UINT64                    Length
+  IN  EFI_PHYSICAL_ADDRESS  BaseAddress,
+  IN  UINT64                Length
   );
 
 EFI_STATUS
 EFIAPI
 ArmClearMemoryRegionNoExec (
-  IN  EFI_PHYSICAL_ADDRESS      BaseAddress,
-  IN  UINT64                    Length
+  IN  EFI_PHYSICAL_ADDRESS  BaseAddress,
+  IN  UINT64                Length
   );
 
 EFI_STATUS
 EFIAPI
 ArmSetMemoryRegionReadOnly (
-  IN  EFI_PHYSICAL_ADDRESS      BaseAddress,
-  IN  UINT64                    Length
+  IN  EFI_PHYSICAL_ADDRESS  BaseAddress,
+  IN  UINT64                Length
   );
 
 EFI_STATUS
 EFIAPI
 ArmClearMemoryRegionReadOnly (
-  IN  EFI_PHYSICAL_ADDRESS      BaseAddress,
-  IN  UINT64                    Length
+  IN  EFI_PHYSICAL_ADDRESS  BaseAddress,
+  IN  UINT64                Length
   );
 
 VOID
@@ -59,9 +59,9 @@ ArmReplaceLiveTranslationEntry (
 
 EFI_STATUS
 ArmSetMemoryAttributes (
-  IN EFI_PHYSICAL_ADDRESS      BaseAddress,
-  IN UINT64                    Length,
-  IN UINT64                    Attributes
+  IN EFI_PHYSICAL_ADDRESS  BaseAddress,
+  IN UINT64                Length,
+  IN UINT64                Attributes
   );
 
-#endif
+#endif // ARM_MMU_LIB_H_

@@ -29,7 +29,7 @@
 **/
 EFI_STATUS
 ScmiCommandGetPayload (
-  OUT UINT32** Payload
+  OUT UINT32  **Payload
   )
 {
   EFI_STATUS   Status;
@@ -76,7 +76,7 @@ EFI_STATUS
 ScmiCommandExecute (
   IN     SCMI_COMMAND  *Command,
   IN OUT UINT32        *PayloadLength,
-  OUT    UINT32       **ReturnValues OPTIONAL
+  OUT    UINT32        **ReturnValues OPTIONAL
   )
 {
   EFI_STATUS             Status;
@@ -95,7 +95,7 @@ ScmiCommandExecute (
   // Fill in message header.
   MessageHeader = SCMI_MESSAGE_HEADER (
                     Command->MessageId,
-                    SCMI_MESSAGE_TYPE_COMMAND,
+                    ScmiMessageTypeCommand,
                     Command->ProtocolId
                     );
 
@@ -121,10 +121,12 @@ ScmiCommandExecute (
     return EFI_DEVICE_ERROR;
   }
 
-  Response = (SCMI_MESSAGE_RESPONSE*)MtlGetChannelPayload (Channel);
+  Response = (SCMI_MESSAGE_RESPONSE *)MtlGetChannelPayload (Channel);
 
-  if (Response->Status != SCMI_SUCCESS) {
-    DEBUG ((DEBUG_ERROR, "SCMI error: ProtocolId = 0x%x, MessageId = 0x%x, error = %d\n",
+  if (Response->Status != ScmiSuccess) {
+    DEBUG ((
+      DEBUG_ERROR,
+      "SCMI error: ProtocolId = 0x%x, MessageId = 0x%x, error = %d\n",
       Command->ProtocolId,
       Command->MessageId,
       Response->Status
@@ -163,7 +165,7 @@ ScmiProtocolDiscoveryCommon (
   SCMI_COMMAND  Command;
   UINT32        PayloadLength;
 
-  PayloadLength = 0;
+  PayloadLength      = 0;
   Command.ProtocolId = ProtocolId;
   Command.MessageId  = MessageId;
 
@@ -190,13 +192,13 @@ ScmiGetProtocolVersion (
   OUT UINT32            *Version
   )
 {
-  EFI_STATUS             Status;
-  UINT32                 *ProtocolVersion;
+  EFI_STATUS  Status;
+  UINT32      *ProtocolVersion;
 
   Status = ScmiProtocolDiscoveryCommon (
              ProtocolId,
-             SCMI_MESSAGE_ID_PROTOCOL_VERSION,
-             (UINT32**)&ProtocolVersion
+             ScmiMessageIdProtocolVersion,
+             (UINT32 **)&ProtocolVersion
              );
   if (EFI_ERROR (Status)) {
     return Status;
@@ -224,7 +226,7 @@ ScmiGetProtocolAttributes (
 {
   return ScmiProtocolDiscoveryCommon (
            ProtocolId,
-           SCMI_MESSAGE_ID_PROTOCOL_ATTRIBUTES,
+           ScmiMessageIdProtocolAttributes,
            ReturnValues
            );
 }
@@ -246,7 +248,7 @@ ScmiGetProtocolMessageAttributes (
 {
   return ScmiProtocolDiscoveryCommon (
            ProtocolId,
-           SCMI_MESSAGE_ID_PROTOCOL_MESSAGE_ATTRIBUTES,
+           ScmiMessageIdProtocolMessageAttributes,
            ReturnValues
            );
 }
