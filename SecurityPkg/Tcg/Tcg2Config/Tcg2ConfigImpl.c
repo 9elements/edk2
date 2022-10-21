@@ -394,7 +394,6 @@ GetTpm2HID(
     }
   } else {
     DEBUG ((DEBUG_ERROR, "Get TPM_PT_MANUFACTURER failed %x!\n", Status));
-    ASSERT(FALSE);
     return Status;
   }
 
@@ -413,7 +412,6 @@ GetTpm2HID(
 
   } else {
     DEBUG ((DEBUG_ERROR, "Get TPM_PT_FIRMWARE_VERSION_X failed %x!\n", Status));
-    ASSERT(FALSE);
     return Status;
   }
 
