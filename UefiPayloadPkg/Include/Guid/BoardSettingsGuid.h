@@ -42,6 +42,10 @@ typedef struct {
 #define PRIMARY_VIDEO_SLOT5 6
 #define PRIMARY_VIDEO_SLOT6 7
 
+#define PXE_BOOT_IP4      1
+#define PXE_BOOT_IP6      2
+#define PXE_BOOT_IP4_IP6  3
+
 typedef struct {
   UINT16 StructSize;
   UINT32 Checksum;

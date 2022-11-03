@@ -12,6 +12,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include <Protocol/PlatformBootManagerOverride.h>
 #include <Guid/BootManagerMenu.h>
 #include <Library/HobLib.h>
+#include <Guid/BoardSettingsGuid.h>
 
 UNIVERSAL_PAYLOAD_PLATFORM_BOOT_MANAGER_OVERRIDE_PROTOCOL  *mUniversalPayloadPlatformBootManagerOverrideInstance = NULL;
 
@@ -243,6 +244,9 @@ PlatformBootManagerAfterConsole (
 {
   EFI_GRAPHICS_OUTPUT_BLT_PIXEL  Black;
   EFI_GRAPHICS_OUTPUT_BLT_PIXEL  White;
+  UINTN                          PxeBootCapability;
+  BOARD_SETTINGS                 BoardSettings;
+  UINTN                          BoardSettingsSize;
   EDKII_PLATFORM_LOGO_PROTOCOL   *PlatformLogo;
   EFI_STATUS                     Status;
 
@@ -250,6 +254,22 @@ PlatformBootManagerAfterConsole (
     mUniversalPayloadPlatformBootManagerOverrideInstance->AfterConsole ();
     return;
   }
+
+  BoardSettingsSize = sizeof(BOARD_SETTINGS);
+
+  // Fetch Board Settings
+  Status = gRT->GetVariable(BOARD_SETTINGS_NAME,
+    &gEfiBoardSettingsVariableGuid,
+    NULL,
+    &BoardSettingsSize,
+    &BoardSettings);
+
+  if (EFI_ERROR(Status)) {
+    DEBUG((EFI_D_ERROR, "Fetching Board Settings errored with %x\n", Status));
+    return;
+  };
+
+  PxeBootCapability = BoardSettings.PxeBootCapability;
 
   Black.Blue = Black.Green = Black.Red = Black.Reserved = 0;
   White.Blue = White.Green = White.Red = White.Reserved = 0xFF;
@@ -280,9 +300,25 @@ PlatformBootManagerAfterConsole (
   //
   // Register iPXE's
   //
-  PlatformRegisterFvBootOption (PcdGetPtr (PcdiPXEFileIp4Ip6), L"iPXE Network boot IPv4 and IPV6", LOAD_OPTION_ACTIVE);
-  PlatformRegisterFvBootOption (PcdGetPtr (PcdiPXEFileIp4), L"iPXE Network boot IPv4", LOAD_OPTION_ACTIVE);
-  PlatformRegisterFvBootOption (PcdGetPtr (PcdiPXEFileIp6), L"iPXE Network boot IPv6", LOAD_OPTION_ACTIVE);
+  //
+  switch(PxeBootCapability) {
+  case PXE_BOOT_IP4_IP6:
+    DEBUG((DEBUG_INFO, "PxeBootCapability: %#x %#x\n", PXE_BOOT_IP4_IP6));
+    PlatformRegisterFvBootOption (PcdGetPtr (PcdiPXEFileIp4Ip6), L"iPXE Network boot IPv4 and IPV6", LOAD_OPTION_ACTIVE);
+    break;
+  case PXE_BOOT_IP6:
+    DEBUG((DEBUG_INFO, "PxeBootCapability: %#x %#x\n", PXE_BOOT_IP6));
+    PlatformRegisterFvBootOption (PcdGetPtr (PcdiPXEFileIp6), L"iPXE Network boot IPv6", LOAD_OPTION_ACTIVE);
+    break;
+  case PXE_BOOT_IP4:
+    DEBUG((DEBUG_INFO, "PxeBootCapability: %#x %#x\n", PXE_BOOT_IP4));
+    PlatformRegisterFvBootOption (PcdGetPtr (PcdiPXEFileIp4), L"iPXE Network boot IPv4", LOAD_OPTION_ACTIVE);
+    break;
+  case 0: //intentional fall-through
+  default:
+    DEBUG((DEBUG_INFO, "PxeBootCapability disabled\n"));
+    break;
+  }
 
   if (PcdGet16 (PcdPlatformBootTimeOut) > 0) {
     if (FixedPcdGetBool (PcdBootManagerEscape)) {

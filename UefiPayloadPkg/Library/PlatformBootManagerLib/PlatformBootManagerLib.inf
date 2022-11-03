@@ -54,6 +54,7 @@
 [Guids]
   gEfiEndOfDxeEventGroupGuid
   gEdkiiBootManagerMenuFileGuid
+  gEfiBoardSettingsVariableGuid
 
 [Protocols]
   gEfiGenericMemTestProtocolGuid  ## CONSUMES

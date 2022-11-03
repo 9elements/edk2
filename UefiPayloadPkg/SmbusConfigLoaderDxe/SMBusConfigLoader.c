@@ -250,8 +250,8 @@ InstallSMBusConfigLoader (
     CopyMem(&BoardSettings, Array, sizeof(BOARD_SETTINGS));
 
     DEBUG ((DEBUG_INFO, "SMBusConfigLoader: Board Settings:\n"));
-    DEBUG ((DEBUG_INFO, "SMBusConfigLoader: CRC: %08x - SecureBoot: %02x - PrimaryVideo: %02x - BIOS menu disabled: %02x\n",
-      BoardSettings.Signature, BoardSettings.SecureBoot, BoardSettings.PrimaryVideo, BoardSettings.MenuDisabled));
+    DEBUG ((DEBUG_INFO, "SMBusConfigLoader: CRC: %08x - SecureBoot: %02x - PrimaryVideo: %02x - BIOS menu disabled: %02x - PXE boot capability: %02x\n",
+      BoardSettings.Signature, BoardSettings.SecureBoot, BoardSettings.PrimaryVideo, BoardSettings.MenuDisabled, BoardSettings.PxeBootCapability));
 
     CRC32Array = CalculateCrc32(&Array[sizeof(UINT32)], sizeof(BOARD_SETTINGS) - sizeof(UINT32));
     if (CRC32Array != BoardSettings.Signature)
@@ -263,6 +263,7 @@ InstallSMBusConfigLoader (
     BoardSettings.PrimaryVideo = 0;
     BoardSettings.SecureBoot = 1;
     BoardSettings.MenuDisabled = 0;
+    BoardSettings.PxeBootCapability = 0;
   }
 
   /* Maximum of 5 milliseconds */
