@@ -1110,7 +1110,7 @@ BdsEntry (
   } else {
     for (Index = 0; Index < LoadOptionCount; Index++) {
       if (IsBootTypeMatch(&LoadOptions[Index], OverrideBoot)) {
-        NextBootInt = Index;
+        NextBootInt = LoadOptions[Index].OptionNumber;
         BootNext = &NextBootInt;
         break;
       }
