@@ -259,4 +259,6 @@ typedef struct {
 } EFI_MCTP_DATA_DESCRIPTOR;
 #define MCTP_INFO_FROM_LINK(a)  CR (a, EFI_MCTP_DATA_DESCRIPTOR, Link, MCTP_INFO_SIGNATURE)
 
+#pragma pack()
+
 #endif
