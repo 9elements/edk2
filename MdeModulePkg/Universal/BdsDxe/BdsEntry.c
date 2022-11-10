@@ -747,22 +747,8 @@ IsBootTypeMatch(
 {
   switch (Override.Type) {
   case BootOverridePXE:
-    switch (Override.Port) {
-    default:
-      break;
-    case IPV4IPV6:
-      if (StrCmp(BootOption->Description, L"iPXE Network boot IPv4 and IPV6") == 0)
-        return 1;
-      break;
-    case IPV4:
-      if (StrCmp(BootOption->Description, L"iPXE Network boot IPv4") == 0)
-        return 1;
-      break;
-    case IPV6:
-      if (StrCmp(BootOption->Description, L"iPXE Network boot IPv6") == 0)
-        return 1;
-      break;
-    }
+    if(StrStr(BootOption->Description, L"iPXE Network boot") != NULL)
+      return 1;
     break;
   case BootOverrideSATA:
     if (BootOptionType(BootOption->FilePath) == MSG_SATA_DP) {
