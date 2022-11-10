@@ -46,6 +46,10 @@ typedef struct {
 #define PXE_BOOT_IP6      2
 #define PXE_BOOT_IP4_IP6  3
 
+#define PXE_DESCRIPTION_IP4_IP6 L"iPXE Network boot IPv4 and IPv6"
+#define PXE_DESCRIPTION_IP4 L"iPXE Network boot IPv4"
+#define PXE_DESCRIPTION_IP6 L"iPXE Network boot IPv6"
+
 typedef struct {
   UINT16 StructSize;
   UINT32 Checksum;

@@ -150,6 +150,35 @@ PlatformRegisterFvBootOption (
   }
 }
 
+VOID
+PlatformUnregisterFvBootOption (
+  IN CHAR16 *Description
+  )
+{
+  EFI_BOOT_MANAGER_LOAD_OPTION *BootOptions;
+  UINTN                        BootOptionCount;
+  UINTN                        Index;
+
+  BootOptions = EfiBootManagerGetLoadOptions (&BootOptionCount,
+                  LoadOptionTypeBoot);
+
+  for (Index = 0; Index < BootOptionCount; ++Index) {
+    EFI_STATUS Status;
+    if (StrCmp(Description, BootOptions[Index].Description) != 0) {
+	  continue;
+    }
+
+    Status = EfiBootManagerDeleteLoadOptionVariable (
+               BootOptions[Index].OptionNumber, LoadOptionTypeBoot);
+    if(EFI_ERROR(Status)) {
+      DEBUG((DEBUG_ERROR, "Failed to delete boot option from variable\n"));
+    }
+    break;
+  }
+
+  EfiBootManagerFreeLoadOptions (BootOptions, BootOptionCount);
+}
+
 /**
   Do the platform specific action before the console is connected.
 
@@ -304,18 +333,27 @@ PlatformBootManagerAfterConsole (
   switch(PxeBootCapability) {
   case PXE_BOOT_IP4_IP6:
     DEBUG((DEBUG_INFO, "PxeBootCapability: %#x %#x\n", PXE_BOOT_IP4_IP6));
-    PlatformRegisterFvBootOption (PcdGetPtr (PcdiPXEFileIp4Ip6), L"iPXE Network boot IPv4 and IPV6", LOAD_OPTION_ACTIVE);
+    PlatformRegisterFvBootOption (PcdGetPtr (PcdiPXEFileIp4Ip6), PXE_DESCRIPTION_IP4_IP6, LOAD_OPTION_ACTIVE);
+    PlatformUnregisterFvBootOption(PXE_DESCRIPTION_IP4);
+    PlatformUnregisterFvBootOption(PXE_DESCRIPTION_IP6);
     break;
   case PXE_BOOT_IP6:
     DEBUG((DEBUG_INFO, "PxeBootCapability: %#x %#x\n", PXE_BOOT_IP6));
-    PlatformRegisterFvBootOption (PcdGetPtr (PcdiPXEFileIp6), L"iPXE Network boot IPv6", LOAD_OPTION_ACTIVE);
+    PlatformRegisterFvBootOption (PcdGetPtr (PcdiPXEFileIp6), PXE_DESCRIPTION_IP6, LOAD_OPTION_ACTIVE);
+    PlatformUnregisterFvBootOption(PXE_DESCRIPTION_IP4_IP6);
+    PlatformUnregisterFvBootOption(PXE_DESCRIPTION_IP4);
     break;
   case PXE_BOOT_IP4:
     DEBUG((DEBUG_INFO, "PxeBootCapability: %#x %#x\n", PXE_BOOT_IP4));
-    PlatformRegisterFvBootOption (PcdGetPtr (PcdiPXEFileIp4), L"iPXE Network boot IPv4", LOAD_OPTION_ACTIVE);
+    PlatformRegisterFvBootOption (PcdGetPtr (PcdiPXEFileIp4), PXE_DESCRIPTION_IP4, LOAD_OPTION_ACTIVE);
+    PlatformUnregisterFvBootOption(PXE_DESCRIPTION_IP4_IP6);
+    PlatformUnregisterFvBootOption(PXE_DESCRIPTION_IP6);
     break;
   case 0: //intentional fall-through
   default:
+    PlatformUnregisterFvBootOption(PXE_DESCRIPTION_IP4_IP6);
+    PlatformUnregisterFvBootOption(PXE_DESCRIPTION_IP6);
+    PlatformUnregisterFvBootOption(PXE_DESCRIPTION_IP4);
     DEBUG((DEBUG_INFO, "PxeBootCapability disabled\n"));
     break;
   }
