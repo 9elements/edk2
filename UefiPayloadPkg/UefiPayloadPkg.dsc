@@ -940,10 +940,6 @@
       NULL|SecurityPkg/Library/HashInstanceLibSha512/HashInstanceLibSha512.inf
       NULL|SecurityPkg/Library/HashInstanceLibSm3/HashInstanceLibSm3.inf
   }
-  SecurityPkg/Tcg/Tcg2Config/Tcg2ConfigDxe.inf {
-    <LibraryClasses>
-    Tpm2DeviceLib|SecurityPkg/Library/Tpm2DeviceLibRouter/Tpm2DeviceLibRouterDxe.inf
-  }
   SecurityPkg/Tcg/TcgDxe/TcgDxe.inf {
     <LibraryClasses>
       Tpm12DeviceLib|SecurityPkg/Library/Tpm12DeviceLibDTpm/Tpm12DeviceLibDTpm.inf
