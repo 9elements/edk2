@@ -172,6 +172,10 @@ INF PcAtChipsetPkg/PcatRealTimeClockRuntimeDxe/PcatRealTimeClockRuntimeDxe.inf
   INF MdeModulePkg/Universal/Variable/RuntimeDxe/VariableSmmRuntimeDxe.inf
 !endif
 
+!if $(SECURE_BOOT_ENABLE) == TRUE
+  INF SecurityPkg/VariableAuthenticated/SecureBootConfigDxe/SecureBootConfigDxe.inf
+!endif
+
 INF UefiCpuPkg/CpuIo2Dxe/CpuIo2Dxe.inf
 INF MdeModulePkg/Universal/DevicePathDxe/DevicePathDxe.inf
 !if $(MEMORY_TEST) == "GENERIC"
