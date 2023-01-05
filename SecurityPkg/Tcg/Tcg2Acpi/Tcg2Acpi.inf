@@ -63,10 +63,13 @@
   gEfiTpmDeviceInstanceTpm20DtpmGuid                            ## PRODUCES           ## GUID       # TPM device identifier
   gTpmNvsMmGuid                                                 ## CONSUMES
   gEdkiiPiSmmCommunicationRegionTableGuid                       ## CONSUMES
+  gEfiAcpiTableGuid
 
 [Protocols]
   gEfiAcpiTableProtocolGuid                                     ## CONSUMES
   gEfiMmCommunicationProtocolGuid                               ## CONSUMES
+  gEfiAcpiSdtProtocolGuid                        ## CONSUMES
+
 
 [FixedPcd]
   gEfiSecurityPkgTokenSpaceGuid.PcdSmiCommandIoPort             ## CONSUMES
