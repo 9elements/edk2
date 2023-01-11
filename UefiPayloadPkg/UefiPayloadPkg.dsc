@@ -243,6 +243,7 @@
 !else
   BlParseLib|UefiPayloadPkg/Library/SblParseLib/SblParseLib.inf
 !endif
+  BootOptionsLib|UefiPayloadPkg/Library/BootOptionsLib/BootOptionsLib.inf
 
   DebugLib|MdePkg/Library/BaseDebugLibSerialPort/BaseDebugLibSerialPort.inf
   LockBoxLib|MdeModulePkg/Library/LockBoxNullLib/LockBoxNullLib.inf
@@ -523,7 +524,7 @@
   MdeModulePkg/Logo/LogoDxe.inf
   MdeModulePkg/Application/UiApp/UiApp.inf {
     <LibraryClasses>
-      NULL|MdeModulePkg/Library/DeviceManagerUiLib/DeviceManagerUiLib.inf
+      NULL|UefiPayloadPkg/Library/SetupMenuUiLib/SetupMenuUiLib.inf
       NULL|MdeModulePkg/Library/BootManagerUiLib/BootManagerUiLib.inf
       NULL|MdeModulePkg/Library/BootMaintenanceManagerUiLib/BootMaintenanceManagerUiLib.inf
   }
