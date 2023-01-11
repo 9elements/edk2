@@ -1,0 +1,18 @@
+// /** @file
+
+// Setup Menu Library used by UiApp
+//
+// Copyright (c) 2015, Intel Corporation. All rights reserved.<BR>
+// SPDX-License-Identifier: BSD-2-Clause-Patent
+//
+// **/
+
+#string STR_MODULE_ABSTRACT
+#language en-US
+"Setup Menu used by UiApp"
+
+#string STR_MODULE_DESCRIPTION
+#language en-US
+"Setup Menu Library used by UiApp"
+
+

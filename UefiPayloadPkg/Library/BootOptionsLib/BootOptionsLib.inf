@@ -1,0 +1,32 @@
+## @file
+#
+#  Boot Options Library to retrieve boot settings.
+#  Copyright (c) 2020 9elements Agency GmbH.<BR>
+#  SPDX-License-Identifier: BSD-2-Clause-Patent
+##
+
+[Defines]
+  INF_VERSION                    = 0x00010005
+  BASE_NAME                      = BootOptionsLib
+  FILE_GUID                      = F7EE89B2-83D0-4EB0-861D-BC7F5A80F2A2
+  MODULE_TYPE                    = DXE_DRIVER
+  VERSION_STRING                 = 1.0
+  LIBRARY_CLASS                  = BootOptionsLib
+
+[Sources]
+  BootOptionsLib.c
+
+[LibraryClasses]
+  UefiRuntimeServicesTableLib
+  UefiBootServicesTableLib
+  BaseMemoryLib
+  DebugLib
+
+[Packages]
+  MdePkg/MdePkg.dec
+  MdeModulePkg/MdeModulePkg.dec
+  UefiPayloadPkg/UefiPayloadPkg.dec
+  SecurityPkg/SecurityPkg.dec
+
+[Guids]
+  gEficorebootNvDataGuid

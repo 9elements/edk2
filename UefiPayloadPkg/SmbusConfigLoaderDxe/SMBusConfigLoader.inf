@@ -33,11 +33,11 @@
   SecurityPkg/SecurityPkg.dec
 
 [Guids]
-  gEfiBoardSettingsVariableGuid
   gEfiSecureBootEnableDisableGuid
   gEfiGlobalVariableGuid
 
 [LibraryClasses]
+  BootOptionsLib
   UefiDriverEntryPoint
   DebugLib
   SmbusLib

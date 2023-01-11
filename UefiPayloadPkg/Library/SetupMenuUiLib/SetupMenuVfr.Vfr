@@ -1,0 +1,42 @@
+///** @file
+//
+//  Setup Menu formset.
+//
+//  Copyright (c) 9elements Agency
+//  SPDX-License-Identifier: BSD-2-Clause-Patent
+//
+//**/
+
+#include <Uefi/UefiMultiPhase.h>
+
+#include "SetupMenuNVDataStruc.h"
+#include "Constants.h"
+
+formset
+  guid      = SETUP_MENU_FORMSET_GUID,
+  title     = STRING_TOKEN(STR_EDKII_MENU_TITLE),
+  help      = STRING_TOKEN(STR_EDKII_MENU_HELP),
+  classguid = gEfiIfrFrontPageGuid,
+
+  efivarstore SETUPMENU_CONFIGURATION,
+    varid     = CONFIGURATION_VARSTORE_ID,
+    attribute = EFI_VARIABLE_BOOTSERVICE_ACCESS | EFI_VARIABLE_NON_VOLATILE,
+    name      = SetupMenuNVConfig,
+    guid      = SETUP_MENU_FORMSET_GUID;
+
+  form formid = SETUP_MENU_FORM_ID,
+    title = STRING_TOKEN(STR_EDKII_MENU_TITLE);
+
+    label LABEL_RT_COMP;
+    
+    /**
+      Sections for runtime components
+    **/
+    
+    label LABEL_RT_COMP_END;
+    
+    subtitle text = STRING_TOKEN(STR_EMPTY_STRING);
+    subtitle text = STRING_TOKEN(STR_EMPTY_STRING);
+    subtitle text = STRING_TOKEN(STR_EXIT_STRING);
+  endform;
+endformset;
