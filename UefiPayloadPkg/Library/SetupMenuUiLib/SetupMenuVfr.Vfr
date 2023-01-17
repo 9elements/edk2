@@ -18,25 +18,270 @@ formset
   help      = STRING_TOKEN(STR_EDKII_MENU_HELP),
   classguid = gEfiIfrFrontPageGuid,
 
-  efivarstore SETUPMENU_CONFIGURATION,
-    varid     = CONFIGURATION_VARSTORE_ID,
+  /** 
+
+    --- EFIVARSTORES ---
+
+    coreboot's SMM option backend currently only supports
+    extracting a single uint (4 bytes) from the SMMSTORE, therefore
+    we declare an efivarstore for each option. An alternative
+    would be to maybe use bitfields and pack all boot options
+    into the same 4 bytes. But this would limit the amount of
+    total options we could implement.
+
+  **/
+
+  efivarstore STORAGE_HYPERTHREADING,
     attribute = EFI_VARIABLE_BOOTSERVICE_ACCESS | EFI_VARIABLE_NON_VOLATILE,
-    name      = SetupMenuNVConfig,
-    guid      = SETUP_MENU_FORMSET_GUID;
+    name      = Hyperthreading,
+    guid      = gEficorebootNvDataGuid;
+
+  efivarstore STORAGE_TURBOMODE,
+    attribute = EFI_VARIABLE_BOOTSERVICE_ACCESS | EFI_VARIABLE_NON_VOLATILE,
+    name      = TurboMode,
+    guid      = gEficorebootNvDataGuid;
+
+  efivarstore STORAGE_CX,
+    attribute = EFI_VARIABLE_BOOTSERVICE_ACCESS | EFI_VARIABLE_NON_VOLATILE,
+    name      = Cx,
+    guid      = gEficorebootNvDataGuid;
+
+  efivarstore STORAGE_CX_LIMIT,
+    attribute = EFI_VARIABLE_BOOTSERVICE_ACCESS | EFI_VARIABLE_NON_VOLATILE,
+    name      = CxLimit,
+    guid      = gEficorebootNvDataGuid;
+
+  efivarstore STORAGE_PRIMARY_DISPLAY,
+    attribute = EFI_VARIABLE_BOOTSERVICE_ACCESS | EFI_VARIABLE_NON_VOLATILE,
+    name      = PrimaryDisplay,
+    guid      = gEficorebootNvDataGuid;
+
+  efivarstore STORAGE_EE_TURBO,
+    attribute = EFI_VARIABLE_BOOTSERVICE_ACCESS | EFI_VARIABLE_NON_VOLATILE,
+    name      = EnergyEfficientTurbo,
+    guid      = gEficorebootNvDataGuid;
+
+  efivarstore STORAGE_LLC_DEADLINE,
+    attribute = EFI_VARIABLE_BOOTSERVICE_ACCESS | EFI_VARIABLE_NON_VOLATILE,
+    name      = LLCDeadline,
+    guid      = gEficorebootNvDataGuid;
+
+  efivarstore STORAGE_INTEL_VTX,
+    attribute = EFI_VARIABLE_BOOTSERVICE_ACCESS | EFI_VARIABLE_NON_VOLATILE,
+    name      = VTX,
+    guid      = gEficorebootNvDataGuid;
+
+  efivarstore STORAGE_INTEL_VTD,
+    attribute = EFI_VARIABLE_BOOTSERVICE_ACCESS | EFI_VARIABLE_NON_VOLATILE,
+    name      = VTD,
+    guid      = gEficorebootNvDataGuid;
+
+  efivarstore STORAGE_SECURE_BOOT,
+    attribute = EFI_VARIABLE_BOOTSERVICE_ACCESS | EFI_VARIABLE_NON_VOLATILE,
+    name      = SecBoot,
+    guid      = gEficorebootNvDataGuid;
+
+  efivarstore STORAGE_PXE_RETRIES,
+    attribute = EFI_VARIABLE_BOOTSERVICE_ACCESS | EFI_VARIABLE_NON_VOLATILE,
+    name      = PXERetries,
+    guid      = gEficorebootNvDataGuid;
+
+  efivarstore STORAGE_PWR_G3,
+    attribute = EFI_VARIABLE_BOOTSERVICE_ACCESS | EFI_VARIABLE_NON_VOLATILE,
+    name      = PowerstateG3,
+    guid      = gEficorebootNvDataGuid;
+
+  efivarstore STORAGE_PCIE_SSC,
+    attribute = EFI_VARIABLE_BOOTSERVICE_ACCESS | EFI_VARIABLE_NON_VOLATILE,
+    name      = PCIeSSC,
+    guid      = gEficorebootNvDataGuid;
+
+  efivarstore STORAGE_PCIE_SRIS,
+    attribute = EFI_VARIABLE_BOOTSERVICE_ACCESS | EFI_VARIABLE_NON_VOLATILE,
+    name      = PCIeSRIS,
+    guid      = gEficorebootNvDataGuid;
+
+  efivarstore STORAGE_IBECC,
+    attribute = EFI_VARIABLE_BOOTSERVICE_ACCESS | EFI_VARIABLE_NON_VOLATILE,
+    name      = IBECC,
+    guid      = gEficorebootNvDataGuid;
 
   form formid = SETUP_MENU_FORM_ID,
     title = STRING_TOKEN(STR_EDKII_MENU_TITLE);
 
-    label LABEL_RT_COMP;
-    
-    /**
-      Sections for runtime components
-    **/
-    
-    label LABEL_RT_COMP_END;
-    
+    oneof name = OneOfHyperthreading,
+
+      varid  = Hyperthreading.Value,
+      prompt = STRING_TOKEN(STR_HYPERTHREADING_PROMPT),
+      help   = STRING_TOKEN(STR_HYPERTHREADING_HELP),
+
+      option text = STRING_TOKEN(STR_CHOICE_ENABLED),  value = 0x1, flags = 0;
+      option text = STRING_TOKEN(STR_CHOICE_DISABLED), value = 0x0, flags = 0;
+
+    endoneof;
+
+    oneof name = OneOfTurboMode,
+
+      varid  = TurboMode.Value,
+      prompt = STRING_TOKEN(STR_TURBOMODE_PROMPT),
+      help   = STRING_TOKEN(STR_TURBOMODE_HELP),
+
+      option text = STRING_TOKEN(STR_CHOICE_ENABLED),  value = 0x1, flags = 0;
+      option text = STRING_TOKEN(STR_CHOICE_DISABLED), value = 0x0, flags = 0;
+
+    endoneof;
+
+    oneof name = OneOfCx,
+
+      varid  = Cx.Value,
+      prompt = STRING_TOKEN(STR_CX_PROMPT),
+      help   = STRING_TOKEN(STR_CX_HELP),
+
+      option text = STRING_TOKEN(STR_CHOICE_ENABLED),  value = 0x1, flags = 0;
+      option text = STRING_TOKEN(STR_CHOICE_DISABLED), value = 0x0, flags = 0;
+
+    endoneof;
+
+    oneof name = OneOfCxLimit,
+
+      varid  = CxLimit.Value,
+      prompt = STRING_TOKEN(STR_CX_LIMIT_PROMPT),
+      help   = STRING_TOKEN(STR_CX_LIMIT_HELP),
+
+      option text = STRING_TOKEN(STR_CHOICE_CX_LIMIT_C0), value = 0, flags = 0;
+      option text = STRING_TOKEN(STR_CHOICE_CX_LIMIT_C1), value = 0, flags = 0;
+      option text = STRING_TOKEN(STR_CHOICE_CX_LIMIT_C2), value = 1, flags = 0;
+      option text = STRING_TOKEN(STR_CHOICE_CX_LIMIT_C3), value = 2, flags = 0;
+      option text = STRING_TOKEN(STR_CHOICE_CX_LIMIT_C6), value = 3, flags = 0;
+      option text = STRING_TOKEN(STR_CHOICE_CX_LIMIT_C7), value = 4, flags = 0;
+      option text = STRING_TOKEN(STR_CHOICE_CX_LIMIT_C8), value = 6, flags = 0;
+
+    endoneof;
+
+    oneof name = OneOfPrimaryDisplay,
+
+      varid  = PrimaryDisplay.Value,
+      prompt = STRING_TOKEN(STR_PRIMARY_DISPLAY_PROMPT),
+      help   = STRING_TOKEN(STR_PRIMARY_DISPLAY_HELP),
+
+      option text = STRING_TOKEN(STR_CHOICE_PRIMARY_IGFX), value = 0x0, flags = 0;
+      option text = STRING_TOKEN(STR_CHOICE_PRIMARY_PCIE), value = 0x2, flags = 0;
+
+    endoneof;
+
+    oneof name = OneOfEnergyEfficientTurbo,
+
+      varid  = EnergyEfficientTurbo.Value,
+      prompt = STRING_TOKEN(STR_EE_TURBO_PROMPT),
+      help   = STRING_TOKEN(STR_EE_TURBO_HELP),
+
+      option text = STRING_TOKEN(STR_CHOICE_ENABLED),  value = 0x1, flags = 0;
+      option text = STRING_TOKEN(STR_CHOICE_DISABLED), value = 0x0, flags = 0;
+
+    endoneof;
+
+    oneof name = OneOfLlcDeadline,
+
+      varid  = LLCDeadline.Value,
+      prompt = STRING_TOKEN(STR_LLC_DEADLINE_PROMPT),
+      help   = STRING_TOKEN(STR_LLC_DEADLINE_HELP),
+
+      option text = STRING_TOKEN(STR_CHOICE_ENABLED),  value = 0x1, flags = 0;
+      option text = STRING_TOKEN(STR_CHOICE_DISABLED), value = 0x0, flags = 0;
+
+    endoneof;
+
+    oneof name = OneOfIntelVtx,
+
+      varid  = VTX.Value,
+      prompt = STRING_TOKEN(STR_INTEL_VTX_PROMPT),
+      help   = STRING_TOKEN(STR_INTEL_VTX_HELP),
+
+      option text = STRING_TOKEN(STR_CHOICE_ENABLED),  value = 0x1, flags = 0;
+      option text = STRING_TOKEN(STR_CHOICE_DISABLED), value = 0x0, flags = 0;
+
+    endoneof;
+
+    oneof name = OneOfIntelVtd,
+
+      varid  = VTD.Value,
+      prompt = STRING_TOKEN(STR_INTEL_VTD_PROMPT),
+      help   = STRING_TOKEN(STR_INTEL_VTD_HELP),
+
+      option text = STRING_TOKEN(STR_CHOICE_ENABLED),  value = 0x1, flags = 0;
+      option text = STRING_TOKEN(STR_CHOICE_DISABLED), value = 0x0, flags = 0;
+
+    endoneof;
+
+    oneof name = OneOfSecureBoot,
+
+      varid  = SecBoot.Value,
+      prompt = STRING_TOKEN(STR_SECURE_BOOT_PROMPT),
+      help   = STRING_TOKEN(STR_SECURE_BOOT_HELP),
+
+      option text = STRING_TOKEN(STR_CHOICE_ENABLED),  value = 0x1, flags = 0;
+      option text = STRING_TOKEN(STR_CHOICE_DISABLED), value = 0x0, flags = 0;
+
+    endoneof;
+
+    oneof name = OneOfPxeRetries,
+
+      varid  = PXERetries.Value,
+      prompt = STRING_TOKEN(STR_PXE_RETRIES_PROMPT),
+      help   = STRING_TOKEN(STR_PXE_RETRIES_HELP),
+
+      option text = STRING_TOKEN(STR_CHOICE_ENABLED),  value = 0x1, flags = 0;
+      option text = STRING_TOKEN(STR_CHOICE_DISABLED), value = 0x0, flags = 0;
+
+    endoneof;
+
+    oneof name = OneOfPwrG3,
+
+      varid  = PowerstateG3.Value,
+      prompt = STRING_TOKEN(STR_PWR_G3_PROMPT),
+      help   = STRING_TOKEN(STR_PWR_G3_HELP),
+
+      option text = STRING_TOKEN(STR_CHOICE_PWR_G3_S0), value = 0x0, flags = 0;
+      option text = STRING_TOKEN(STR_CHOICE_PWR_G3_S5), value = 0x1, flags = 0;
+
+    endoneof;
+
+    oneof name = OneOfPcieSsc,
+
+      varid  = PCIeSSC.Value,
+      prompt = STRING_TOKEN(STR_PCIE_SSC_PROMPT),
+      help   = STRING_TOKEN(STR_PCIE_SSC_HELP),
+
+      option text = STRING_TOKEN(STR_CHOICE_ENABLED),  value = 0x1, flags = 0;
+      option text = STRING_TOKEN(STR_CHOICE_DISABLED), value = 0x0, flags = 0;
+
+    endoneof;
+
+    oneof name = OneOfPcieSris,
+
+      varid  = PCIeSRIS.Value,
+      prompt = STRING_TOKEN(STR_PCIE_SRIS_PROMPT),
+      help   = STRING_TOKEN(STR_PCIE_SRIS_HELP),
+
+      option text = STRING_TOKEN(STR_CHOICE_ENABLED),  value = 0x1, flags = 0;
+      option text = STRING_TOKEN(STR_CHOICE_DISABLED), value = 0x0, flags = 0;
+
+    endoneof;
+
+    oneof name = OneOfIbecc,
+
+      varid  = IBECC.Value,
+      prompt = STRING_TOKEN(STR_IBECC_PROMPT),
+      help   = STRING_TOKEN(STR_IBECC_HELP),
+
+      option text = STRING_TOKEN(STR_CHOICE_ENABLED),  value = 0x1, flags = 0;
+      option text = STRING_TOKEN(STR_CHOICE_DISABLED), value = 0x0, flags = 0;
+
+    endoneof;
+
     subtitle text = STRING_TOKEN(STR_EMPTY_STRING);
     subtitle text = STRING_TOKEN(STR_EMPTY_STRING);
     subtitle text = STRING_TOKEN(STR_EXIT_STRING);
+
   endform;
 endformset;
