@@ -31,77 +31,77 @@ formset
 
   **/
 
-  efivarstore STORAGE_HYPERTHREADING,
+  efivarstore OPTION_STORAGE,
     attribute = EFI_VARIABLE_BOOTSERVICE_ACCESS | EFI_VARIABLE_NON_VOLATILE,
     name      = Hyperthreading,
     guid      = gEficorebootNvDataGuid;
 
-  efivarstore STORAGE_TURBOMODE,
+  efivarstore OPTION_STORAGE,
     attribute = EFI_VARIABLE_BOOTSERVICE_ACCESS | EFI_VARIABLE_NON_VOLATILE,
     name      = TurboMode,
     guid      = gEficorebootNvDataGuid;
 
-  efivarstore STORAGE_CX,
+  efivarstore OPTION_STORAGE,
     attribute = EFI_VARIABLE_BOOTSERVICE_ACCESS | EFI_VARIABLE_NON_VOLATILE,
     name      = Cx,
     guid      = gEficorebootNvDataGuid;
 
-  efivarstore STORAGE_CX_LIMIT,
+  efivarstore OPTION_STORAGE,
     attribute = EFI_VARIABLE_BOOTSERVICE_ACCESS | EFI_VARIABLE_NON_VOLATILE,
     name      = CxLimit,
     guid      = gEficorebootNvDataGuid;
 
-  efivarstore STORAGE_PRIMARY_DISPLAY,
+  efivarstore OPTION_STORAGE,
     attribute = EFI_VARIABLE_BOOTSERVICE_ACCESS | EFI_VARIABLE_NON_VOLATILE,
     name      = PrimaryDisplay,
     guid      = gEficorebootNvDataGuid;
 
-  efivarstore STORAGE_EE_TURBO,
+  efivarstore OPTION_STORAGE,
     attribute = EFI_VARIABLE_BOOTSERVICE_ACCESS | EFI_VARIABLE_NON_VOLATILE,
     name      = EnergyEfficientTurbo,
     guid      = gEficorebootNvDataGuid;
 
-  efivarstore STORAGE_LLC_DEADLINE,
+  efivarstore OPTION_STORAGE,
     attribute = EFI_VARIABLE_BOOTSERVICE_ACCESS | EFI_VARIABLE_NON_VOLATILE,
     name      = LLCDeadline,
     guid      = gEficorebootNvDataGuid;
 
-  efivarstore STORAGE_INTEL_VTX,
+  efivarstore OPTION_STORAGE,
     attribute = EFI_VARIABLE_BOOTSERVICE_ACCESS | EFI_VARIABLE_NON_VOLATILE,
     name      = VTX,
     guid      = gEficorebootNvDataGuid;
 
-  efivarstore STORAGE_INTEL_VTD,
+  efivarstore OPTION_STORAGE,
     attribute = EFI_VARIABLE_BOOTSERVICE_ACCESS | EFI_VARIABLE_NON_VOLATILE,
     name      = VTD,
     guid      = gEficorebootNvDataGuid;
 
-  efivarstore STORAGE_SECURE_BOOT,
+  efivarstore OPTION_STORAGE,
     attribute = EFI_VARIABLE_BOOTSERVICE_ACCESS | EFI_VARIABLE_NON_VOLATILE,
     name      = SecBoot,
     guid      = gEficorebootNvDataGuid;
 
-  efivarstore STORAGE_PXE_RETRIES,
+  efivarstore OPTION_STORAGE,
     attribute = EFI_VARIABLE_BOOTSERVICE_ACCESS | EFI_VARIABLE_NON_VOLATILE,
     name      = PXERetries,
     guid      = gEficorebootNvDataGuid;
 
-  efivarstore STORAGE_PWR_G3,
+  efivarstore OPTION_STORAGE,
     attribute = EFI_VARIABLE_BOOTSERVICE_ACCESS | EFI_VARIABLE_NON_VOLATILE,
     name      = PowerstateG3,
     guid      = gEficorebootNvDataGuid;
 
-  efivarstore STORAGE_PCIE_SSC,
+  efivarstore OPTION_STORAGE,
     attribute = EFI_VARIABLE_BOOTSERVICE_ACCESS | EFI_VARIABLE_NON_VOLATILE,
     name      = PCIeSSC,
     guid      = gEficorebootNvDataGuid;
 
-  efivarstore STORAGE_PCIE_SRIS,
+  efivarstore OPTION_STORAGE,
     attribute = EFI_VARIABLE_BOOTSERVICE_ACCESS | EFI_VARIABLE_NON_VOLATILE,
     name      = PCIeSRIS,
     guid      = gEficorebootNvDataGuid;
 
-  efivarstore STORAGE_IBECC,
+  efivarstore OPTION_STORAGE,
     attribute = EFI_VARIABLE_BOOTSERVICE_ACCESS | EFI_VARIABLE_NON_VOLATILE,
     name      = IBECC,
     guid      = gEficorebootNvDataGuid;

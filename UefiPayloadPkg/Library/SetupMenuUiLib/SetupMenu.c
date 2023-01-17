@@ -24,17 +24,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
  * 2. optional: add the same key and default to coreboot. In case of the
  *    Atlas board, see src/mainboard/prodrive/atlas/boot_options.h
  *
- * 3. add a new NVDataStructure in Library/SetupMenuUiLib/SetupMenuNVDataStruc.h
- *
- *      #pragma pack(1)
- *      typedef struct {
- *
- *        [...]
- *        UINT8 Value; // NV storage for the new option      
- *
- *      } STORAGE_NEWOPT;
- *
- * 4. add the key and its default from step 1 to the gDefaults table in
+ * 3. add the key and its default from step 1 to the gDefaults table in
  *    Library/SetupMenuUiLib/SetupMenu.c
  *
  *      BootOptionDefault gDefaults[MAX_OPTION_KEYS] = {
@@ -47,7 +37,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
  *
  *      #define MAX_OPTION_KEYS 16 // 15
  *
- * 5. add menu strings (PROMPT and HELP) for the new boot option in
+ * 4. add menu strings (PROMPT and HELP) for the new boot option in
  *    Library/SetupMenuUiLib/SetupMenuStrings.uni
  *
  *      #string STR_NEWOPT_PROMPT           #language en-US  "NewOpt"
@@ -55,7 +45,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
  *      #string STR_NEWOPT_HELP             #language en-US  "Configure NewOpt"
  *                                          #language fr-FR  "Configure NewOpt"
  *
- * 6. and if required, add menu strings for the choices to the same file within
+ * 5. and if required, add menu strings for the choices to the same file within
  *    the section "Boot Options - Choices"
  *
  *      #string STR_CHOICE_ONE              #language en-US  "Example Choice 1"
@@ -63,16 +53,16 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
  *      #string STR_CHOICE_TWO              #language en-US  "Example Choice 2"
  *                                          #language fr-FR  "Example Choice 2"
  *
- * 7. declare a new efivarstore for the option in Library/SetupMenuUiLib/SetupMenuVfr.Vfr
+ * 6. declare a new efivarstore for the option in Library/SetupMenuUiLib/SetupMenuVfr.Vfr
  *    We are using a separate store for each option since coreboot's get_uint_option routine
  *    is only capable of extracting the first 4 bytes of an efivar.
  *
- *      efivarstore STORAGE_NEWOPT,                                                  // underlying storage datastruture, see step 3
+ *      efivarstore OPTION_STORAGE,                                                  // underlying datastruture, no adjustments
  *        attribute = EFI_VARIABLE_BOOTSERVICE_ACCESS | EFI_VARIABLE_NON_VOLATILE,   // no adjustments needed here
  *        name      = NewOpt,                                                        // efivar name (see step 1, L"NewOpt")
  *        guid      = gEficorebootNvDataGuid;                                        // no adjustments needed here
  *
- * 8. finally, create the desired OneOf question for your new option
+ * 7. finally, create the desired OneOf question for your new option
  *    in Library/SetupMenuUiLib/SetupMenuVfr.Vfr
  *
  *      oneof name = OneOfNewOpt,
