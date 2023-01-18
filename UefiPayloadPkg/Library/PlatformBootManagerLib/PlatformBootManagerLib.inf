@@ -50,6 +50,7 @@
   PlatformHookLib
   HobLib
   Tcg2PhysicalPresenceLib
+  BootOptionsLib
 
 [Guids]
   gEfiEndOfDxeEventGroupGuid
@@ -74,6 +75,7 @@
   gEfiMdeModulePkgTokenSpaceGuid.PcdConInConnectOnDemand
   gUefiPayloadPkgTokenSpaceGuid.PcdShellFile
   gUefiPayloadPkgTokenSpaceGuid.PcdiPXEFile
+  gUefiPayloadPkgTokenSpaceGuid.PcdiPXERetryFile
   gEfiMdePkgTokenSpaceGuid.PcdUartDefaultBaudRate
   gEfiMdePkgTokenSpaceGuid.PcdUartDefaultDataBits
   gEfiMdePkgTokenSpaceGuid.PcdUartDefaultParity

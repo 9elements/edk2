@@ -316,8 +316,13 @@ INF  MdeModulePkg/Universal/Acpi/BootGraphicsResourceTableDxe/BootGraphicsResour
 # iPXE support
 #
 !if (NETWORK_IPXE)
+
   FILE FREEFORM = B68653C7-EEA1-4435-A199-A44F59E4476C {
    SECTION PE32 = UefiPayloadPkg/NetworkDrivers/ipxe.efi
+  }
+
+  FILE FREEFORM = DE42CA65-C29A-49B4-8759-5C06A9E01DAD {
+   SECTION PE32 = UefiPayloadPkg/NetworkDrivers/ipxe_retry.efi 
   }
 !endif
 
