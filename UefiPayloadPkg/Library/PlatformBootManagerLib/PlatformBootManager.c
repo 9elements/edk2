@@ -7,6 +7,8 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 
 **/
 
+#include <Library/BootOptionsLib.h>
+
 #include "PlatformBootManager.h"
 #include "PlatformConsole.h"
 
@@ -109,6 +111,7 @@ PlatformRegisterFvBootOption (
   ASSERT_EFI_ERROR (Status);
 
   EfiInitializeFwVolDevicepathNode (&FileNode, FileGuid);
+
   DevicePath = AppendDevicePathNode (
                  DevicePathFromHandle (LoadedImage->DeviceHandle),
                  (EFI_DEVICE_PATH_PROTOCOL *) &FileNode
@@ -122,20 +125,62 @@ PlatformRegisterFvBootOption (
              Description,
              DevicePath,
              NULL,
-             0
-           );
-  if (!EFI_ERROR (Status)) {
-    BootOptions = EfiBootManagerGetLoadOptions (&BootOptionCount, LoadOptionTypeBoot);
+             0);
 
+  if (!EFI_ERROR (Status)) {
+
+    BootOptions = EfiBootManagerGetLoadOptions (&BootOptionCount, LoadOptionTypeBoot);
     OptionIndex = PlatformFindLoadOption (&NewOption, BootOptions, BootOptionCount);
 
     if (OptionIndex == -1) {
+
       Status = EfiBootManagerAddLoadOptionVariable (&NewOption, (UINTN) -1);
       ASSERT_EFI_ERROR (Status);
     }
+
     EfiBootManagerFreeLoadOption (&NewOption);
     EfiBootManagerFreeLoadOptions (BootOptions, BootOptionCount);
   }
+}
+
+VOID
+PlatformDeRegisterFvBootOption (
+  EFI_GUID *FileGuid,
+  CHAR16   *Description,
+  UINT32    Attributes
+)
+{
+  EFI_STATUS                         Status;
+  EFI_BOOT_MANAGER_LOAD_OPTION       DeleteOption;
+  UINTN                              LoadOptionCount;
+  INTN                               Index;
+  MEDIA_FW_VOL_FILEPATH_DEVICE_PATH  FileNode;
+  EFI_LOADED_IMAGE_PROTOCOL         *LoadedImage;
+  EFI_DEVICE_PATH_PROTOCOL          *DevicePath;
+
+  Status = gBS->HandleProtocol (gImageHandle, &gEfiLoadedImageProtocolGuid, (VOID**) &LoadedImage);
+  ASSERT_EFI_ERROR (Status);
+
+  EfiInitializeFwVolDevicepathNode (&FileNode, FileGuid);
+
+  DevicePath = AppendDevicePathNode (DevicePathFromHandle (LoadedImage->DeviceHandle),
+                                     (EFI_DEVICE_PATH_PROTOCOL*) &FileNode);
+
+  Status = EfiBootManagerInitializeLoadOption (&DeleteOption, LoadOptionNumberUnassigned,
+                                               LoadOptionTypeBoot, Attributes, Description,
+                                               DevicePath, NULL, 0);
+
+  if (EFI_ERROR (Status))
+    return;
+
+  EFI_BOOT_MANAGER_LOAD_OPTION *LoadOpt = EfiBootManagerGetLoadOptions (&LoadOptionCount,
+                                                                        LoadOptionTypeBoot);
+
+  if ((Index = PlatformFindLoadOption (&DeleteOption, LoadOpt, LoadOptionCount)) != -1)
+    EfiBootManagerDeleteLoadOptionVariable (Index, LoadOptionTypeBoot);
+
+  EfiBootManagerFreeLoadOptions (LoadOpt, LoadOptionCount);
+  EfiBootManagerFreeLoadOption  (&DeleteOption);
 }
 
 /**
@@ -221,7 +266,16 @@ PlatformBootManagerAfterConsole (
   //
   // Register iPXE
   //
-  PlatformRegisterFvBootOption (PcdGetPtr (PcdiPXEFile), L"iPXE Network boot", LOAD_OPTION_ACTIVE);
+  if ((BOOLEAN) LoadBootOption (OPT_PXE_RETRIES, OPT_PXE_RETRIES_DFL) == TRUE) {
+
+    PlatformDeRegisterFvBootOption (PcdGetPtr (PcdiPXEFile),      L"iPXE Network Boot", LOAD_OPTION_ACTIVE);
+    PlatformRegisterFvBootOption   (PcdGetPtr (PcdiPXERetryFile), L"iPXE Network Boot", LOAD_OPTION_ACTIVE);
+
+  } else {
+
+    PlatformDeRegisterFvBootOption (PcdGetPtr (PcdiPXERetryFile), L"iPXE Network Boot", LOAD_OPTION_ACTIVE);
+    PlatformRegisterFvBootOption   (PcdGetPtr (PcdiPXEFile),      L"iPXE Network Boot", LOAD_OPTION_ACTIVE);
+  }
 
   Print (L"Pess ESC to enter Boot Manager Menu.\n");
 }

@@ -14,7 +14,6 @@
   VERSION_STRING                 = 1.0
   LIBRARY_CLASS                  = PlatformBootManagerLib|DXE_DRIVER
 
-
 #
 # The following information is for reference only and not required by the build tools.
 #
@@ -49,6 +48,7 @@
   PrintLib
   PlatformHookLib
   Tcg2PhysicalPresenceLib
+  BootOptionsLib
 
 [Guids]
   gEfiEndOfDxeEventGroupGuid
@@ -69,6 +69,7 @@
   gEfiMdeModulePkgTokenSpaceGuid.PcdConInConnectOnDemand
   gUefiPayloadPkgTokenSpaceGuid.PcdShellFile
   gUefiPayloadPkgTokenSpaceGuid.PcdiPXEFile
+  gUefiPayloadPkgTokenSpaceGuid.PcdiPXERetryFile
   gEfiMdePkgTokenSpaceGuid.PcdUartDefaultBaudRate
   gEfiMdePkgTokenSpaceGuid.PcdUartDefaultDataBits
   gEfiMdePkgTokenSpaceGuid.PcdUartDefaultParity
