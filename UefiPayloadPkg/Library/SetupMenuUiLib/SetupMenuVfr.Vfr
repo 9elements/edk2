@@ -142,21 +142,25 @@ formset
 
     endoneof;
 
-    oneof name = OneOfCxLimit,
+    grayoutif ideqval Cx.Value == 0x0;
 
-      varid  = CxLimit.Value,
-      prompt = STRING_TOKEN(STR_CX_LIMIT_PROMPT),
-      help   = STRING_TOKEN(STR_CX_LIMIT_HELP),
+      oneof name = OneOfCxLimit,
 
-      option text = STRING_TOKEN(STR_CHOICE_CX_LIMIT_C0), value = 0, flags = 0;
-      option text = STRING_TOKEN(STR_CHOICE_CX_LIMIT_C1), value = 0, flags = 0;
-      option text = STRING_TOKEN(STR_CHOICE_CX_LIMIT_C2), value = 1, flags = 0;
-      option text = STRING_TOKEN(STR_CHOICE_CX_LIMIT_C3), value = 2, flags = 0;
-      option text = STRING_TOKEN(STR_CHOICE_CX_LIMIT_C6), value = 3, flags = 0;
-      option text = STRING_TOKEN(STR_CHOICE_CX_LIMIT_C7), value = 4, flags = 0;
-      option text = STRING_TOKEN(STR_CHOICE_CX_LIMIT_C8), value = 6, flags = 0;
+        varid  = CxLimit.Value,
+        prompt = STRING_TOKEN(STR_CX_LIMIT_PROMPT),
+        help   = STRING_TOKEN(STR_CX_LIMIT_HELP),
 
-    endoneof;
+        option text = STRING_TOKEN(STR_CHOICE_CX_LIMIT_C0), value = 0, flags = 0;
+        option text = STRING_TOKEN(STR_CHOICE_CX_LIMIT_C1), value = 0, flags = 0;
+        option text = STRING_TOKEN(STR_CHOICE_CX_LIMIT_C2), value = 1, flags = 0;
+        option text = STRING_TOKEN(STR_CHOICE_CX_LIMIT_C3), value = 2, flags = 0;
+        option text = STRING_TOKEN(STR_CHOICE_CX_LIMIT_C6), value = 3, flags = 0;
+        option text = STRING_TOKEN(STR_CHOICE_CX_LIMIT_C7), value = 4, flags = 0;
+        option text = STRING_TOKEN(STR_CHOICE_CX_LIMIT_C8), value = 6, flags = 0;
+
+      endoneof;
+
+    endif;
 
     oneof name = OneOfPrimaryDisplay,
 
@@ -169,16 +173,20 @@ formset
 
     endoneof;
 
-    oneof name = OneOfEnergyEfficientTurbo,
+    grayoutif ideqval TurboMode.Value == 0x0;
 
-      varid  = EnergyEfficientTurbo.Value,
-      prompt = STRING_TOKEN(STR_EE_TURBO_PROMPT),
-      help   = STRING_TOKEN(STR_EE_TURBO_HELP),
+      oneof name = OneOfEnergyEfficientTurbo,
 
-      option text = STRING_TOKEN(STR_CHOICE_ENABLED),  value = 0x1, flags = 0;
-      option text = STRING_TOKEN(STR_CHOICE_DISABLED), value = 0x0, flags = 0;
+        varid  = EnergyEfficientTurbo.Value,
+        prompt = STRING_TOKEN(STR_EE_TURBO_PROMPT),
+        help   = STRING_TOKEN(STR_EE_TURBO_HELP),
 
-    endoneof;
+        option text = STRING_TOKEN(STR_CHOICE_ENABLED),  value = 0x1, flags = 0;
+        option text = STRING_TOKEN(STR_CHOICE_DISABLED), value = 0x0, flags = 0;
+
+      endoneof;
+
+    endif;
 
     oneof name = OneOfLlcDeadline,
 
@@ -202,16 +210,20 @@ formset
 
     endoneof;
 
-    oneof name = OneOfIntelVtd,
+    grayoutif ideqval VTX.Value == 0x0;
 
-      varid  = VTD.Value,
-      prompt = STRING_TOKEN(STR_INTEL_VTD_PROMPT),
-      help   = STRING_TOKEN(STR_INTEL_VTD_HELP),
+      oneof name = OneOfIntelVtd,
 
-      option text = STRING_TOKEN(STR_CHOICE_ENABLED),  value = 0x1, flags = 0;
-      option text = STRING_TOKEN(STR_CHOICE_DISABLED), value = 0x0, flags = 0;
+        varid  = VTD.Value,
+        prompt = STRING_TOKEN(STR_INTEL_VTD_PROMPT),
+        help   = STRING_TOKEN(STR_INTEL_VTD_HELP),
 
-    endoneof;
+        option text = STRING_TOKEN(STR_CHOICE_ENABLED),  value = 0x1, flags = 0;
+        option text = STRING_TOKEN(STR_CHOICE_DISABLED), value = 0x0, flags = 0;
+
+      endoneof;
+
+    endif;
 
     oneof name = OneOfSecureBoot,
 
