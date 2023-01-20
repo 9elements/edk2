@@ -30,6 +30,31 @@
 #define PWR_G3_S0 0
 #define PWR_G3_S5 1
 
+/* --- PCIe SSC Values --- */
+
+#define PCIE_SSC_0_0_P 0x00
+#define PCIE_SSC_0_1_P 0x06
+#define PCIE_SSC_0_2_P 0x0d
+#define PCIE_SSC_0_3_P 0x14
+#define PCIE_SSC_0_4_P 0x1a
+#define PCIE_SSC_0_5_P 0x21
+#define PCIE_SSC_0_6_P 0x28
+#define PCIE_SSC_0_7_P 0x2e
+#define PCIE_SSC_0_8_P 0x35
+#define PCIE_SSC_0_9_P 0x3c
+#define PCIE_SSC_1_0_P 0x42
+#define PCIE_SSC_1_1_P 0x49
+#define PCIE_SSC_1_2_P 0x50
+#define PCIE_SSC_1_3_P 0x56
+#define PCIE_SSC_1_4_P 0x5d
+#define PCIE_SSC_1_5_P 0x64
+#define PCIE_SSC_1_6_P 0x6a
+#define PCIE_SSC_1_7_P 0x71
+#define PCIE_SSC_1_8_P 0x78
+#define PCIE_SSC_1_9_P 0x7e
+#define PCIE_SSC_2_0_P 0x85
+#define PCIE_SSC_AUTO  0xff
+
 /* --- Boot options and defaults --- */
 
 #define OPT_HYPERTHREADING L"Hyperthreading"
@@ -69,7 +94,7 @@
 #define OPT_PWR_G3_DFL PWR_G3_S5
 
 #define OPT_PCIE_SSC L"PCIeSSC"
-#define OPT_PCIE_SSC_DFL FALSE
+#define OPT_PCIE_SSC_DFL PCIE_SSC_AUTO
 
 #define OPT_PCIE_SRIS L"PCIeSRIS"
 #define OPT_PCIE_SRIS_DFL FALSE

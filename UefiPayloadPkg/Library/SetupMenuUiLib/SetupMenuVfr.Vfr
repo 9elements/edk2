@@ -264,8 +264,28 @@ formset
       prompt = STRING_TOKEN(STR_PCIE_SSC_PROMPT),
       help   = STRING_TOKEN(STR_PCIE_SSC_HELP),
 
-      option text = STRING_TOKEN(STR_CHOICE_ENABLED),  value = 0x1, flags = 0;
-      option text = STRING_TOKEN(STR_CHOICE_DISABLED), value = 0x0, flags = 0;
+      option text = STRING_TOKEN(STR_CHOICE_PCIE_SSC_AUTO),  value = 0xff, flags = 0;
+      option text = STRING_TOKEN(STR_CHOICE_PCIE_SSC_0_0_P), value = 0x00, flags = 0;
+      option text = STRING_TOKEN(STR_CHOICE_PCIE_SSC_0_1_P), value = 0x06, flags = 0;
+      option text = STRING_TOKEN(STR_CHOICE_PCIE_SSC_0_2_P), value = 0x0d, flags = 0;
+      option text = STRING_TOKEN(STR_CHOICE_PCIE_SSC_0_3_P), value = 0x14, flags = 0;
+      option text = STRING_TOKEN(STR_CHOICE_PCIE_SSC_0_4_P), value = 0x1a, flags = 0;
+      option text = STRING_TOKEN(STR_CHOICE_PCIE_SSC_0_5_P), value = 0x21, flags = 0;
+      option text = STRING_TOKEN(STR_CHOICE_PCIE_SSC_0_6_P), value = 0x28, flags = 0;
+      option text = STRING_TOKEN(STR_CHOICE_PCIE_SSC_0_7_P), value = 0x2e, flags = 0;
+      option text = STRING_TOKEN(STR_CHOICE_PCIE_SSC_0_8_P), value = 0x35, flags = 0;
+      option text = STRING_TOKEN(STR_CHOICE_PCIE_SSC_0_9_P), value = 0x3c, flags = 0;
+      option text = STRING_TOKEN(STR_CHOICE_PCIE_SSC_1_0_P), value = 0x42, flags = 0;
+      option text = STRING_TOKEN(STR_CHOICE_PCIE_SSC_1_1_P), value = 0x49, flags = 0;
+      option text = STRING_TOKEN(STR_CHOICE_PCIE_SSC_1_2_P), value = 0x50, flags = 0;
+      option text = STRING_TOKEN(STR_CHOICE_PCIE_SSC_1_3_P), value = 0x56, flags = 0;
+      option text = STRING_TOKEN(STR_CHOICE_PCIE_SSC_1_4_P), value = 0x5d, flags = 0;
+      option text = STRING_TOKEN(STR_CHOICE_PCIE_SSC_1_5_P), value = 0x64, flags = 0;
+      option text = STRING_TOKEN(STR_CHOICE_PCIE_SSC_1_6_P), value = 0x6a, flags = 0;
+      option text = STRING_TOKEN(STR_CHOICE_PCIE_SSC_1_7_P), value = 0x71, flags = 0;
+      option text = STRING_TOKEN(STR_CHOICE_PCIE_SSC_1_8_P), value = 0x78, flags = 0;
+      option text = STRING_TOKEN(STR_CHOICE_PCIE_SSC_1_9_P), value = 0x7e, flags = 0;
+      option text = STRING_TOKEN(STR_CHOICE_PCIE_SSC_2_0_P), value = 0x85, flags = 0;
 
     endoneof;
 
