@@ -173,7 +173,7 @@ formset
 
     endoneof;
 
-    grayoutif ideqval TurboMode.Value == 0x0;
+    grayoutif ideqval TurboMode.Value == 0x0 OR ideqval Cx.Value == 0x0;
 
       oneof name = OneOfEnergyEfficientTurbo,
 
