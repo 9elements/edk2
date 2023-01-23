@@ -268,13 +268,13 @@ PlatformBootManagerAfterConsole (
   //
   if ((BOOLEAN) LoadBootOption (OPT_PXE_RETRIES, OPT_PXE_RETRIES_DFL) == TRUE) {
 
-    PlatformDeRegisterFvBootOption (PcdGetPtr (PcdiPXEFile),      L"iPXE Network Boot", LOAD_OPTION_ACTIVE);
-    PlatformRegisterFvBootOption   (PcdGetPtr (PcdiPXERetryFile), L"iPXE Network Boot", LOAD_OPTION_ACTIVE);
+    PlatformDeRegisterFvBootOption (PcdGetPtr (PcdiPXEFile),      L"iPXE Network Boot",         LOAD_OPTION_ACTIVE);
+    PlatformRegisterFvBootOption   (PcdGetPtr (PcdiPXERetryFile), L"iPXE Network Boot (Retry)", LOAD_OPTION_ACTIVE);
 
   } else {
 
-    PlatformDeRegisterFvBootOption (PcdGetPtr (PcdiPXERetryFile), L"iPXE Network Boot", LOAD_OPTION_ACTIVE);
-    PlatformRegisterFvBootOption   (PcdGetPtr (PcdiPXEFile),      L"iPXE Network Boot", LOAD_OPTION_ACTIVE);
+    PlatformDeRegisterFvBootOption (PcdGetPtr (PcdiPXERetryFile), L"iPXE Network Boot (Retry)", LOAD_OPTION_ACTIVE);
+    PlatformRegisterFvBootOption   (PcdGetPtr (PcdiPXEFile),      L"iPXE Network Boot",         LOAD_OPTION_ACTIVE);
   }
 
   Print (L"Pess ESC to enter Boot Manager Menu.\n");
