@@ -27,15 +27,11 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
  * 3. add the key and its default from step 1 to the gDefaults table in
  *    Library/SetupMenuUiLib/SetupMenu.c
  *
- *      BootOptionDefault gDefaults[MAX_OPTION_KEYS] = {
+ *      BootOptionDefault gDefaults[] = {
  *
  *        [...]
  *        { .key = OPT_NEWOPT, .dfl = OPT_NEWOPT_DFL }
  *      };
- *
- *    and increment the MAX_OPTION_KEYS macro in Library/SetupMenuUiLib/Constants.h
- *
- *      #define MAX_OPTION_KEYS 16 // 15
  *
  * 4. add menu strings (PROMPT and HELP) for the new boot option in
  *    Library/SetupMenuUiLib/SetupMenuStrings.uni
@@ -99,7 +95,7 @@ typedef struct {
   
 } BootOptionDefault;
 
-BootOptionDefault gDefaults[MAX_OPTION_KEYS] = {
+BootOptionDefault gDefaults[] = {
 
   { .key = OPT_HYPERTHREADING,  .dfl = OPT_HYPERTHREADING_DFL  },
   { .key = OPT_TURBOMODE,       .dfl = OPT_TURBOMODE_DFL       },
@@ -182,7 +178,7 @@ PublishDefaultConfiguration (
   EFI_STATUS Status;
   UINT8      Iterator;
 
-  for (Iterator = 0; Iterator < MAX_OPTION_KEYS; Iterator++) {
+  for (Iterator = 0; Iterator < ARRAY_SIZE (gDefaults); Iterator++) {
 
     Status = gRT->SetVariable (gDefaults[Iterator].key, &gEficorebootNvDataGuid,
                                EFI_VARIABLE_NON_VOLATILE | EFI_VARIABLE_BOOTSERVICE_ACCESS,
