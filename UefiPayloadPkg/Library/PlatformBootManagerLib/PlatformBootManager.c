@@ -143,6 +143,15 @@ PlatformRegisterFvBootOption (
   }
 }
 
+/**
+  Deregister a boot option using a file GUID in the FV. This function
+  is supposed to be the couterpart of the PlatformRegisterFvBootOption
+  function.
+
+  @param FileGuid     The file GUID name in FV.
+  @param Description  The boot option description.
+  @param Attributes   The attributes used for the boot option loading.
+**/
 VOID
 PlatformDeRegisterFvBootOption (
   EFI_GUID *FileGuid,
