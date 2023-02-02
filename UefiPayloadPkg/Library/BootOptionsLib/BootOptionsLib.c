@@ -110,18 +110,18 @@ LoadDefaultBootOption (
   IN OPT BootOpt
 )
 {
-  UINT8 Profile;
-  UINT8 Idx;
+  UINT8   Profile;
+  PROFILE ProfileIdx;
 
   /*
    * todo: extract profile from coreboot
    * table and replace following line
    * and add sanity check for Profile
    */
-  Profile = 'A';
-  Idx     = PROFILE_IDX (Profile);
+  Profile    = 'A';
+  ProfileIdx = PROFILE_IDX (Profile);
 
-  return Fallbacks[Idx][BootOpt]; 
+  return Fallbacks[ProfileIdx][BootOpt];
 }
 
 CHAR16*
