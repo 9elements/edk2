@@ -330,7 +330,7 @@ PlatformBootManagerAfterConsole (
   //
   // Register iPXE
   //
-  if ((BOOLEAN) LoadBootOption (OPT_PXE_RETRIES, OPT_PXE_RETRIES_DFL) == TRUE) {
+  if ((BOOLEAN) LoadBootOption (OPT_PXE_RETRIES) == TRUE) {
 
     PlatformDeRegisterFvBootOption (PcdGetPtr (PcdiPXEFile),      L"iPXE Network Boot",         LOAD_OPTION_ACTIVE);
     PlatformRegisterFvBootOption   (PcdGetPtr (PcdiPXERetryFile), L"iPXE Network Boot (Retry)", LOAD_OPTION_ACTIVE);
