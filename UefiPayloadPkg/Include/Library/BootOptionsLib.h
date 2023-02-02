@@ -55,67 +55,71 @@
 #define PCIE_SSC_2_0_P 0x85
 #define PCIE_SSC_AUTO  0xff
 
-/* --- Boot options and defaults --- */
+/* --- Boot Option Enumeration --- */
 
-#define OPT_HYPERTHREADING L"Hyperthreading"
-#define OPT_HYPERTHREADING_DFL TRUE 
+typedef enum OPT {
 
-#define OPT_TURBOMODE L"TurboMode"
-#define OPT_TURBOMODE_DFL TRUE 
+	OPT_HYPERTHREADING,
+	OPT_TURBOMODE,
+	OPT_CX,
+	OPT_CX_LIMIT,
+	OPT_PRIMARY_DISPLAY,
+	OPT_EE_TURBO,
+	OPT_LLC_DEADLINE,
+	OPT_INTEL_VTX,
+	OPT_INTEL_VTD,
+	OPT_SECURE_BOOT,
+	OPT_PXE_RETRIES,
+	OPT_PWR_G3,
+	OPT_PCIE_SSC,
+	OPT_PCIE_SRIS,
+	OPT_IBECC,
+	
+	OPT_END_ENUM
+	
+} OPT;
 
-#define OPT_CX L"Cx"
-#define OPT_CX_DFL TRUE
+/* --- Boot Option Profiles --- */
 
-#define OPT_CX_LIMIT L"CxLimit"
-#define OPT_CX_LIMIT_DFL CX_LIMIT_C8
+typedef enum PROFILE {
 
-#define OPT_PRIMARY_DISPLAY L"PrimaryDisplay"
-#define OPT_PRIMARY_DISPLAY_DFL DISPLAY_IGFX
+	PROFILE_DEFAULT,
+	PROFILE_REALTIME,
 
-#define OPT_EE_TURBO L"EnergyEfficientTurbo"
-#define OPT_EE_TURBO_DFL FALSE
-
-#define OPT_LLC_DEADLINE L"LLCDeadline"
-#define OPT_LLC_DEADLINE_DFL FALSE 
-
-#define OPT_INTEL_VTX L"VTX"
-#define OPT_INTEL_VTX_DFL FALSE
-
-#define OPT_INTEL_VTD L"VTD"
-#define OPT_INTEL_VTD_DFL FALSE
-
-#define OPT_SECURE_BOOT L"SecBoot"
-#define OPT_SECURE_BOOT_DFL TRUE
-
-#define OPT_PXE_RETRIES L"PXERetries"
-#define OPT_PXE_RETRIES_DFL FALSE
-
-#define OPT_PWR_G3 L"PowerstateG3"
-#define OPT_PWR_G3_DFL PWR_G3_S5
-
-#define OPT_PCIE_SSC L"PCIeSSC"
-#define OPT_PCIE_SSC_DFL PCIE_SSC_AUTO
-
-#define OPT_PCIE_SRIS L"PCIeSRIS"
-#define OPT_PCIE_SRIS_DFL FALSE
-
-#define OPT_IBECC L"IBECC"
-#define OPT_IBECC_DFL FALSE
+	PROFILE_END_ENUM
+	
+} PROFILE;
 
 /**
   Loads custom boot options from SMMSTORE. If no custom setting
-  exists, a fallback/default value is returned.
+  exists, a fallback/default value from an option table is returned.
 
-  @param[in]  Option   The desired option. Use OPT_* macros.
-  @param[in]  Default  A fallback value which is returned if no custom setting is found. Use OPT_*_DFL macros.
-
-  @retval The current setting of the desired option. Either a custom value or 'Default'.
+  @param[in]  BootOpt   The desired option. Use the OPT enumeration.
+  @retval     The current setting of the desired option. Either a custom value or a fallback.
 **/
 UINT8
 EFIAPI
 LoadBootOption (
-  IN CHAR16* Option,
-  IN UINT8   Default
+  IN OPT BootOpt
   );
+
+/**
+  Loads the default boot option from an option table based on the Board's
+  profile configuration.
+
+  @param[in]  BootOpt   The desired option. Use the OPT enumeration.
+  @retval     The default value of BootOpt.
+**/
+UINT8
+EFIAPI
+LoadDefaultBootOption (
+  IN OPT BootOpt
+);
+
+CHAR16*
+EFIAPI
+GetBootOptionName (
+  IN OPT BootOpt
+);
 
 #endif /* __BOOT_OPTIONS_LIB_H__ */

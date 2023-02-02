@@ -34,7 +34,7 @@ InstallSMBusConfigLoader (
   /* --- Enable/Disable SecureBoot --- */
 
   // Load SecureBoot settings
-  SecureBootOption = LoadBootOption (OPT_SECURE_BOOT, OPT_SECURE_BOOT_DFL);
+  SecureBootOption = LoadBootOption (OPT_SECURE_BOOT);
 
   // Set L"SecureBootEnable". Only affects SecureBootSetupDxe.
   Status = gRT->SetVariable (EFI_SECURE_BOOT_ENABLE_NAME, &gEfiSecureBootEnableDisableGuid,

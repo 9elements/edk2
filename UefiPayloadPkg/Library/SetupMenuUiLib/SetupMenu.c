@@ -14,7 +14,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include "SetupMenuNVDataStruc.h"
 
 /*
- * === Extending the SetupMenu ===
+ * === Extending the SetupMenu [todo: outdated !] ===
  *
  * 1. add a new option key and its default to Include/Library/BootOptionsLib.h
  *
@@ -76,43 +76,17 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
  * can now retrieve the user-configured value of "NewOpt" in coreboot via
  *
  *   // src/mainboard/prodrive/atlas/boot_options.h
- *   uint8_t optval = get_uint_option(OPT_NEWOPT, OPT_NEWOPT_DFL);
+ *   u8 optval = load_boot_option(OPT_NEWOPT);
  *
  * and in EDK2 via
  *
  *   // Include/Library/BootOptionsLib.h
- *   UINT8 OptVal = LoadBootOption (OPT_NEWOPT, OPT_NEWOPT_DFL);
+ *   UINT8 OptVal = LoadBootOption (OPT_NEWOPT);
  *
  * Note, that you will need to enable the SMMSTORE as option backend in order to
  * access the boot options from within coreboot.
  *
  **/
-
-typedef struct {
-
-  CHAR16 *key;
-  UINT8   dfl;
-  
-} BootOptionDefault;
-
-BootOptionDefault gDefaults[] = {
-
-  { .key = OPT_HYPERTHREADING,  .dfl = OPT_HYPERTHREADING_DFL  },
-  { .key = OPT_TURBOMODE,       .dfl = OPT_TURBOMODE_DFL       },
-  { .key = OPT_CX,              .dfl = OPT_CX_DFL              },
-  { .key = OPT_CX_LIMIT,        .dfl = OPT_CX_LIMIT_DFL        },
-  { .key = OPT_PRIMARY_DISPLAY, .dfl = OPT_PRIMARY_DISPLAY_DFL },
-  { .key = OPT_EE_TURBO,        .dfl = OPT_EE_TURBO_DFL        },
-  { .key = OPT_LLC_DEADLINE,    .dfl = OPT_LLC_DEADLINE_DFL    },
-  { .key = OPT_INTEL_VTX,       .dfl = OPT_INTEL_VTX_DFL       },
-  { .key = OPT_INTEL_VTD,       .dfl = OPT_INTEL_VTD_DFL       },
-  { .key = OPT_SECURE_BOOT,     .dfl = OPT_SECURE_BOOT_DFL     },
-  { .key = OPT_PXE_RETRIES,     .dfl = OPT_PXE_RETRIES_DFL     },
-  { .key = OPT_PWR_G3,          .dfl = OPT_PWR_G3_DFL          },
-  { .key = OPT_PCIE_SSC,        .dfl = OPT_PCIE_SSC_DFL        },
-  { .key = OPT_PCIE_SRIS,       .dfl = OPT_PCIE_SRIS_DFL       },
-  { .key = OPT_IBECC,           .dfl = OPT_IBECC_DFL           }
-};
 
 /* GUID of this formset */
 EFI_GUID mSetupMenuGuid = SETUP_MENU_FORMSET_GUID;
@@ -177,12 +151,15 @@ PublishDefaultConfiguration (
 {  
   EFI_STATUS Status;
   UINT8      Iterator;
+  UINT8      Default;
 
-  for (Iterator = 0; Iterator < ARRAY_SIZE (gDefaults); Iterator++) {
+  for (Iterator = 0; Iterator < OPT_END_ENUM; Iterator++) {
 
-    Status = gRT->SetVariable (gDefaults[Iterator].key, &gEficorebootNvDataGuid,
+    Default = LoadDefaultBootOption (Iterator);
+    
+    Status = gRT->SetVariable (GetBootOptionName (Iterator), &gEficorebootNvDataGuid,
                                EFI_VARIABLE_NON_VOLATILE | EFI_VARIABLE_BOOTSERVICE_ACCESS,
-                               sizeof (UINT8), &(gDefaults[Iterator].dfl));
+                               sizeof (UINT8), &Default);
 
     if (EFI_ERROR (Status))
       break;
@@ -270,7 +247,7 @@ SetupMenuUiLibConstructor (
 
   ASSERT (gSetupMenuPrivate.HiiHandle != NULL);
 
-  if (!EfiVarExists (gDefaults[0].key, gEficorebootNvDataGuid)) {
+  if (!EfiVarExists (GetBootOptionName (0), gEficorebootNvDataGuid)) {
   
     Status = PublishDefaultConfiguration ();
     ASSERT (!EFI_ERROR (Status));
