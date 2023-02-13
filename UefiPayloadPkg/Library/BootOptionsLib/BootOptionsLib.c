@@ -7,56 +7,16 @@
 #include <Library/BootOptionsLib.h>
 #include <Library/DebugLib.h>
 #include <Library/BaseMemoryLib.h>
+#include <Library/HobLib.h>
 #include <Library/UefiBootServicesTableLib.h>
 #include <Library/UefiRuntimeServicesTableLib.h>
 
 #include <Guid/GlobalVariable.h>
 #include <Guid/AuthenticatedVariableFormat.h>
+#include <Guid/BootOptionsGuid.h>
 
-#define PROFILE_IDX(p) ((p) - 'A')
-
-static const UINT8 Fallbacks[PROFILE_END_ENUM][OPT_END_ENUM] = {
-
-	[PROFILE_DEFAULT] = {
-
-		[OPT_HYPERTHREADING ] = TRUE,
-		[OPT_TURBOMODE      ] = TRUE,
-		[OPT_CX             ] = TRUE,
-		[OPT_CX_LIMIT       ] = CX_LIMIT_C8,
-		[OPT_PRIMARY_DISPLAY] = DISPLAY_IGFX,
-		[OPT_EE_TURBO       ] = FALSE,
-		[OPT_LLC_DEADLINE   ] = FALSE,
-		[OPT_INTEL_VTX      ] = FALSE,
-		[OPT_INTEL_VTD      ] = FALSE,
-		[OPT_SECURE_BOOT    ] = TRUE,
-		[OPT_PXE_RETRIES    ] = FALSE,
-		[OPT_PWR_G3         ] = PWR_G3_S5,
-		[OPT_PCIE_SSC       ] = PCIE_SSC_AUTO,
-		[OPT_PCIE_SRIS      ] = FALSE,
-		[OPT_IBECC          ] = FALSE
-	},
-
-	[PROFILE_REALTIME] = {
-
-		[OPT_HYPERTHREADING ] = FALSE,
-		[OPT_TURBOMODE      ] = TRUE,
-		[OPT_CX             ] = TRUE,
-		[OPT_CX_LIMIT       ] = CX_LIMIT_C8,
-		[OPT_PRIMARY_DISPLAY] = DISPLAY_IGFX,
-		[OPT_EE_TURBO       ] = FALSE,
-		[OPT_LLC_DEADLINE   ] = FALSE,
-		[OPT_INTEL_VTX      ] = FALSE,
-		[OPT_INTEL_VTD      ] = FALSE,
-		[OPT_SECURE_BOOT    ] = TRUE,
-		[OPT_PXE_RETRIES    ] = FALSE,
-		[OPT_PWR_G3         ] = PWR_G3_S5,
-		[OPT_PCIE_SSC       ] = PCIE_SSC_AUTO,
-		[OPT_PCIE_SRIS      ] = FALSE,
-		[OPT_IBECC          ] = FALSE
-	}
-};
-
-static CHAR16* OptionNameLookupTable[OPT_END_ENUM] = {
+/* Keep synced with coreboot */
+static CHAR16* OptionNameLookupTable[] = {
 
 	[OPT_HYPERTHREADING ] = L"Hyperthreading",
 	[OPT_TURBOMODE      ] = L"TurboMode",
@@ -110,18 +70,26 @@ LoadDefaultBootOption (
   IN OPT BootOpt
 )
 {
-  UINT8   Profile;
-  PROFILE ProfileIdx;
+  EFI_HOB_GUID_TYPE  *GuidHob;
+  BOOT_OPTIONS       *BootOptions;
+  UINTN              Index;
 
-  /*
-   * todo: extract profile from coreboot
-   * table and replace following line
-   * and add sanity check for Profile
-   */
-  Profile    = 'A';
-  ProfileIdx = PROFILE_IDX (Profile);
+  GuidHob = GetFirstGuidHob (&gEfiBootOptionsTableGuid);
+  ASSERT (GuidHob != NULL);
 
-  return Fallbacks[ProfileIdx][BootOpt];
+  BootOptions = GET_GUID_HOB_DATA (GuidHob);
+  // TODO: If out-of-order options are unlikely, optimise by dereferencing index
+  for (Index = 0; Index < BootOptions->Count; Index++) {
+    // Found OPT
+    if (BootOptions->OptionDefaults[Index].Option == BootOpt) {
+      return BootOptions->OptionDefaults[Index].DefaultValue;
+    }
+  }
+
+  // Should not be reached
+  DEBUG ((DEBUG_INFO, "Error! Invalid BootOpt %d!\n", BootOpt));
+  ASSERT (FALSE);
+  return 0xFF;
 }
 
 CHAR16*

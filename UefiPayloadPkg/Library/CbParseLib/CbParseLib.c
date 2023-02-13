@@ -7,15 +7,17 @@
 
 **/
 
-#include <Uefi/UefiBaseType.h>
+#include <PiPei.h>
 #include <Library/BaseLib.h>
 #include <Library/BaseMemoryLib.h>
 #include <Library/DebugLib.h>
+#include <Library/HobLib.h>
 #include <Library/PcdLib.h>
 #include <Library/IoLib.h>
 #include <Library/BlParseLib.h>
 #include <IndustryStandard/Acpi.h>
 #include <Coreboot.h>
+#include <Guid/BootOptionsGuid.h>
 
 
 /**
@@ -574,6 +576,27 @@ ParseSMMSTOREInfo (
   )
 {
   struct cb_smmstorev2                  *CbSSRec;
+
+  // TODO/FIXME: Use `ParseMiscInfo()` after rebase
+  struct cb_board_boot_options  *CbBootOptions;
+  BOOT_OPTIONS                  *BootOptions;
+  UINTN                         Index;
+
+  CbBootOptions = FindCbTag (CB_TAG_OPTION);
+  if (CbBootOptions != NULL) {
+    BootOptions = BuildGuidDataHob (
+                    &gEfiBootOptionsTableGuid,
+                    &(CbBootOptions->count),
+                    (sizeof (BOOT_OPTIONS) + CbBootOptions->count * sizeof (struct cb_board_option_defaults)));
+    ASSERT (BootOptions != NULL);
+
+    DEBUG ((DEBUG_INFO, "Found bootloader options information\n"));
+    DEBUG ((DEBUG_INFO, "Count: %d\n", BootOptions->Count));
+    for (Index = 0; Index < BootOptions->Count; Index++) {
+      DEBUG ((DEBUG_INFO, "Option number: %d\n", BootOptions->OptionDefaults[Index].Option));
+      DEBUG ((DEBUG_INFO, "Default value: %d\n", BootOptions->OptionDefaults[Index].DefaultValue));
+    }
+  }
 
   if (SMMSTOREInfo == NULL) {
     return RETURN_INVALID_PARAMETER;
