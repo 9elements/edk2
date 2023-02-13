@@ -20,6 +20,7 @@
   UefiRuntimeServicesTableLib
   UefiBootServicesTableLib
   BaseMemoryLib
+  HobLib
   DebugLib
 
 [Packages]
@@ -30,3 +31,4 @@
 
 [Guids]
   gEficorebootNvDataGuid
+  gEfiBootOptionsTableGuid

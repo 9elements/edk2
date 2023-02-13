@@ -288,6 +288,21 @@ struct cb_tpm_physical_presence {
 	UINT8 ppi_version;	/* BCD encoded */
 } __packed;
 
+/* FIXME: Safe to reuse tag? */
+#define CB_TAG_OPTION 0xc9
+struct cb_board_option_defaults {
+  UINT8 option;
+  UINT8 default_value;
+  UINT8 pad[2];
+};
+
+struct cb_board_boot_options {
+  UINT32 tag;
+  UINT32 size;
+  UINT32 count;
+  struct cb_board_option_defaults option_defaults[];
+};
+
 /* Helpful macros */
 
 #define MEM_RANGE_COUNT(_rec) \
