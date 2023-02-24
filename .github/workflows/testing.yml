@@ -90,7 +90,7 @@ jobs:
       - name: Build X64 UefiPayload
         run: |
           source ./edksetup.sh
-          build -D BOOTLOADER=COREBOOT -a IA32 -a X64 -t GCC5 -b DEBUG -p UefiPayloadPkg/UefiPayloadPkg.dsc
+          build -D BOOTLOADER=COREBOOT -D VARIABLE_SUPPORT=SMMSTORE -D CPU_RNG_ENABLE=FALSE -a IA32 -a X64 -t GCC5 -b DEBUG -p UefiPayloadPkg/UefiPayloadPkg.dsc
 
       - name: Run binary in QEMU
         run: |
@@ -134,7 +134,7 @@ jobs:
         run: |
           if [ "$(grep TPM_ENABLE UefiPayloadPkg/UefiPayloadPkg.dsc)" != "" ]; then
             source ./edksetup.sh
-            build -D BOOTLOADER=COREBOOT -D TPM_ENABLE=TRUE -a IA32 -a X64 -t GCC5 -b DEBUG -p UefiPayloadPkg/UefiPayloadPkg.dsc
+            build -D BOOTLOADER=COREBOOT -D VARIABLE_SUPPORT=SMMSTORE -D CPU_RNG_ENABLE=FALSE -D TPM_ENABLE=TRUE -a IA32 -a X64 -t GCC5 -b DEBUG -p UefiPayloadPkg/UefiPayloadPkg.dsc
           else
             echo "TPM not supported"
           fi
@@ -175,7 +175,7 @@ jobs:
         run: |
           if [ "$(grep SECURE_BOOT_ENABLE UefiPayloadPkg/UefiPayloadPkg.dsc)" != "" ]; then
             source ./edksetup.sh
-            build -D BOOTLOADER=COREBOOT -D SECURE_BOOT_ENABLE=TRUE -a IA32 -a X64 -t GCC5 -b DEBUG -p UefiPayloadPkg/UefiPayloadPkg.dsc
+            build -D BOOTLOADER=COREBOOT -D VARIABLE_SUPPORT=SMMSTORE -D CPU_RNG_ENABLE=FALSE -D SECURE_BOOT_ENABLE=TRUE -a IA32 -a X64 -t GCC5 -b DEBUG -p UefiPayloadPkg/UefiPayloadPkg.dsc
           else
             echo "SECURE_BOOT_ENABLE not supported"
           fi
@@ -214,16 +214,16 @@ jobs:
 
       - name: Build X64 UefiPayload with Network
         run: |
-          if [ "$(grep NETWORK_ENABLE UefiPayloadPkg/UefiPayloadPkg.dsc)" != "" ]; then
+          if [ "$(grep NETWORK_DRIVER_ENABLE UefiPayloadPkg/UefiPayloadPkg.dsc)" != "" ]; then
             source ./edksetup.sh
-            build -D BOOTLOADER=COREBOOT -D NETWORK_ENABLE=TRUE -DNETWORK_HTTP_BOOT_ENABLE=FALSE -a IA32 -a X64 -t GCC5 -b DEBUG -p UefiPayloadPkg/UefiPayloadPkg.dsc
+            build -D BOOTLOADER=COREBOOT -D VARIABLE_SUPPORT=SMMSTORE -D CPU_RNG_ENABLE=FALSE -D NETWORK_DRIVER_ENABLE=TRUE -DNETWORK_HTTP_BOOT_ENABLE=FALSE -a IA32 -a X64 -t GCC5 -b DEBUG -p UefiPayloadPkg/UefiPayloadPkg.dsc
           else
-            echo "NETWORK_ENABLE not supported"
+            echo "NETWORK_DRIVER_ENABLE not supported"
           fi
 
       - name: Run binary in QEMU
         run: |
-          if [ "$(grep NETWORK_ENABLE UefiPayloadPkg/UefiPayloadPkg.dsc)" != "" ]; then
+          if [ "$(grep NETWORK_DRIVER_ENABLE UefiPayloadPkg/UefiPayloadPkg.dsc)" != "" ]; then
             ./Testing/test_UefiPayloadPkgQemu.sh Build/UefiPayloadPkgX64/DEBUG_GCC5/FV/UEFIPAYLOAD.fd
           else
             echo "Not running binary"
@@ -256,7 +256,7 @@ jobs:
       - name: Build X64 UefiPayload in Release mode
         run: |
           source ./edksetup.sh
-          build -D BOOTLOADER=COREBOOT -a IA32 -a X64 -t GCC5 -b RELEASE -p UefiPayloadPkg/UefiPayloadPkg.dsc
+          build -D BOOTLOADER=COREBOOT -D VARIABLE_SUPPORT=SMMSTORE -D CPU_RNG_ENABLE=FALSE -a IA32 -a X64 -t GCC5 -b RELEASE -p UefiPayloadPkg/UefiPayloadPkg.dsc
 
       - name: Run binary in QEMU
         run: |
@@ -289,7 +289,7 @@ jobs:
       - name: Build X64 UefiPayload
         run: |
           source ./edksetup.sh
-          build -D BOOTLOADER=SBL -a IA32 -a X64 -t GCC5 -b DEBUG -p UefiPayloadPkg/UefiPayloadPkg.dsc
+          build -D BOOTLOADER=SBL -D CPU_RNG_ENABLE=FALSE -a IA32 -a X64 -t GCC5 -b DEBUG -p UefiPayloadPkg/UefiPayloadPkg.dsc
 
       - name: Run binary in QEMU
         run: |
