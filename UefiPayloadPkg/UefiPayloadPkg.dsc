@@ -147,6 +147,7 @@
   # This is how BaseCpuTimerLib works, and a recommended way to get Frequence, so set the default value as TRUE.
   # Note: for emulation platform such as QEMU, this may not work and should set it as FALSE
   DEFINE CPU_TIMER_LIB_ENABLE  = TRUE
+  DEFINE CPU_RNG_ENABLE        = TRUE
 
   DEFINE MULTIPLE_DEBUG_PORT_SUPPORT = FALSE
 
@@ -225,7 +226,11 @@
 !else
   OpensslLib|CryptoPkg/Library/OpensslLib/OpensslLibCrypto.inf
 !endif
+!if $(CPU_RNG_ENABLE) == TRUE
   RngLib|MdePkg/Library/BaseRngLib/BaseRngLib.inf
+!else
+  RngLib|MdePkg/Library/BaseRngLibTimerLib/BaseRngLibTimerLib.inf
+!endif
   HobLib|UefiPayloadPkg/Library/DxeHobLib/DxeHobLib.inf
 
   #
