@@ -208,7 +208,7 @@
 !endif
   IntrinsicLib|CryptoPkg/Library/IntrinsicLib/IntrinsicLib.inf
   OpensslLib|CryptoPkg/Library/OpensslLib/OpensslLib.inf
-  RngLib|MdePkg/Library/BaseRngLib/BaseRngLib.inf
+  RngLib|MdePkg/Library/BaseRngLibTimerLib/BaseRngLibTimerLib.inf
   HobLib|UefiPayloadPkg/Library/DxeHobLib/DxeHobLib.inf
 
   #
