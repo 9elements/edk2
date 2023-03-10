@@ -418,6 +418,102 @@ ParseRootBridgeInfo (
 }
 
 /**
+  Find an ACPI table by signature.
+
+  @param  AcpiTableBase          ACPI table start address in memory
+  @param  ReqSignature           Signature to look for
+  @param  AcpiTable              Optional pointer to table
+
+  @retval RETURN_SUCCESS     Successfully find out all the required information.
+  @retval RETURN_NOT_FOUND   Failed to find the required info.
+
+**/
+STATIC
+RETURN_STATUS
+FindAcpiTable (
+  IN   UINT64           AcpiTableBase,
+  IN   UINT32           ReqSignature,
+  OUT  VOID             **AcpiTable
+  )
+{
+  EFI_ACPI_3_0_ROOT_SYSTEM_DESCRIPTION_POINTER                                           *Rsdp;
+  EFI_ACPI_DESCRIPTION_HEADER                                                            *Rsdt;
+  UINT32                                                                                 *Entry32;
+  UINTN                                                                                  Entry32Num;
+  EFI_ACPI_DESCRIPTION_HEADER                                                            *Xsdt;
+  UINT64                                                                                 *Entry64;
+  UINTN                                                                                  Entry64Num;
+  UINTN                                                                                  Idx;
+  UINT32                                                                                 *Signature;
+
+  if (AcpiTableBase == 0) {
+    return EFI_INVALID_PARAMETER;
+  }
+  Rsdp = (EFI_ACPI_3_0_ROOT_SYSTEM_DESCRIPTION_POINTER *)(UINTN)AcpiTableBase;
+  DEBUG ((DEBUG_VERBOSE, "Rsdp at 0x%p\n", Rsdp));
+  DEBUG ((DEBUG_VERBOSE, "Rsdt at 0x%x, Xsdt at 0x%lx\n", Rsdp->RsdtAddress, Rsdp->XsdtAddress));
+
+  //
+  // Search Rsdt First
+  //
+  Rsdt     = (EFI_ACPI_DESCRIPTION_HEADER *)(UINTN)(Rsdp->RsdtAddress);
+  if (Rsdt != NULL) {
+    Entry32    = (UINT32 *)(Rsdt + 1);
+    Entry32Num = (Rsdt->Length - sizeof (EFI_ACPI_DESCRIPTION_HEADER)) >> 2;
+    for (Idx = 0; Idx < Entry32Num; Idx++) {
+      Signature = (UINT32 *)(UINTN)Entry32[Idx];
+      if (*Signature == ReqSignature) {
+        if (AcpiTable != NULL) {
+          *AcpiTable = (VOID*)Signature;
+        }
+        DEBUG ((DEBUG_INFO, "Found Signature 0x%x in Rsdt\n", ReqSignature));
+        return EFI_SUCCESS;
+      }
+    }
+  }
+
+  //
+  // Search Xsdt Second
+  //
+  Xsdt = (EFI_ACPI_DESCRIPTION_HEADER *)(UINTN)(Rsdp->XsdtAddress);
+  if (Xsdt != NULL) {
+    Entry64    = (UINT64 *)(Xsdt + 1);
+    Entry64Num = (Xsdt->Length - sizeof (EFI_ACPI_DESCRIPTION_HEADER)) >> 3;
+    for (Idx = 0; Idx < Entry64Num; Idx++) {
+      Signature = (UINT32 *)(UINTN)Entry64[Idx];
+      if (*Signature == ReqSignature) {
+        if (AcpiTable != NULL) {
+          *AcpiTable = (VOID*)Signature;
+        }
+        DEBUG ((DEBUG_INFO, "Found Signature 0x%x in Xsdt\n", ReqSignature));
+        return EFI_SUCCESS;
+      }
+    }
+  }
+
+  return RETURN_NOT_FOUND;
+}
+
+/**
+  Returns true if a memory mapped (TIS) TPM was detected.
+
+  @retval TRUE               If TIS TPM is present
+  @retval Others             If TIS TPM n't present
+**/
+STATIC
+BOOLEAN
+HasTisTpm (
+  VOID
+  )
+{
+  TIS_PC_REGISTERS                    *TpmTisRegisters;
+  TpmTisRegisters = (TIS_PC_REGISTERS*)TPM_BASE_ADDRESS;
+  return TpmTisRegisters->Rid != 0xff &&
+    TpmTisRegisters->Did != 0xffff &&
+    TpmTisRegisters->Vid != 0xffff;
+}
+
+/**
   It will build HOBs based on information from bootloaders.
 
   @retval EFI_SUCCESS        If it completed successfully.
@@ -439,6 +535,7 @@ BuildHobFromBl (
   UINT32                              PciRootBridgeCount;
   UNIVERSAL_PAYLOAD_PCI_ROOT_BRIDGES  *NewPciRootBridgeInfo;
   UINT32                              Length;
+  UNIVERSAL_SECURE_BOOT_INFO          *SecurebootInfoHob;
 
   //
   // First find TOLUD
@@ -531,6 +628,43 @@ BuildHobFromBl (
   Status = ParseMemoryInfo (MemInfoCallbackMmio, NULL);
   if (EFI_ERROR (Status)) {
     return Status;
+  }
+
+  //
+  // Create TPM info hob
+  //
+  DEBUG ((DEBUG_INFO, "Building SecureBootInfoHob:\n"));
+  SecurebootInfoHob = BuildGuidHob (&gUniversalPayloadSecureBootInfoGuid, sizeof (UNIVERSAL_SECURE_BOOT_INFO));
+  ASSERT (SecurebootInfoHob != NULL);
+
+  if (SecurebootInfoHob != NULL) {
+    SecurebootInfoHob->Header.Revision = PAYLOAD_SECUREBOOT_INFO_HOB_REVISION;
+    SecurebootInfoHob->Header.Length   = sizeof (UNIVERSAL_SECURE_BOOT_INFO);
+    SecurebootInfoHob->VerifiedBootEnabled = 0;
+    SecurebootInfoHob->FirmwareDebuggerInitialized = 0;
+    SecurebootInfoHob->TpmType = 0;
+    SecurebootInfoHob->TpmPcrActivePcrBanks = 0;
+    if (AcpiTableHob != NULL && AcpiTableHob->Rsdp != 0) {
+      Status = FindAcpiTable(AcpiTableHob->Rsdp, EFI_ACPI_5_0_TRUSTED_COMPUTING_PLATFORM_ALLIANCE_CAPABILITIES_TABLE_SIGNATURE, NULL);
+      if (!EFI_ERROR (Status) && HasTisTpm()) {
+        SecurebootInfoHob->TpmType = TPM_TYPE_12;
+        DEBUG ((DEBUG_INFO, "Found TPM1\n"));
+      }
+      Status = FindAcpiTable(AcpiTableHob->Rsdp, EFI_ACPI_5_0_TRUSTED_COMPUTING_PLATFORM_2_TABLE_SIGNATURE, NULL);
+      if (!EFI_ERROR (Status) && HasTisTpm()) {
+        SecurebootInfoHob->TpmType = TPM_TYPE_20;
+        DEBUG ((DEBUG_INFO, "Found TPM2\n"));
+      }
+    }
+    if (SecurebootInfoHob->TpmType != NO_TPM) {
+      if (FindCbTag (CB_TAG_TPM_CB_LOG) != NULL) {
+        SecurebootInfoHob->MeasuredBootEnabled = 1;
+      } else {
+        SecurebootInfoHob->MeasuredBootEnabled = 0;
+      }
+    }
+
+    DEBUG ((DEBUG_INFO, "Set MeasuredBootEnabled=%x\n", SecurebootInfoHob->MeasuredBootEnabled));
   }
 
   return EFI_SUCCESS;

@@ -34,6 +34,7 @@
 #include <UniversalPayload/UniversalPayload.h>
 #include <UniversalPayload/ExtraData.h>
 #include <UniversalPayload/SerialPortInfo.h>
+#include <UniversalPayload/SecureBootInfoGuid.h>
 #include <Guid/PcdDataBaseSignatureGuid.h>
 #include <Coreboot.h>
 #include <Library/ElfLoaderLib.h>
@@ -42,6 +43,7 @@
 #include <Protocol/PciRootBridgeIo.h>
 #include <Protocol/PciHostBridgeResourceAllocation.h>
 #include "HobIioUds.h"
+#include <Library/TpmCommLib.h>
 
 #define SHIMLAYER_SIZE                    SIZE_1MB
 #define SHIMLAYER_REGION                  SIZE_16MB

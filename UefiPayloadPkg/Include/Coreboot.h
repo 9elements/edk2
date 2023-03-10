@@ -254,6 +254,8 @@ struct cb_cbmem_tab {
   UINT64    cbmem_tab;
 };
 
+#define CB_TAG_TPM_CB_LOG  0x0036
+
 #define CB_TAG_SMMSTOREV2  0x0039
 struct cb_smmstorev2 {
   UINT32    tag;
