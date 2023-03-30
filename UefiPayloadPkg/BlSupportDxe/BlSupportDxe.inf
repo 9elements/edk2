@@ -47,6 +47,7 @@
   gEfiGraphicsInfoHobGuid
   gEfiTpmDeviceInstanceTpm20DtpmGuid  ## SOMETIMES_CONSUMES
   gEfiTpmDeviceInstanceTpm12Guid      ## SOMETIMES_CONSUMES
+  gEfiSmmStoreInfoHobGuid
 
 [Pcd]
   gEfiMdeModulePkgTokenSpaceGuid.PcdVideoHorizontalResolution

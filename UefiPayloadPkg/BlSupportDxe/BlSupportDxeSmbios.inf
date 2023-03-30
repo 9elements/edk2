@@ -42,6 +42,7 @@
 
 [Guids]
   gEfiSmbiosTableGuid
+  gEfiSmmStoreInfoHobGuid
 
 [Protocols]
   gEfiSmbiosProtocolGuid

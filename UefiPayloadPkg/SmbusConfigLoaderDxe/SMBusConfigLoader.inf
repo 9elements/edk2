@@ -32,10 +32,14 @@
   UefiPayloadPkg/UefiPayloadPkg.dec
   SecurityPkg/SecurityPkg.dec
 
+[Pcd]
+  gEfiMdePkgTokenSpaceGuid.PcdPlatformBootTimeOut
+
 [Guids]
   gEfiBoardSettingsVariableGuid
   gEfiSecureBootEnableDisableGuid
   gEfiGlobalVariableGuid
+  gEfiBoardBootOverrideVariableGuid
 
 [LibraryClasses]
   UefiDriverEntryPoint
@@ -43,6 +47,7 @@
   SmbusLib
   UefiRuntimeServicesTableLib
   PciLib
+  TimerLib
 
 [Depex]
   gEfiSmbusHcProtocolGuid AND
