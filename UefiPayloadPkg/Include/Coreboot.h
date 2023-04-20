@@ -288,19 +288,19 @@ struct cb_tpm_physical_presence {
 	UINT8 ppi_version;	/* BCD encoded */
 } __packed;
 
-/* FIXME: Safe to reuse tag? */
-#define CB_TAG_OPTION 0xc9
-struct cb_board_option_defaults {
-  UINT8 option;
-  UINT8 default_value;
-  UINT8 pad[2];
-};
-
-struct cb_board_boot_options {
+#define CB_TAG_CFR_FORM  0x0101
+struct lb_cfr_form {
   UINT32 tag;
   UINT32 size;
-  UINT32 count;
-  struct cb_board_option_defaults option_defaults[];
+  /* struct cfr_string ui_name; */
+};
+
+#define CB_TAG_CFR  0x0100
+struct lb_cfr {
+  UINT32 tag;
+  UINT32 size;		/* length of the entire structure */
+  UINT32 header_length;	/* length of header */
+  struct lb_cfr_form forms[];
 };
 
 /* Helpful macros */

@@ -1,0 +1,56 @@
+## @file
+#  Implementation of a CFR consumer as a HII setup menu.
+#
+#  Copyright (c) 2023, 9elements GmbH.<BR>
+#  SPDX-License-Identifier: BSD-2-Clause-Patent
+#
+##
+
+[Defines]
+  INF_VERSION                    = 0x00010005
+  BASE_NAME                      = CfrSetupMenuUiLib
+  FILE_GUID                      = F93C9BC1-D179-49B2-B5C0-94C15862A28D
+  MODULE_TYPE                    = DXE_DRIVER
+  VERSION_STRING                 = 1.0
+  LIBRARY_CLASS                  = NULL|DXE_DRIVER UEFI_APPLICATION
+  CONSTRUCTOR                    = CfrSetupMenuUiLibConstructor
+  DESTRUCTOR                     = CfrSetupMenuUiLibDestructor
+
+[Sources]
+  SetupMenu.c
+  SetupMenuCfr.c
+  SetupMenuHii.c
+  SetupMenuVfr.Vfr
+  SetupMenuStrings.uni
+
+[Packages]
+  MdePkg/MdePkg.dec
+  MdeModulePkg/MdeModulePkg.dec
+  UefiPayloadPkg/UefiPayloadPkg.dec
+
+[LibraryClasses]
+  BaseLib
+  BaseMemoryLib
+  DebugLib
+  DevicePathLib
+  HiiLib
+  HobLib
+  MemoryAllocationLib
+  UefiHiiServicesLib
+  UefiBootServicesTableLib
+  UefiRuntimeServicesTableLib
+
+[Guids]
+  gEfiCfrSetupMenuFormGuid
+  gEficorebootNvDataGuid
+  gEfiHiiPlatformSetupFormsetGuid               ## CONSUMES ## GUID (Indicate the formset class guid to be displayed)
+  gEfiIfrTianoGuid                              ## CONSUMES ## GUID (Extended IFR Guid Opcode)
+  gEfiIfrFrontPageGuid
+
+[Protocols]
+  gEfiDevicePathProtocolGuid       ## PRODUCES
+  gEfiHiiConfigAccessProtocolGuid  ## PRODUCES
+
+[Depex]
+  gEfiVariableArchProtocolGuid  AND
+  gEfiVariableWriteArchProtocolGuid

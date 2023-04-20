@@ -11,7 +11,6 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include "PlatformConsole.h"
 #include <Protocol/PlatformBootManagerOverride.h>
 #include <Guid/BootManagerMenu.h>
-#include <Library/BootOptionsLib.h>
 #include <Library/HobLib.h>
 
 UNIVERSAL_PAYLOAD_PLATFORM_BOOT_MANAGER_OVERRIDE_PROTOCOL  *mUniversalPayloadPlatformBootManagerOverrideInstance = NULL;
@@ -295,6 +294,8 @@ PlatformBootManagerAfterConsole (
   EFI_GRAPHICS_OUTPUT_BLT_PIXEL  White;
   EDKII_PLATFORM_LOGO_PROTOCOL   *PlatformLogo;
   EFI_STATUS                     Status;
+  UINTN                          DataSize;
+  UINT32                         PxeRetries;
 
   if (mUniversalPayloadPlatformBootManagerOverrideInstance != NULL) {
     mUniversalPayloadPlatformBootManagerOverrideInstance->AfterConsole ();
@@ -330,13 +331,22 @@ PlatformBootManagerAfterConsole (
   //
   // Register iPXE
   //
-  if ((BOOLEAN) LoadBootOption (OPT_PXE_RETRIES) == TRUE) {
+  DataSize = sizeof (UINT32);
+  Status = gRT->GetVariable (
+                  L"edk2_pxe_retries",
+                  &gEficorebootNvDataGuid,
+                  NULL,
+                  &DataSize,
+                  &PxeRetries
+                  );
+  if (Status == EFI_NOT_FOUND) {
+    PxeRetries = 0;
+  }
 
+  if (PxeRetries == 1) {
     PlatformDeRegisterFvBootOption (PcdGetPtr (PcdiPXEFile),      L"iPXE Network Boot",         LOAD_OPTION_ACTIVE);
     PlatformRegisterFvBootOption   (PcdGetPtr (PcdiPXERetryFile), L"iPXE Network Boot (Retry)", LOAD_OPTION_ACTIVE);
-
   } else {
-
     PlatformDeRegisterFvBootOption (PcdGetPtr (PcdiPXERetryFile), L"iPXE Network Boot (Retry)", LOAD_OPTION_ACTIVE);
     PlatformRegisterFvBootOption   (PcdGetPtr (PcdiPXEFile),      L"iPXE Network Boot",         LOAD_OPTION_ACTIVE);
   }

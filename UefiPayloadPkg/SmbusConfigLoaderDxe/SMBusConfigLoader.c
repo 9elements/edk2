@@ -9,7 +9,6 @@
 
 #include <Library/DebugLib.h>
 #include <Library/BaseMemoryLib.h>
-#include <Library/BootOptionsLib.h>
 #include <Library/UefiBootServicesTableLib.h>
 #include <Library/UefiRuntimeServicesTableLib.h>
 
@@ -25,8 +24,9 @@ InstallSMBusConfigLoader (
   IN EFI_SYSTEM_TABLE                  *SystemTable
   )
 {
+  UINTN      DataSize;
   EFI_STATUS Status;
-  UINT8      SecureBootOption;
+  UINT32     SecureBootOption;
   UINT8      SetupMode = 1;
 
   DEBUG ((DEBUG_INFO, "SMBusConfigLoader: InstallSMBusConfigLoader\n"));
@@ -34,7 +34,17 @@ InstallSMBusConfigLoader (
   /* --- Enable/Disable SecureBoot --- */
 
   // Load SecureBoot settings
-  SecureBootOption = LoadBootOption (OPT_SECURE_BOOT);
+  DataSize = sizeof (UINT32);
+  Status = gRT->GetVariable (
+                  L"edk2_secure_boot",
+                  &gEficorebootNvDataGuid,
+                  NULL,
+                  &DataSize,
+                  &SecureBootOption
+                  );
+  if (Status == EFI_NOT_FOUND) {
+    SecureBootOption = 1;
+  }
 
   // Set L"SecureBootEnable". Only affects SecureBootSetupDxe.
   Status = gRT->SetVariable (EFI_SECURE_BOOT_ENABLE_NAME, &gEfiSecureBootEnableDisableGuid,

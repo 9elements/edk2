@@ -1,0 +1,15 @@
+///** @file
+//  String definitions for the CFR Setup Menu.
+//**/
+
+#langdef   en-US "English"
+#langdef   fr-FR "Français"
+
+#string STR_CFR_MENU_TITLE  #language en-US  "CFR Setup Menu"
+                            #language fr-FR  "CFR Setup Menu"
+#string STR_CFR_MENU_HELP   #language en-US  "This menu lets you configure the bootloader options"
+                            #language fr-FR  "This menu lets you configure the bootloader options"
+#string STR_EMPTY_STRING    #language en-US  ""
+                            #language fr-FR  ""
+#string STR_EXIT_STRING     #language en-US  "Press ESC to exit."
+                            #language fr-FR  "Press ESC to exit."

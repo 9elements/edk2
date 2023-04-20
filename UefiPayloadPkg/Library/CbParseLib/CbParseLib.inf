@@ -40,4 +40,4 @@
   gUefiPayloadPkgTokenSpaceGuid.PcdBootloaderParameter
 
 [Guids]
-  gEfiBootOptionsTableGuid
+  gEfiCfrSetupMenuFormGuid

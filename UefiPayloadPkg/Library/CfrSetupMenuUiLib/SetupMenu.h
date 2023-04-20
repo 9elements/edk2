@@ -1,56 +1,57 @@
 /** @file
+  A Setup Menu for configuring boot options defined by bootloader CFR.
 
-A Setup Menu for configuring boot options.
-
-Copyright (c) 2004 - 2015, Intel Corporation. All rights reserved.<BR>
-SPDX-License-Identifier: BSD-2-Clause-Patent
+  Copyright (c) 2023, 9elements GmbH.<BR>
+  SPDX-License-Identifier: BSD-2-Clause-Patent
 
 **/
 
 #ifndef _SETUP_MENU_H_
 #define _SETUP_MENU_H_
 
-#include <Guid/MdeModuleHii.h>
-#include <Guid/HiiPlatformSetupFormset.h>
-
+#include <PiDxe.h>
+#include <Protocol/DevicePath.h>
 #include <Protocol/HiiConfigAccess.h>
-#include <Protocol/PciIo.h>
-
-#include <Library/PrintLib.h>
-#include <Library/DebugLib.h>
-#include <Library/BaseMemoryLib.h>
-#include <Library/UefiBootServicesTableLib.h>
-#include <Library/MemoryAllocationLib.h>
-#include <Library/BaseLib.h>
-#include <Library/HiiLib.h>
-#include <Library/DevicePathLib.h>
-#include <Library/UefiHiiServicesLib.h>
-
-#include "Constants.h"
+#include <Guid/MdeModuleHii.h>
+#include "SetupMenuNVDataStruc.h"
 
 extern UINT8  SetupMenuVfrBin[];
 
 #define SETUP_MENU_CALLBACK_DATA_SIGNATURE SIGNATURE_32 ('D', 'M', 'C', 'B')
 
-///
-/// HII specific Vendor Device Path definition.
-///
 typedef struct {
+  UINTN                           Signature;
 
-  VENDOR_DEVICE_PATH             VendorDevicePath;
-  EFI_DEVICE_PATH_PROTOCOL       End;
-  
+  //
+  // HII relative handles
+  //
+  EFI_HII_HANDLE                  HiiHandle;
+  EFI_HANDLE                      DriverHandle;
+
+  //
+  // Produced protocols
+  //
+  EFI_HII_CONFIG_ACCESS_PROTOCOL   ConfigAccess;
+} SETUP_MENU_CALLBACK_DATA;
+
+typedef struct {
+  VENDOR_DEVICE_PATH                VendorDevicePath;
+  EFI_DEVICE_PATH_PROTOCOL          End;
 } HII_VENDOR_DEVICE_PATH;
 
-typedef struct {
+extern SETUP_MENU_CALLBACK_DATA  gSetupMenuPrivate;
+extern EFI_GUID                  mSetupMenuFormsetGuid;
+extern HII_VENDOR_DEVICE_PATH    mSetupMenuHiiVendorDevicePath;
 
-  UINTN                          Signature;
-  EFI_HII_HANDLE                 HiiHandle;
-  EFI_HANDLE                     DriverHandle;
-  EFI_HII_CONFIG_ACCESS_PROTOCOL ConfigAccess;
-  UINT8                          VideoBios;
-  
-} SETUP_MENU_CALLBACK_DATA;
+/**
+  Create runtime components by iterating CFR forms.
+
+**/
+VOID
+EFIAPI
+CfrCreateRuntimeComponents (
+  VOID
+  );
 
 /**
   This function allows a caller to extract the current configuration for one

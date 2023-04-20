@@ -50,11 +50,11 @@
   PlatformHookLib
   HobLib
   Tcg2PhysicalPresenceLib
-  BootOptionsLib
 
 [Guids]
   gEfiEndOfDxeEventGroupGuid
   gEdkiiBootManagerMenuFileGuid
+  gEficorebootNvDataGuid
 
 [Protocols]
   gEfiGenericMemTestProtocolGuid  ## CONSUMES
@@ -66,6 +66,7 @@
   gUniversalPayloadPlatformBootManagerOverrideProtocolGuid
   gEfiSerialIoProtocolGuid
   gEfiPciRootBridgeIoProtocolGuid
+  gEfiVariableArchProtocolGuid
 
 [Pcd]
   gEfiMdePkgTokenSpaceGuid.PcdPlatformBootTimeOut
@@ -82,3 +83,6 @@
   gEfiMdePkgTokenSpaceGuid.PcdUartDefaultStopBits
   gEfiMdeModulePkgTokenSpaceGuid.PcdBootManagerMenuFile
   gUefiPayloadPkgTokenSpaceGuid.PcdBootManagerEscape
+
+[Depex]
+  gEfiVariableArchProtocolGuid

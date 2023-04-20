@@ -18,7 +18,7 @@
 #include <Library/SmmStoreParseLib.h>
 #include <IndustryStandard/Acpi.h>
 #include <Coreboot.h>
-#include <Guid/BootOptionsGuid.h>
+#include <Guid/CfrSetupMenuGuid.h>
 
 /**
   Convert a packed value from cbuint64 to a UINT64 value.
@@ -605,23 +605,42 @@ ParseMiscInfo (
   VOID
   )
 {
-  struct cb_board_boot_options  *CbBootOptions;
-  BOOT_OPTIONS                  *BootOptions;
-  UINTN                         Index;
+  struct lb_cfr  *CbCfrSetupMenu;
+  UINTN          ProcessedLength;
+  CFR_FORM       *CbCfrFormOffset;
+  CFR_FORM       *CfrSetupMenuForm;
+  CFR_STRING     *CfrFormName;
 
-  CbBootOptions = FindCbTag (CB_TAG_OPTION);
-  if (CbBootOptions != NULL) {
-    BootOptions = BuildGuidDataHob (
-                    &gEfiBootOptionsTableGuid,
-                    &(CbBootOptions->count),
-                    (sizeof (BOOT_OPTIONS) + CbBootOptions->count * sizeof (struct cb_board_option_defaults)));
-    ASSERT (BootOptions != NULL);
+  //
+  // CFR has several CB tags, though these are nested structures,
+  // not for individual table-to-HOB conversion
+  //
+  CbCfrSetupMenu = FindCbTag (CB_TAG_CFR);
+  if (CbCfrSetupMenu != NULL) {
+    ProcessedLength = CbCfrSetupMenu->header_length;
 
-    DEBUG ((DEBUG_INFO, "Found bootloader options information\n"));
-    DEBUG ((DEBUG_INFO, "Count: %d\n", BootOptions->Count));
-    for (Index = 0; Index < BootOptions->Count; Index++) {
-      DEBUG ((DEBUG_INFO, "Option number: %d\n", BootOptions->OptionDefaults[Index].Option));
-      DEBUG ((DEBUG_INFO, "Default value: %d\n", BootOptions->OptionDefaults[Index].DefaultValue));
+    //
+    // Copy each form to HOB
+    //
+    while (ProcessedLength < CbCfrSetupMenu->size) {
+      CbCfrFormOffset = (CFR_FORM *)((UINT8 *)CbCfrSetupMenu + ProcessedLength);
+      CfrSetupMenuForm = BuildGuidDataHob (
+                            &gEfiCfrSetupMenuFormGuid,
+                            CbCfrFormOffset,
+                            CbCfrFormOffset->size
+                            );
+      ASSERT (CfrSetupMenuForm != NULL);
+      ASSERT (CfrSetupMenuForm->tag == CB_TAG_CFR_FORM);
+
+      CfrFormName = (CFR_STRING *)((UINT8 *)CfrSetupMenuForm + sizeof (CFR_FORM));
+      DEBUG ((
+        DEBUG_INFO,
+        "CFR: Found form \"%a\" of size 0x%x\n",
+        CfrFormName->str,
+        CfrSetupMenuForm->size
+        ));
+
+      ProcessedLength += CfrSetupMenuForm->size;
     }
   }
 
