@@ -14,11 +14,12 @@
 #include <Library/HiiLib.h>
 #include <Library/MemoryAllocationLib.h>
 #include <Library/UefiHiiServicesLib.h>
+#include <Library/UefiLib.h>
 #include <Library/UefiBootServicesTableLib.h>
 #include <Library/UefiRuntimeServicesTableLib.h>
 #include <Guid/VariableFormat.h>
 
-SETUP_MENU_CALLBACK_DATA  gSetupMenuPrivate = {
+SETUP_MENU_CALLBACK_DATA  mSetupMenuPrivate = {
   SETUP_MENU_CALLBACK_DATA_SIGNATURE,
   NULL,
   NULL,
@@ -57,7 +58,7 @@ HII_VENDOR_DEVICE_PATH  mSetupMenuHiiVendorDevicePath = {
   Parses a HII config string for the variable name.
   1. Find offset of "NAME=" value.
   2. Convert string value in Unicode-encoded hex to ASCII.
-  3. Convert to straightforward Unicode string.
+  3. Fixup Unicode string.
 
   It's assumed that "NAME=" has a value, hopefully tolerated.
   It's assumed that ConfigRouting generates endian-specific strings,
@@ -151,11 +152,11 @@ SetupMenuExtractConfig (
   )
 {
   CHAR16      *VariableName;
+  VOID        *VariableOption;
   UINTN       DataSize;
-  UINT32      VariableOption;
   EFI_STATUS  Status;
 
-  if ((Progress == NULL) || (Results == NULL)) {
+  if ((Request == NULL) || (Progress == NULL) || (Results == NULL)) {
     return EFI_INVALID_PARAMETER;
   }
 
@@ -163,21 +164,19 @@ SetupMenuExtractConfig (
 
   // Get variable
   VariableName = ConvertHiiConfigStringToVariableString (Request);
-  DataSize = sizeof (UINT32);
-  Status = gRT->GetVariable (
-                  VariableName,
-                  &gEficorebootNvDataGuid,
-                  NULL,
-                  &DataSize,
-                  &VariableOption
-                  );
+  Status = GetVariable2 (
+             VariableName,
+             &gEficorebootNvDataGuid,
+             &VariableOption,
+             &DataSize
+             );
   ASSERT_EFI_ERROR (Status);
 
   // Use HII helper to convert variable data to config
   Status = gHiiConfigRouting->BlockToConfig (
                                 gHiiConfigRouting,
                                 Request,
-                                (VOID *) &VariableOption,
+                                VariableOption,
                                 DataSize,
                                 Results,
                                 Progress
@@ -185,6 +184,9 @@ SetupMenuExtractConfig (
   ASSERT_EFI_ERROR (Status);
 
   FreePool (VariableName);
+  if (VariableOption != NULL) {
+    FreePool (VariableOption);
+  }
 
   return Status;
 }
@@ -214,9 +216,11 @@ SetupMenuRouteConfig (
   )
 {
   CHAR16      *VariableName;
+  VOID        *VariableOption;
   UINTN       DataSize;
-  UINT32      VariableOption;
+  UINT32      Attributes;
   EFI_STATUS  Status;
+  UINTN       TempDataSize;
 
   if ((Configuration == NULL) || (Progress == NULL)) {
     return EFI_INVALID_PARAMETER;
@@ -226,38 +230,44 @@ SetupMenuRouteConfig (
 
   // Get variable
   VariableName = ConvertHiiConfigStringToVariableString (Configuration);
-  DataSize = sizeof (UINT32);
-  Status = gRT->GetVariable (
-                  VariableName,
-                  &gEficorebootNvDataGuid,
-                  NULL,
-                  &DataSize,
-                  &VariableOption
-                  );
+  Status = GetVariable3 (
+             VariableName,
+             &gEficorebootNvDataGuid,
+             &VariableOption,
+             &DataSize,
+             &Attributes
+             );
   ASSERT_EFI_ERROR (Status);
 
   // Use HII helper to convert updated config to variable data
+  TempDataSize = DataSize;
   Status = gHiiConfigRouting->ConfigToBlock (
                                 gHiiConfigRouting,
                                 Configuration,
-                                (VOID *) &VariableOption,
-                                &DataSize,
+                                VariableOption,
+                                &TempDataSize,
                                 Progress
                                 );
   ASSERT_EFI_ERROR (Status);
 
   // Set variable
-  DataSize = sizeof (UINT32);
   Status = gRT->SetVariable (
                   VariableName,
                   &gEficorebootNvDataGuid,
-                  VARIABLE_ATTRIBUTE_NV_BS,
+                  Attributes,
                   DataSize,
-                  &VariableOption
+                  VariableOption
                   );
+  if (Status == EFI_WRITE_PROTECTED) {
+    Status = EFI_SUCCESS;
+  }
+
   ASSERT_EFI_ERROR (Status);
 
   FreePool (VariableName);
+  if (VariableOption != NULL) {
+    FreePool (VariableOption);
+  }
 
   return Status;
 }

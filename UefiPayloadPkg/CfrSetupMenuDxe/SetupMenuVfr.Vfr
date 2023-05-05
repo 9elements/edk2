@@ -14,16 +14,10 @@ formset
   guid      = SETUP_MENU_FORMSET_GUID,
   title     = STRING_TOKEN(STR_CFR_MENU_TITLE),
   help      = STRING_TOKEN(STR_CFR_MENU_HELP),
-  //
-  // TODO: CFR is a `EFI_HII_PLATFORM_SETUP_FORMSET_GUID`,
-  // or at least figure out why that's not working
-  //
-  classguid = gEfiIfrFrontPageGuid,
+  classguid = EFI_HII_PLATFORM_SETUP_FORMSET_GUID,
 
   form formid = SETUP_MENU_FORM_ID,
     title = STRING_TOKEN(STR_CFR_MENU_TITLE);
-
-    subtitle text = STRING_TOKEN(STR_EMPTY_STRING);
 
     /**
       Sections for runtime components
@@ -31,10 +25,6 @@ formset
     **/
     label LABEL_RT_COMP_START;
     label LABEL_RT_COMP_END;
-
-    subtitle text = STRING_TOKEN(STR_EMPTY_STRING);
-
-    subtitle text = STRING_TOKEN(STR_EXIT_STRING);
 
   endform;
 

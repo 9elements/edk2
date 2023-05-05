@@ -12,8 +12,11 @@
 #include <PiDxe.h>
 #include <Protocol/DevicePath.h>
 #include <Protocol/HiiConfigAccess.h>
+#include <Protocol/VariablePolicy.h>
 #include <Guid/MdeModuleHii.h>
 #include "SetupMenuNVDataStruc.h"
+
+extern EDKII_VARIABLE_POLICY_PROTOCOL  *mVariablePolicy;
 
 extern UINT8  SetupMenuVfrBin[];
 
@@ -39,7 +42,7 @@ typedef struct {
   EFI_DEVICE_PATH_PROTOCOL          End;
 } HII_VENDOR_DEVICE_PATH;
 
-extern SETUP_MENU_CALLBACK_DATA  gSetupMenuPrivate;
+extern SETUP_MENU_CALLBACK_DATA  mSetupMenuPrivate;
 extern EFI_GUID                  mSetupMenuFormsetGuid;
 extern HII_VENDOR_DEVICE_PATH    mSetupMenuHiiVendorDevicePath;
 

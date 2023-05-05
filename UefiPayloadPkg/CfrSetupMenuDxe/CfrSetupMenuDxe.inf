@@ -8,13 +8,12 @@
 
 [Defines]
   INF_VERSION                    = 0x00010005
-  BASE_NAME                      = CfrSetupMenuUiLib
+  BASE_NAME                      = CfrSetupMenuDxe
   FILE_GUID                      = F93C9BC1-D179-49B2-B5C0-94C15862A28D
   MODULE_TYPE                    = DXE_DRIVER
   VERSION_STRING                 = 1.0
-  LIBRARY_CLASS                  = NULL|DXE_DRIVER UEFI_APPLICATION
-  CONSTRUCTOR                    = CfrSetupMenuUiLibConstructor
-  DESTRUCTOR                     = CfrSetupMenuUiLibDestructor
+  ENTRY_POINT                    = CfrSetupMenuEntryPoint
+  UNLOAD_IMAGE                   = CfrSetupMenuUnload
 
 [Sources]
   SetupMenu.c
@@ -31,25 +30,29 @@
 [LibraryClasses]
   BaseLib
   BaseMemoryLib
+  CfrHelpersLib
   DebugLib
   DevicePathLib
   HiiLib
   HobLib
   MemoryAllocationLib
+  VariablePolicyHelperLib
   UefiHiiServicesLib
+  UefiLib
   UefiBootServicesTableLib
   UefiRuntimeServicesTableLib
+  UefiDriverEntryPoint
 
 [Guids]
   gEfiCfrSetupMenuFormGuid
   gEficorebootNvDataGuid
   gEfiHiiPlatformSetupFormsetGuid               ## CONSUMES ## GUID (Indicate the formset class guid to be displayed)
   gEfiIfrTianoGuid                              ## CONSUMES ## GUID (Extended IFR Guid Opcode)
-  gEfiIfrFrontPageGuid
 
 [Protocols]
-  gEfiDevicePathProtocolGuid       ## PRODUCES
-  gEfiHiiConfigAccessProtocolGuid  ## PRODUCES
+  gEfiDevicePathProtocolGuid        ## PRODUCES
+  gEfiHiiConfigAccessProtocolGuid   ## PRODUCES
+  gEdkiiVariablePolicyProtocolGuid  ## SOMETIMES_CONSUMES
 
 [Depex]
   gEfiVariableArchProtocolGuid  AND

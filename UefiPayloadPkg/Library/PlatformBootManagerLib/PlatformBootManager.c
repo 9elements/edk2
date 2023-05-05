@@ -324,29 +324,26 @@ PlatformBootManagerAfterConsole (
   Tcg2PhysicalPresenceLibProcessRequest (NULL);
 
   //
-  // Register UEFI Shell
+  // Register iPXE (realtime prefers before UEFI Shell)
   //
-  PlatformRegisterFvBootOption (PcdGetPtr (PcdShellFile), L"UEFI Shell", LOAD_OPTION_ACTIVE);
-
-  //
-  // Register iPXE
-  //
-  DataSize = sizeof (UINT32);
+  DataSize = sizeof (PxeRetries);
   Status = gRT->GetVariable (
-                  L"edk2_pxe_retries",
+                  L"edk2_ipxe_retries",
                   &gEficorebootNvDataGuid,
                   NULL,
                   &DataSize,
                   &PxeRetries
                   );
-  if (Status == EFI_NOT_FOUND) {
+  if (EFI_ERROR (Status)) {
     PxeRetries = 0;
   }
 
   if (PxeRetries == 1) {
     PlatformDeRegisterFvBootOption (PcdGetPtr (PcdiPXEFile),      L"iPXE Network Boot",         LOAD_OPTION_ACTIVE);
     PlatformRegisterFvBootOption   (PcdGetPtr (PcdiPXERetryFile), L"iPXE Network Boot (Retry)", LOAD_OPTION_ACTIVE);
+    PlatformRegisterFvBootOption (PcdGetPtr (PcdShellFile), L"UEFI Shell", LOAD_OPTION_ACTIVE);
   } else {
+    PlatformRegisterFvBootOption (PcdGetPtr (PcdShellFile), L"UEFI Shell", LOAD_OPTION_ACTIVE);
     PlatformDeRegisterFvBootOption (PcdGetPtr (PcdiPXERetryFile), L"iPXE Network Boot (Retry)", LOAD_OPTION_ACTIVE);
     PlatformRegisterFvBootOption   (PcdGetPtr (PcdiPXEFile),      L"iPXE Network Boot",         LOAD_OPTION_ACTIVE);
   }

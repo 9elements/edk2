@@ -12,29 +12,36 @@
 #include <Library/UefiBootServicesTableLib.h>
 #include <Guid/VariableFormat.h>
 
+EDKII_VARIABLE_POLICY_PROTOCOL  *mVariablePolicy = NULL;
+
 /**
   This function installs the HII form.
 
 **/
 EFI_STATUS
 EFIAPI
-CfrSetupMenuUiLibConstructor (
+CfrSetupMenuEntryPoint (
   IN EFI_HANDLE        ImageHandle,
   IN EFI_SYSTEM_TABLE  *SystemTable
   )
 {
   EFI_STATUS  Status;
 
+  Status = gBS->LocateProtocol (&gEdkiiVariablePolicyProtocolGuid, NULL, (VOID **)&mVariablePolicy);
+  if (EFI_ERROR (Status)) {
+    DEBUG ((DEBUG_WARN, "CFR: Unable to lock variables!\n"));
+  }
+
   //
   // Install Device Path and Config Access protocols to driver handle
   //
-  gSetupMenuPrivate.DriverHandle = NULL;
+  mSetupMenuPrivate.DriverHandle = NULL;
   Status = gBS->InstallMultipleProtocolInterfaces (
-                  &gSetupMenuPrivate.DriverHandle,
+                  &mSetupMenuPrivate.DriverHandle,
                   &gEfiDevicePathProtocolGuid,
                   &mSetupMenuHiiVendorDevicePath,
                   &gEfiHiiConfigAccessProtocolGuid,
-                  &gSetupMenuPrivate.ConfigAccess,
+                  &mSetupMenuPrivate.ConfigAccess,
                   NULL
                   );
   ASSERT_EFI_ERROR (Status);
@@ -42,14 +49,14 @@ CfrSetupMenuUiLibConstructor (
   //
   // Publish our HII data.
   //
-  gSetupMenuPrivate.HiiHandle = HiiAddPackages (
+  mSetupMenuPrivate.HiiHandle = HiiAddPackages (
                                   &mSetupMenuFormsetGuid,
-                                  gSetupMenuPrivate.DriverHandle,
+                                  mSetupMenuPrivate.DriverHandle,
                                   SetupMenuVfrBin,
-                                  CfrSetupMenuUiLibStrings,
+                                  CfrSetupMenuDxeStrings,
                                   NULL
                                   );
-  ASSERT (gSetupMenuPrivate.HiiHandle != NULL);
+  ASSERT (mSetupMenuPrivate.HiiHandle != NULL);
 
   //
   // Insert runtime components from bootloader's CFR table.
@@ -65,9 +72,8 @@ CfrSetupMenuUiLibConstructor (
 **/
 EFI_STATUS
 EFIAPI
-CfrSetupMenuUiLibDestructor (
-  IN EFI_HANDLE        ImageHandle,
-  IN EFI_SYSTEM_TABLE  *SystemTable
+CfrSetupMenuUnload (
+  IN EFI_HANDLE        ImageHandle
   )
 {
   EFI_STATUS  Status;
@@ -76,11 +82,11 @@ CfrSetupMenuUiLibDestructor (
   // Uninstall Device Path and Config Access protocols
   //
   Status = gBS->UninstallMultipleProtocolInterfaces (
-                  gSetupMenuPrivate.DriverHandle,
+                  mSetupMenuPrivate.DriverHandle,
                   &gEfiDevicePathProtocolGuid,
                   &mSetupMenuHiiVendorDevicePath,
                   &gEfiHiiConfigAccessProtocolGuid,
-                  &gSetupMenuPrivate.ConfigAccess,
+                  &mSetupMenuPrivate.ConfigAccess,
                   NULL
                   );
   ASSERT_EFI_ERROR (Status);
@@ -88,7 +94,7 @@ CfrSetupMenuUiLibDestructor (
   //
   // Remove our HII data
   //
-  HiiRemovePackages (gSetupMenuPrivate.HiiHandle);
+  HiiRemovePackages (mSetupMenuPrivate.HiiHandle);
 
   return Status;
 }

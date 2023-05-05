@@ -288,19 +288,12 @@ struct cb_tpm_physical_presence {
 	UINT8 ppi_version;	/* BCD encoded */
 } __packed;
 
-#define CB_TAG_CFR_FORM  0x0101
-struct lb_cfr_form {
+#define CB_TAG_CFR_ROOT  0x0100
+struct cb_cfr {
   UINT32 tag;
   UINT32 size;
-  /* struct cfr_string ui_name; */
-};
-
-#define CB_TAG_CFR  0x0100
-struct lb_cfr {
-  UINT32 tag;
-  UINT32 size;		/* length of the entire structure */
-  UINT32 header_length;	/* length of header */
-  struct lb_cfr_form forms[];
+  UINT32 checksum;  /* Of the entire structure with this field set to 0 */
+  /* CFR_FORM forms[] */
 };
 
 /* Helpful macros */
