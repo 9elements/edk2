@@ -33,7 +33,6 @@
   SecurityPkg/SecurityPkg.dec
 
 [Guids]
-  gEficorebootNvDataGuid
   gEfiSecureBootEnableDisableGuid
   gEfiGlobalVariableGuid
 

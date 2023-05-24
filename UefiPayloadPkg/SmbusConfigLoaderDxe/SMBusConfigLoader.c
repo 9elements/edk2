@@ -14,6 +14,7 @@
 
 #include <Guid/GlobalVariable.h>
 #include <Guid/AuthenticatedVariableFormat.h>
+#include <Guid/ImageAuthentication.h>
 
 #include "SMBusConfigLoader.h"
 
@@ -25,25 +26,29 @@ InstallSMBusConfigLoader (
   )
 {
   UINTN      DataSize;
+  UINT8      SetupMode;
   EFI_STATUS Status;
-  UINT32     SecureBootOption;
-  UINT8      SetupMode = 1;
+  UINT8      SecureBootOption = 1;
 
   DEBUG ((DEBUG_INFO, "SMBusConfigLoader: InstallSMBusConfigLoader\n"));
 
   /* --- Enable/Disable SecureBoot --- */
 
-  // Load SecureBoot settings
-  DataSize = sizeof (UINT32);
+  //
+  // With gEfiAuthenticatedVariableGuid variable store, AuthVariableLib configures "SetupMode"
+  // and user *may* configure secure boot as required
+  //
+  DataSize = sizeof (SetupMode);
   Status = gRT->GetVariable (
-                  L"edk2_secure_boot",
-                  &gEficorebootNvDataGuid,
+                  EFI_SETUP_MODE_NAME,
+                  &gEfiGlobalVariableGuid,
                   NULL,
                   &DataSize,
-                  &SecureBootOption
+                  &SetupMode
                   );
-  if (Status == EFI_NOT_FOUND) {
-    SecureBootOption = 1;
+  if (!EFI_ERROR (Status) && (SetupMode == USER_MODE)) {
+    DEBUG ((DEBUG_INFO, "SMBusConfigLoader: Secure boot already provisioned, exiting.\n"));
+    return EFI_SUCCESS;
   }
 
   // Set L"SecureBootEnable". Only affects SecureBootSetupDxe.
@@ -62,16 +67,6 @@ InstallSMBusConfigLoader (
 
   if (EFI_ERROR(Status)) {
     DEBUG ((DEBUG_ERROR, "SMBusConfigLoader: Failed to set SecureBoot: %x\n", Status));
-  }
-
-  // EFI_SETUP_MODE_NAME must be valid if EFI_SECURE_BOOT_MODE_NAME exists
-  // Force setup mode to enroll default keys
-  Status = gRT->SetVariable (EFI_SETUP_MODE_NAME, &gEfiGlobalVariableGuid,
-                             EFI_VARIABLE_RUNTIME_ACCESS | EFI_VARIABLE_BOOTSERVICE_ACCESS,
-                             sizeof SetupMode, &SetupMode);
-
-  if (EFI_ERROR(Status)) {
-    DEBUG ((DEBUG_ERROR, "SMBusConfigLoader: Failed to set SetupMode: %x\n", Status));
   }
 
   return EFI_SUCCESS;
