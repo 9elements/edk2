@@ -39,6 +39,7 @@
 [Packages]
   MdePkg/MdePkg.dec
   MdeModulePkg/MdeModulePkg.dec
+  UefiPayloadPkg/UefiPayloadPkg.dec
 
 [LibraryClasses]
   BaseLib
@@ -51,6 +52,7 @@
 [Pcd]
   gEfiMdePkgTokenSpaceGuid.PcdUefiVariableDefaultPlatformLang              ## SOMETIMES_CONSUMES
   gEfiMdePkgTokenSpaceGuid.PcdUefiVariableDefaultLang                      ## SOMETIMES_CONSUMES
+  gUefiPayloadPkgTokenSpaceGuid.PcdiPXERetryAutoExecEnabled
 
 [Guids]
   gEfiFileInfoGuid                                                         ## SOMETIMES_CONSUMES   ## UNDEFINED

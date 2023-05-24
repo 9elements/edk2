@@ -248,6 +248,7 @@ INF MdeModulePkg/Bus/Scsi/ScsiDiskDxe/ScsiDiskDxe.inf
 !if $(NVME_ENABLE) == TRUE
 INF MdeModulePkg/Bus/Pci/NvmExpressDxe/NvmExpressDxe.inf
 !endif
+INF MdeModulePkg/Universal/FvSimpleFileSystemDxe/FvSimpleFileSystemDxe.inf
 !if $(RAM_DISK_ENABLE) == TRUE
 INF MdeModulePkg/Universal/Disk/RamDiskDxe/RamDiskDxe.inf
 !endif
@@ -322,8 +323,15 @@ INF  MdeModulePkg/Universal/Acpi/BootGraphicsResourceTableDxe/BootGraphicsResour
    SECTION PE32 = UefiPayloadPkg/NetworkDrivers/ipxe.efi
   }
 
+  #
+  # - UI name must be the same length as "autoexec.ipxe",
+  #   as iPXE's buffer size is based on this filename
+  # - UI name must not be equal to "autoexec.ipxe",
+  #   or read succeeds without redirection
+  #
   FILE FREEFORM = DE42CA65-C29A-49B4-8759-5C06A9E01DAD {
-   SECTION PE32 = UefiPayloadPkg/NetworkDrivers/ipxe_retry.efi
+   SECTION RAW = UefiPayloadPkg/NetworkDrivers/ipxe_autoexec_retry.ipxe
+   SECTION UI = "pxeretry.ipxe"
   }
 !endif
 

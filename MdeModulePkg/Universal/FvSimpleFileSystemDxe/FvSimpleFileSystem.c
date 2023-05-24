@@ -486,6 +486,13 @@ FvSimpleFileSystemOpen (
   CHAR16                   *FileNameWithExtension;
 
   //
+  // Implement our conditional iPXE autoexec script using filesystem redirection
+  //
+  if (PcdGetBool (PcdiPXERetryAutoExecEnabled) && StrCmp (FileName, L"autoexec.ipxe") == 0) {
+    return FvSimpleFileSystemOpen (This, NewHandle, L"pxeretry.ipxe", OpenMode, Attributes);
+  }
+
+  //
   // Check for a valid mode
   //
   switch (OpenMode) {

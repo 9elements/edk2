@@ -150,55 +150,6 @@ PlatformRegisterFvBootOption (
 }
 
 /**
-  Deregister a boot option using a file GUID in the FV. This function
-  is supposed to be the couterpart of the PlatformRegisterFvBootOption
-  function.
-
-  @param FileGuid     The file GUID name in FV.
-  @param Description  The boot option description.
-  @param Attributes   The attributes used for the boot option loading.
-**/
-VOID
-PlatformDeRegisterFvBootOption (
-  EFI_GUID  *FileGuid,
-  CHAR16    *Description,
-  UINT32    Attributes
-)
-{
-  EFI_STATUS                         Status;
-  EFI_BOOT_MANAGER_LOAD_OPTION       DeleteOption;
-  UINTN                              LoadOptionCount;
-  INTN                               Index;
-  MEDIA_FW_VOL_FILEPATH_DEVICE_PATH  FileNode;
-  EFI_LOADED_IMAGE_PROTOCOL          *LoadedImage;
-  EFI_DEVICE_PATH_PROTOCOL           *DevicePath;
-
-  Status = gBS->HandleProtocol (gImageHandle, &gEfiLoadedImageProtocolGuid, (VOID**) &LoadedImage);
-  ASSERT_EFI_ERROR (Status);
-
-  EfiInitializeFwVolDevicepathNode (&FileNode, FileGuid);
-
-  DevicePath = AppendDevicePathNode (DevicePathFromHandle (LoadedImage->DeviceHandle),
-                                     (EFI_DEVICE_PATH_PROTOCOL*) &FileNode);
-
-  Status = EfiBootManagerInitializeLoadOption (&DeleteOption, LoadOptionNumberUnassigned,
-                                               LoadOptionTypeBoot, Attributes, Description,
-                                               DevicePath, NULL, 0);
-
-  if (EFI_ERROR (Status))
-    return;
-
-  EFI_BOOT_MANAGER_LOAD_OPTION *LoadOpt = EfiBootManagerGetLoadOptions (&LoadOptionCount,
-                                                                        LoadOptionTypeBoot);
-
-  if ((Index = PlatformFindLoadOption (&DeleteOption, LoadOpt, LoadOptionCount)) != -1)
-    EfiBootManagerDeleteLoadOptionVariable (Index, LoadOptionTypeBoot);
-
-  EfiBootManagerFreeLoadOptions (LoadOpt, LoadOptionCount);
-  EfiBootManagerFreeLoadOption  (&DeleteOption);
-}
-
-/**
   Do the platform specific action before the console is connected.
 
   Such as:
@@ -324,8 +275,10 @@ PlatformBootManagerAfterConsole (
   Tcg2PhysicalPresenceLibProcessRequest (NULL);
 
   //
-  // Register iPXE (realtime prefers before UEFI Shell)
+  // Register iPXE
   //
+  PlatformRegisterFvBootOption (PcdGetPtr (PcdiPXEFile), L"iPXE Network Boot", LOAD_OPTION_ACTIVE);
+
   DataSize = sizeof (PxeRetries);
   Status = gRT->GetVariable (
                   L"edk2_ipxe_retries",
@@ -339,12 +292,12 @@ PlatformBootManagerAfterConsole (
   }
 
   if (PxeRetries == 1) {
-    PlatformDeRegisterFvBootOption (PcdGetPtr (PcdiPXEFile),      L"iPXE Network Boot",         LOAD_OPTION_ACTIVE);
-    PlatformRegisterFvBootOption   (PcdGetPtr (PcdiPXERetryFile), L"iPXE Network Boot (Retry)", LOAD_OPTION_ACTIVE);
-  } else {
-    PlatformDeRegisterFvBootOption (PcdGetPtr (PcdiPXERetryFile), L"iPXE Network Boot (Retry)", LOAD_OPTION_ACTIVE);
-    PlatformRegisterFvBootOption   (PcdGetPtr (PcdiPXEFile),      L"iPXE Network Boot",         LOAD_OPTION_ACTIVE);
+    PcdSetBoolS (PcdiPXERetryAutoExecEnabled, TRUE);
   }
+
+  //
+  // Register UEFI Shell
+  //
   PlatformRegisterFvBootOption (PcdGetPtr (PcdShellFile), L"UEFI Shell", LOAD_OPTION_ACTIVE);
 
   if (FixedPcdGetBool (PcdBootManagerEscape)) {
