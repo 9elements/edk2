@@ -42,6 +42,7 @@
   SmbusLib
   UefiRuntimeServicesTableLib
   PciLib
+  CfrHelpersLib
 
 [Depex]
   gEfiSmbusHcProtocolGuid AND

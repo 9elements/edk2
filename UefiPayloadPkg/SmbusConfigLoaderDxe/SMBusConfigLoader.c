@@ -9,6 +9,7 @@
 
 #include <Library/DebugLib.h>
 #include <Library/BaseMemoryLib.h>
+#include <Library/CfrHelpersLib.h>
 #include <Library/UefiBootServicesTableLib.h>
 #include <Library/UefiRuntimeServicesTableLib.h>
 
@@ -17,6 +18,9 @@
 #include <Guid/ImageAuthentication.h>
 
 #include "SMBusConfigLoader.h"
+
+#define ATLAS_PROF_UNPROGRAMMED          0  /* EEPROM not initialised */
+#define ATLAS_PROF_REALTIME_PERFORMANCE  2
 
 EFI_STATUS
 EFIAPI
@@ -28,7 +32,8 @@ InstallSMBusConfigLoader (
   UINTN      DataSize;
   UINT8      SetupMode;
   EFI_STATUS Status;
-  UINT8      SecureBootOption = 1;
+  UINT32     *AtlasProfile;
+  UINT8      SecureBootOption;
 
   DEBUG ((DEBUG_INFO, "SMBusConfigLoader: InstallSMBusConfigLoader\n"));
 
@@ -49,6 +54,16 @@ InstallSMBusConfigLoader (
   if (!EFI_ERROR (Status) && (SetupMode == USER_MODE)) {
     DEBUG ((DEBUG_INFO, "SMBusConfigLoader: Secure boot already provisioned, exiting.\n"));
     return EFI_SUCCESS;
+  }
+
+  //
+  // Load SecureBoot settings
+  //
+  Status = CfrOptionGetDefaultValue (NULL, "profile", (VOID **)&AtlasProfile, NULL);
+  if (!EFI_ERROR (Status) && (*AtlasProfile == ATLAS_PROF_REALTIME_PERFORMANCE)) {
+    SecureBootOption = 0;
+  } else {
+    SecureBootOption = 1;
   }
 
   // Set L"SecureBootEnable". Only affects SecureBootSetupDxe.
