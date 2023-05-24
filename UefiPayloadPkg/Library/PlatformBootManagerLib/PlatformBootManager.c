@@ -341,12 +341,11 @@ PlatformBootManagerAfterConsole (
   if (PxeRetries == 1) {
     PlatformDeRegisterFvBootOption (PcdGetPtr (PcdiPXEFile),      L"iPXE Network Boot",         LOAD_OPTION_ACTIVE);
     PlatformRegisterFvBootOption   (PcdGetPtr (PcdiPXERetryFile), L"iPXE Network Boot (Retry)", LOAD_OPTION_ACTIVE);
-    PlatformRegisterFvBootOption (PcdGetPtr (PcdShellFile), L"UEFI Shell", LOAD_OPTION_ACTIVE);
   } else {
-    PlatformRegisterFvBootOption (PcdGetPtr (PcdShellFile), L"UEFI Shell", LOAD_OPTION_ACTIVE);
     PlatformDeRegisterFvBootOption (PcdGetPtr (PcdiPXERetryFile), L"iPXE Network Boot (Retry)", LOAD_OPTION_ACTIVE);
     PlatformRegisterFvBootOption   (PcdGetPtr (PcdiPXEFile),      L"iPXE Network Boot",         LOAD_OPTION_ACTIVE);
   }
+  PlatformRegisterFvBootOption (PcdGetPtr (PcdShellFile), L"UEFI Shell", LOAD_OPTION_ACTIVE);
 
   if (FixedPcdGetBool (PcdBootManagerEscape)) {
     Print (
