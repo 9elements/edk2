@@ -11,7 +11,11 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include "PlatformConsole.h"
 #include <Protocol/PlatformBootManagerOverride.h>
 #include <Guid/BootManagerMenu.h>
+#include <Library/CfrHelpersLib.h>
 #include <Library/HobLib.h>
+
+#define ATLAS_PROF_UNPROGRAMMED          0  /* EEPROM not initialised */
+#define ATLAS_PROF_REALTIME_PERFORMANCE  2
 
 UNIVERSAL_PAYLOAD_PLATFORM_BOOT_MANAGER_OVERRIDE_PROTOCOL  *mUniversalPayloadPlatformBootManagerOverrideInstance = NULL;
 
@@ -245,8 +249,7 @@ PlatformBootManagerAfterConsole (
   EFI_GRAPHICS_OUTPUT_BLT_PIXEL  White;
   EDKII_PLATFORM_LOGO_PROTOCOL   *PlatformLogo;
   EFI_STATUS                     Status;
-  UINTN                          DataSize;
-  UINT32                         PxeRetries;
+  UINT32                         *AtlasProfile;
 
   if (mUniversalPayloadPlatformBootManagerOverrideInstance != NULL) {
     mUniversalPayloadPlatformBootManagerOverrideInstance->AfterConsole ();
@@ -279,19 +282,8 @@ PlatformBootManagerAfterConsole (
   //
   PlatformRegisterFvBootOption (PcdGetPtr (PcdiPXEFile), L"iPXE Network Boot", LOAD_OPTION_ACTIVE);
 
-  DataSize = sizeof (PxeRetries);
-  Status = gRT->GetVariable (
-                  L"edk2_ipxe_retries",
-                  &gEficorebootNvDataGuid,
-                  NULL,
-                  &DataSize,
-                  &PxeRetries
-                  );
-  if (EFI_ERROR (Status)) {
-    PxeRetries = 0;
-  }
-
-  if (PxeRetries == 1) {
+  Status = CfrOptionGetDefaultValue (NULL, "profile", (VOID **)&AtlasProfile, NULL);
+  if (!EFI_ERROR (Status) && (*AtlasProfile == ATLAS_PROF_REALTIME_PERFORMANCE)) {
     PcdSetBoolS (PcdiPXERetryAutoExecEnabled, TRUE);
   }
 
