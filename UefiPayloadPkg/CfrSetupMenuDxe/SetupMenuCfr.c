@@ -496,9 +496,9 @@ CfrProcessCharacterOption (
 {
   UINTN           OptionProcessedLength;
   CFR_VARBINARY   *CfrOptionName;
+  CFR_VARBINARY   *CfrDefaultValue;
   CFR_VARBINARY   *CfrDisplayName;
   CFR_VARBINARY   *CfrHelpText;
-  CFR_VARBINARY   *CfrDefaultValue;
   UINTN           QuestionIdVarStoreId;
   CHAR16          *HiiDefaultValue;
   EFI_STRING_ID   HiiDefaultValueId;
@@ -520,6 +520,9 @@ CfrProcessCharacterOption (
   // Only true string options have variables
   CfrOptionName = NULL;
   if (Option->tag == CB_TAG_CFR_OPTION_VARCHAR) {
+    CfrDefaultValue = CfrExtractVarBinary ((UINT8 *)Option, &OptionProcessedLength, CB_TAG_CFR_VARCHAR_DEF_VALUE);
+    ASSERT (CfrDefaultValue != NULL);
+
     CfrOptionName = CfrExtractVarBinary ((UINT8 *)Option, &OptionProcessedLength, CB_TAG_CFR_VARCHAR_OPT_NAME);
     ASSERT (CfrOptionName != NULL);
   }
@@ -541,22 +544,16 @@ CfrProcessCharacterOption (
     Option->size
     ));
 
-  // Only true string options have variables
+  //
+  // Processing start
+  //
   if (Option->tag == CB_TAG_CFR_OPTION_VARCHAR) {
-    CfrDefaultValue = CfrExtractVarBinary ((UINT8 *)Option, &OptionProcessedLength, CB_TAG_CFR_VARCHAR_DEF_VALUE);
-    ASSERT (CfrDefaultValue != NULL);
-
     if (CfrDefaultValue->data_length > 0xFF) {
       DEBUG ((DEBUG_ERROR, "CFR: Default value length 0x%x is too long!\n", CfrDefaultValue->data_length));
       *ProcessedLength += Option->size;
       return;
     }
-  }
 
-  //
-  // Processing start
-  //
-  if (Option->tag == CB_TAG_CFR_OPTION_VARCHAR) {
     QuestionIdVarStoreId = CFR_COMPONENT_START + Option->object_id;
 
     if (CfrDefaultValue->data_length > 1) {
