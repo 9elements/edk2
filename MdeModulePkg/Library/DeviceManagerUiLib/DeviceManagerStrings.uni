@@ -12,11 +12,11 @@
 #langdef   en-US "English"
 #langdef   fr-FR "Français"
 
-#string STR_EDKII_MENU_TITLE           #language en-US  "Device Manager"
+#string STR_EDKII_MENU_TITLE           #language en-US  "System Settings" //it was called device manager previously
                                        #language fr-FR  "Device Manager"
-#string STR_EDKII_MENU_HELP            #language en-US  "This selection will take you to the Device Manager"
+#string STR_EDKII_MENU_HELP            #language en-US  "This selection will take you to the System Settings"
                                        #language fr-FR  "This selection will take you to the Device Manager"
-#string STR_DEVICES_LIST               #language en-US  "Devices List"
+#string STR_DEVICES_LIST               #language en-US  "Settings"
                                        #language fr-FR  "Devices List"
 #string STR_DISK_DEVICE                #language en-US  "Disk Devices"
                                        #language fr-FR  "Disk Devices"

@@ -2358,9 +2358,9 @@
   # @Prompt Default Value of Lang Variable.
   gEfiMdePkgTokenSpaceGuid.PcdUefiVariableDefaultLang|"eng"|VOID*|0x0000001d
 
-  ## Default platform supported RFC 4646 languages: (American) English & French.
+  ## Default platform supported RFC 4646 languages: (American) English.
   # @Prompt Default Value of PlatformLangCodes Variable.
-  gEfiMdePkgTokenSpaceGuid.PcdUefiVariableDefaultPlatformLangCodes|"en;fr;en-US;fr-FR"|VOID*|0x0000001e
+  gEfiMdePkgTokenSpaceGuid.PcdUefiVariableDefaultPlatformLangCodes|"en-US"|VOID*|0x0000001e
 
   ## Default current RFC 4646 language: (American) English.
   # @Prompt Default Value of PlatformLang Variable.
