@@ -58,7 +58,11 @@ ResetCold (
   VOID
   )
 {
-  IoWrite8 ((UINTN)mAcpiBoardInfo.ResetRegAddress, mAcpiBoardInfo.ResetValue);
+  if ((UINTN)mAcpiBoardInfo.ResetRegAddress == 0xcf9) {
+    IoWrite8 (0xcf9, 0xe);
+  } else {
+    IoWrite8 ((UINTN)mAcpiBoardInfo.ResetRegAddress, mAcpiBoardInfo.ResetValue);
+  }
   CpuDeadLoop ();
 }
 
@@ -75,7 +79,11 @@ ResetWarm (
   VOID
   )
 {
-  IoWrite8 ((UINTN)mAcpiBoardInfo.ResetRegAddress, mAcpiBoardInfo.ResetValue);
+  if ((UINTN)mAcpiBoardInfo.ResetRegAddress == 0xcf9) {
+    IoWrite8 (0xcf9, 0x6);
+  } else {
+    IoWrite8 ((UINTN)mAcpiBoardInfo.ResetRegAddress, mAcpiBoardInfo.ResetValue);
+  }
   CpuDeadLoop ();
 }
 
