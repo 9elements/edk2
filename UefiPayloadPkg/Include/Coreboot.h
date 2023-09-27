@@ -299,4 +299,12 @@ struct cb_tpm_physical_presence {
 	UINT8 ppi_version;	/* BCD encoded */
 } __attribute__((packed));
 
+#define CB_TAG_CFR_ROOT  0x0045
+struct cb_cfr {
+  UINT32    tag;
+  UINT32    size;
+  UINT32    checksum; /* Of the forms[] variable data fields */
+  /* CFR_FORM forms[] */
+};
+
 #endif // _COREBOOT_PEI_H_INCLUDED_

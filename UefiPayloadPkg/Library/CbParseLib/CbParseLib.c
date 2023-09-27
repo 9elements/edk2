@@ -14,9 +14,11 @@
 #include <Library/PcdLib.h>
 #include <Library/IoLib.h>
 #include <Library/BlParseLib.h>
+#include <Library/HobLib.h>
 #include <Library/SmmStoreParseLib.h>
 #include <IndustryStandard/Acpi.h>
 #include <Coreboot.h>
+#include <Guid/CfrSetupMenuGuid.h>
 
 /**
   Convert a packed value from cbuint64 to a UINT64 value.
@@ -603,6 +605,72 @@ ParseMiscInfo (
   VOID
   )
 {
+  struct cb_cfr    *CbCfrSetupMenu;
+  UINT32           CbCfrChecksum;
+  UINT32           CfrCalculatedChecksum;
+  UINTN            ProcessedLength;
+  CFR_OPTION_FORM  *CbCfrOuterFormOffset;
+  CFR_OPTION_FORM  *CfrSetupMenuForm;
+
+  //
+  // CFR has several CB tags, though these are nested structures,
+  // not for individual table-to-HOB conversion
+  //
+  CbCfrSetupMenu = FindCbTag (CB_TAG_CFR_ROOT);
+  if (CbCfrSetupMenu != NULL) {
+    //
+    // Checksums covers variable length body only
+    //
+    CfrCalculatedChecksum = CalculateCrc32 (
+                              (UINT8 *)CbCfrSetupMenu + sizeof (struct cb_cfr),
+                              CbCfrSetupMenu->size - sizeof (struct cb_cfr)
+                              );
+
+    if (CfrCalculatedChecksum != CbCfrSetupMenu->checksum) {
+      DEBUG ((
+        DEBUG_WARN,
+        "CFR: Calculated CRC32 0x%x does not match stored CRC32 0x%x!\n",
+        CfrCalculatedChecksum,
+        CbCfrChecksum
+        ));
+    }
+
+    ProcessedLength = sizeof (struct cb_cfr);
+
+    //
+    // Copy each form to HOB; TODO: This creates duplicate, copy pointer?
+    //
+    while (ProcessedLength < CbCfrSetupMenu->size) {
+      CbCfrOuterFormOffset = (CFR_OPTION_FORM *)((UINT8 *)CbCfrSetupMenu + ProcessedLength);
+      if (CbCfrOuterFormOffset->Tag != CB_CFR_TAG_OPTION_FORM) {
+        break;
+      }
+
+      if (CbCfrOuterFormOffset->Size < sizeof (CFR_OPTION_FORM)) {
+        break;
+      }
+
+      CfrSetupMenuForm = BuildGuidDataHob (
+                           &gEfiCfrSetupMenuFormGuid,
+                           CbCfrOuterFormOffset,
+                           CbCfrOuterFormOffset->Size
+                           );
+      if (CfrSetupMenuForm == NULL) {
+        ProcessedLength += CbCfrOuterFormOffset->Size;
+        continue;
+      }
+
+      DEBUG ((
+        DEBUG_INFO,
+        "CFR: Found form[%llx] of %d bytes\n",
+        CbCfrOuterFormOffset->ObjectId,
+        CbCfrOuterFormOffset->Size
+        ));
+
+      ProcessedLength += CbCfrOuterFormOffset->Size;
+    }
+  }
+
   return RETURN_SUCCESS;
 }
 
