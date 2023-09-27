@@ -69,6 +69,7 @@ enum CFR_OPTION_FLAGS {
   CFR_OPTFLAG_GRAYOUT  = 1 << 1,
   CFR_OPTFLAG_SUPPRESS = 1 << 2,
   CFR_OPTFLAG_VOLATILE = 1 << 3,
+  CFR_OPTFLAG_RUNTIME  = 1 << 4,
 };
 
 #pragma pack(1)
