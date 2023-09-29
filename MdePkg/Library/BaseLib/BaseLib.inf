@@ -439,3 +439,9 @@
 
 [FeaturePcd]
   gEfiMdePkgTokenSpaceGuid.PcdVerifyNodeInList  ## CONSUMES
+
+[BuildOptions.X64]
+GCC:*_*_*_CC_FLAGS = -O3 -DMDEPKG_NDEBUG
+
+[BuildOptions.IA32]
+GCC:*_*_*_CC_FLAGS = -O2 -DMDEPKG_NDEBUG
