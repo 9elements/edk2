@@ -77,3 +77,6 @@
 
 [UserExtensions.TianoCore."ExtraFiles"]
   SetupBrowserExtra.uni
+
+[BuildOptions.X64]
+GCC:*_*_*_CC_FLAGS = -O3 -march=icelake-server
