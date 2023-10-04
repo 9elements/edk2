@@ -400,6 +400,8 @@ OutputConfigBody (
                                  MAX_STRING_LENGTH. On output, the  buffer length
                                  might be updated.
   @param  AppendString           NULL-terminated Unicode string.
+  @param  MultiStringSize        Pointer to current StrSize of MultiString.
+  @param  BufferSize             Pointer to current total space allocated of MultiString.
 
   @retval EFI_INVALID_PARAMETER  Any incoming parameter is invalid.
   @retval EFI_SUCCESS            AppendString is append to the end of MultiString
@@ -408,38 +410,67 @@ OutputConfigBody (
 EFI_STATUS
 AppendToMultiString (
   IN OUT EFI_STRING  *MultiString,
-  IN EFI_STRING      AppendString
+  IN EFI_STRING      AppendString,
+  IN OUT UINTN       *MultiStringSize,
+  IN OUT UINTN       *BufferSize
   )
 {
   UINTN  AppendStringSize;
-  UINTN  MultiStringSize;
+  UINTN  NewStringSize;
+  CHAR16 *Destination;
 
-  if ((MultiString == NULL) || (*MultiString == NULL) || (AppendString == NULL)) {
+  if ((MultiString == NULL) || (*MultiString == NULL) || (AppendString == NULL) ||
+      (MultiStringSize == NULL) || (BufferSize == NULL)) {
     return EFI_INVALID_PARAMETER;
   }
 
   AppendStringSize = StrSize (AppendString);
-  MultiStringSize  = StrSize (*MultiString);
+
+  if (*MultiStringSize == 0)
+  {
+    NewStringSize = 0;
+  }
+  else
+  {
+    // Overwrite \NUL
+    NewStringSize = *MultiStringSize - sizeof(CHAR16);
+  }
+  NewStringSize += AppendStringSize;
+
+  if (AppendStringSize <= sizeof(CHAR16)) {
+    return EFI_SUCCESS;
+  }
 
   //
-  // Enlarge the buffer each time when length exceeds MAX_STRING_LENGTH.
+  // Enlarge the buffer each time when length exceeds BufferSize.
   //
-  if ((MultiStringSize + AppendStringSize > MAX_STRING_LENGTH) ||
-      (MultiStringSize > MAX_STRING_LENGTH))
+  if (NewStringSize > *BufferSize)
   {
     *MultiString = (EFI_STRING)ReallocatePool (
-                                 MultiStringSize,
-                                 MultiStringSize + AppendStringSize,
+                                 *BufferSize,
+                                 NewStringSize + MAX_STRING_LENGTH,
                                  (VOID *)(*MultiString)
                                  );
+    *BufferSize = NewStringSize + MAX_STRING_LENGTH;
     ASSERT (*MultiString != NULL);
   }
 
   //
   // Append the incoming string. StrCatS is way too slow.
-  // We made sure the buffer can fit source + dest so no need to check again...
+  // The code above made sure the buffer can fit source + dest,
+  // so no need to check again...
+  // The code also knows the source and dest buffer dimensions,
+  // so use CopyMem directly.
   //
-  CopyMem (*MultiString + ((MultiStringSize - 1) / sizeof(CHAR16)), AppendString, AppendStringSize);
+  Destination = *MultiString;
+  if (*MultiStringSize > 0)
+  {
+    // Overwrite \NUL
+    Destination += (*MultiStringSize / sizeof(CHAR16)) - 1;
+  }
+
+  CopyMem (Destination, AppendString, AppendStringSize);
+  *MultiStringSize = NewStringSize;
 
   return EFI_SUCCESS;
 }
@@ -4859,6 +4890,8 @@ HiiConfigRoutingExtractConfig (
   UINTN                           DevicePathSize;
   UINTN                           ConigStringSize;
   UINTN                           ConigStringSizeNewsize;
+  UINTN                           BufferSize;
+  UINTN                           MultiStringSize = 0;
   EFI_STRING                      ConfigStringPtr;
 
   if ((This == NULL) || (Progress == NULL) || (Results == NULL)) {
@@ -4899,7 +4932,8 @@ HiiConfigRoutingExtractConfig (
   // Allocate a fix length of memory to store Results. Reallocate memory for
   // Results if this fix length is insufficient.
   //
-  *Results = (EFI_STRING)AllocateZeroPool (MAX_STRING_LENGTH);
+  BufferSize = MAX_STRING_LENGTH;
+  *Results = (EFI_STRING)AllocateZeroPool (BufferSize);
   if (*Results == NULL) {
     return EFI_OUT_OF_RESOURCES;
   }
@@ -5146,11 +5180,11 @@ HiiConfigRoutingExtractConfig (
 
 NextConfigString:
     if (!FirstElement) {
-      Status = AppendToMultiString (Results, L"&");
+      Status = AppendToMultiString (Results, L"&", &MultiStringSize, &BufferSize);
       ASSERT_EFI_ERROR (Status);
     }
 
-    Status = AppendToMultiString (Results, AccessResults);
+    Status = AppendToMultiString (Results, AccessResults, &MultiStringSize, &BufferSize);
     ASSERT_EFI_ERROR (Status);
 
     FirstElement = FALSE;
@@ -5244,6 +5278,8 @@ HiiConfigRoutingExportConfig (
   HII_DATABASE_RECORD             *Database;
   UINT8                           *DevicePathPkg;
   UINT8                           *CurrentDevicePath;
+  UINTN                           BufferSize;
+  UINTN                           MultiStringSize = 0;
   BOOLEAN                         IfrDataParsedFlag;
 
   if ((This == NULL) || (Results == NULL)) {
@@ -5256,7 +5292,8 @@ HiiConfigRoutingExportConfig (
   // Allocate a fix length of memory to store Results. Reallocate memory for
   // Results if this fix length is insufficient.
   //
-  *Results = (EFI_STRING)AllocateZeroPool (MAX_STRING_LENGTH);
+  BufferSize = MAX_STRING_LENGTH;
+  *Results = (EFI_STRING)AllocateZeroPool (BufferSize);
   if (*Results == NULL) {
     return EFI_OUT_OF_RESOURCES;
   }
@@ -5382,11 +5419,11 @@ HiiConfigRoutingExportConfig (
       // which separates the first <ConfigAltResp> and the following ones.
       //
       if (!FirstElement) {
-        Status = AppendToMultiString (Results, L"&");
+        Status = AppendToMultiString (Results, L"&", &MultiStringSize, &BufferSize);
         ASSERT_EFI_ERROR (Status);
       }
 
-      Status = AppendToMultiString (Results, AccessResults);
+      Status = AppendToMultiString (Results, AccessResults, &MultiStringSize, &BufferSize);
       ASSERT_EFI_ERROR (Status);
 
       FirstElement = FALSE;
@@ -5680,6 +5717,8 @@ HiiBlockToConfig (
   EFI_STRING                 ValueStr;
   EFI_STRING                 ConfigElement;
   UINTN                      Index;
+  UINTN                      BufferSize;
+  UINTN                      MultiStringSize = 0;
   UINT8                      *TemBuffer;
   CHAR16                     *TemString;
 
@@ -5706,7 +5745,8 @@ HiiBlockToConfig (
   // Allocate a fix length of memory to store Results. Reallocate memory for
   // Results if this fix length is insufficient.
   //
-  *Config = (EFI_STRING)AllocateZeroPool (MAX_STRING_LENGTH);
+  BufferSize = MAX_STRING_LENGTH;
+  *Config = (EFI_STRING)AllocateZeroPool (BufferSize);
   if (*Config == NULL) {
     return EFI_OUT_OF_RESOURCES;
   }
@@ -5737,7 +5777,7 @@ HiiBlockToConfig (
   if (*StringPtr == 0) {
     *Progress = StringPtr;
 
-    AppendToMultiString (Config, ConfigRequest);
+    AppendToMultiString (Config, ConfigRequest, &MultiStringSize, &BufferSize);
     HiiToLower (*Config);
 
     return EFI_SUCCESS;
@@ -5757,7 +5797,7 @@ HiiBlockToConfig (
   }
 
   TemString[StringPtr - ConfigRequest] = '\0';
-  AppendToMultiString (Config, TemString);
+  AppendToMultiString (Config, TemString, &MultiStringSize, &BufferSize);
   FreePool (TemString);
 
   //
@@ -5883,7 +5923,7 @@ HiiBlockToConfig (
     StrCatS (ConfigElement, Length, L"VALUE=");
     StrCatS (ConfigElement, Length, ValueStr);
 
-    AppendToMultiString (Config, ConfigElement);
+    AppendToMultiString (Config, ConfigElement, &MultiStringSize, &BufferSize);
 
     FreePool (ConfigElement);
     FreePool (ValueStr);
@@ -5897,7 +5937,7 @@ HiiBlockToConfig (
       break;
     }
 
-    AppendToMultiString (Config, L"&");
+    AppendToMultiString (Config, L"&", &MultiStringSize, &BufferSize);
     StringPtr++;
   }
 
