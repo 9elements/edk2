@@ -413,7 +413,6 @@ AppendToMultiString (
 {
   UINTN  AppendStringSize;
   UINTN  MultiStringSize;
-  UINTN  MaxLen;
 
   if ((MultiString == NULL) || (*MultiString == NULL) || (AppendString == NULL)) {
     return EFI_INVALID_PARAMETER;
@@ -421,7 +420,6 @@ AppendToMultiString (
 
   AppendStringSize = StrSize (AppendString);
   MultiStringSize  = StrSize (*MultiString);
-  MaxLen           = MAX_STRING_LENGTH / sizeof (CHAR16);
 
   //
   // Enlarge the buffer each time when length exceeds MAX_STRING_LENGTH.
@@ -434,14 +432,14 @@ AppendToMultiString (
                                  MultiStringSize + AppendStringSize,
                                  (VOID *)(*MultiString)
                                  );
-    MaxLen = (MultiStringSize + AppendStringSize) / sizeof (CHAR16);
     ASSERT (*MultiString != NULL);
   }
 
   //
-  // Append the incoming string
+  // Append the incoming string. StrCatS is way too slow.
+  // We made sure the buffer can fit source + dest so no need to check again...
   //
-  StrCatS (*MultiString, MaxLen, AppendString);
+  CopyMem (*MultiString + ((MultiStringSize - 1) / sizeof(CHAR16)), AppendString, AppendStringSize);
 
   return EFI_SUCCESS;
 }
