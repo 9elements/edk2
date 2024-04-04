@@ -19,8 +19,6 @@
   SetupMenu.c
   SetupMenuCfr.c
   SetupMenuHii.c
-  SetupMenuVfr.Vfr
-  SetupMenuStrings.uni
 
 [Packages]
   MdePkg/MdePkg.dec
@@ -45,13 +43,13 @@
 
 [Guids]
   gEfiCfrSetupMenuFormGuid
-  gEficorebootNvDataGuid
+  gEfiCfrSetupMenuStringsGuid
+  gEfiCfrNvDataGuid
   gEfiHiiPlatformSetupFormsetGuid               ## CONSUMES ## GUID (Indicate the formset class guid to be displayed)
   gEfiIfrTianoGuid                              ## CONSUMES ## GUID (Extended IFR Guid Opcode)
 
 [Protocols]
   gEfiDevicePathProtocolGuid        ## PRODUCES
-  gEfiHiiConfigAccessProtocolGuid   ## PRODUCES
   gEdkiiVariablePolicyProtocolGuid  ## SOMETIMES_CONSUMES
 
 [Depex]

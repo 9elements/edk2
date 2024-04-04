@@ -86,27 +86,10 @@ CfrFindTag (
   OUT CONST VOID                    **Out
   );
 
-/**
-  Walk a CFR tree and return an unicode string found in the node
-  with the specified tag.
-
-  @param  [in]      Root          The Node currently being processed.
-  @param  [in]      Tag           The tag of the child node to locate.
-  @param  [out]     UnicodeString The pointer to set. The caller must
-                                  free this memory when no longer needed.
-
-  @retval EFI_SUCCESS            The default value is found.
-  @retval EFI_NOT_FOUND          The node with given tag was not found.
-  @retval EFI_INVALID_PARAMETER  The function parameters are invalid.
-  @retval EFI_VOLUME_CORRUPTED   The CFR list is corrupted.
-  @retval EFI_UNSUPPORTED        A CFR record isn't supported.
-
-**/
-EFI_STATUS
+CONST CHAR8*
 EFIAPI
 CfrExtractString (
-  IN CONST UINT8                   *Root,
-  IN CONST UINT32                  Tag,
-  OUT      CHAR16                  **UnicodeString
+  IN  CONST UINT32  StringOffset
   );
+
 #endif

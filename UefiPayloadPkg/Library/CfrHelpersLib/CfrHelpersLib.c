@@ -37,18 +37,22 @@ CfrGetHeaderLength (
   )
 {
   switch (Tag) {
-    case CB_CFR_TAG_OPTION_FORM:
-      return sizeof (CFR_OPTION_FORM);
-    case CB_CFR_TAG_OPTION_ENUM:
-    case CB_CFR_TAG_OPTION_NUMBER:
-    case CB_CFR_TAG_OPTION_BOOL:
-      return sizeof (CFR_OPTION_NUMERIC);
-    case CB_CFR_TAG_OPTION_VARCHAR:
-      return sizeof (CFR_OPTION_VARCHAR);
-    case CB_CFR_TAG_OPTION_COMMENT:
-      return sizeof (CFR_OPTION_COMMENT);
-    case CB_CFR_TAG_ENUM_VALUE:
+    case CFR_TAG_OPTION_ENUM:
+    case CFR_TAG_OPTION_NUM_32:
+    case CFR_TAG_OPTION_NUM_64:
+    case CFR_TAG_OPTION_BOOL:
+    case CFR_TAG_OPTION_STRING:
+      return sizeof (CFR_OPTION);
+    case CFR_TAG_FORM:
+      return sizeof (CFR_FORM);
+    case CFR_TAG_COMMENT:
+      return sizeof (CFR_COMMENT);
+    case CFR_TAG_ENUM_VALUE:
       return sizeof (CFR_ENUM_VALUE);
+    case CFR_TAG_PROMPT:
+      return sizeof (CFR_PROMPT);
+    case CFR_TAG_DEFAULT:
+      return sizeof (CFR_DEFAULT);
     default:
       return 0;
   }
@@ -87,9 +91,7 @@ CfrWalkTree (
   Header = (CFR_HEADER *)Root;
 
   ProcessedLength = CfrGetHeaderLength (Header->Tag);
-  if (ProcessedLength == 0) {
-    return EFI_UNSUPPORTED;
-  }
+  ASSERT(ProcessedLength > 0);
 
   if (ProcessedLength > Header->Size) {
     return EFI_VOLUME_CORRUPTED;
@@ -202,6 +204,7 @@ CfrFindTag (
   return EFI_SUCCESS;
 }
 
+
 /**
   Walk a CFR tree and return an unicode string found in the node
   with the specified tag.
@@ -218,35 +221,21 @@ CfrFindTag (
   @retval EFI_UNSUPPORTED        A CFR record isn't supported.
 
 **/
-EFI_STATUS
+CONST
+CHAR8*
 EFIAPI
 CfrExtractString (
-  IN CONST UINT8   *Root,
-  IN CONST UINT32  Tag,
-  OUT      CHAR16  **UnicodeString
+  IN  CONST UINT32  StringOffset
   )
 {
-  EFI_STATUS           Status;
-  CONST CFR_VARBINARY  *CfrString;
+  // get strings pointer
+  EFI_HOB_GUID_TYPE *GuidHob = GetFirstGuidHob (&gEfiCfrSetupMenuStringsGuid);
+  ASSERT(GuidHob != NULL);
+  CFR_STRINGS *CfrStrings = GET_GUID_HOB_DATA (GuidHob);
+  ASSERT(CfrStrings != NULL);
+  ASSERT(CfrStrings->Size - sizeof (CFR_STRINGS) > StringOffset); // make sure requested string is inside the database
 
-  if ((Root == NULL) || (UnicodeString == NULL)) {
-    return EFI_INVALID_PARAMETER;
-  }
+  CONST CHAR8 *CfrString = (CfrStrings->Strings + StringOffset);
 
-  Status = CfrFindTag (Root, Tag, (CONST VOID **)&CfrString);
-  if (EFI_ERROR (Status)) {
-    return Status;
-  }
-
-  ASSERT (CfrString->DataLength > 0);
-
-  *UnicodeString = AllocatePool (CfrString->DataLength * sizeof (CHAR16));
-  ASSERT (*UnicodeString != NULL);
-  Status = AsciiStrToUnicodeStrS (
-             (CHAR8 *)CfrString->Data,
-             *UnicodeString,
-             CfrString->DataLength
-             );
-
-  return EFI_SUCCESS;
+  return CfrString;
 }

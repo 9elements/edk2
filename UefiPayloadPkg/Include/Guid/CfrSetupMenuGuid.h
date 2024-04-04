@@ -13,14 +13,13 @@
 /// CFR options form GUID
 ///
 extern EFI_GUID  gEfiCfrSetupMenuFormGuid;
+extern EFI_GUID  gEfiCfrSetupMenuStringsGuid;
 
 //
 // The following tags are for CFR (Cursed Form Representation) entries.
 //
 // CFR records form a tree structure. The size of a record includes
 // the size of its own fields plus the size of all children records.
-// CFR tags can appear multiple times except for `LB_TAG_CFR` which
-// is used for the root record.
 //
 // The following structures have comments that describe the supported
 // children records. These comments cannot be replaced with code! The
@@ -32,16 +31,6 @@ extern EFI_GUID  gEfiCfrSetupMenuFormGuid;
 //
 // The optional flags describe the visibilty of the option and the
 // effect on the non-volatile variable.
-// CFR_OPTFLAG_READONLY:
-//   Prevents writes to the variable.
-// CFR_OPTFLAG_GRAYOUT:
-//   Implies READONLY. The option is visible, but cannot be modified
-//   because one of the dependencies are not given. However there's a
-//   possibilty to enable the option by changing runtime configuration.
-// CFR_OPTFLAG_SUPPRESS:
-//   Runtime code sets this flag to indicate that the option has no effect
-//   and is never reachable, not even by changing runtime configuration.
-//   This option is never shown in the UI.
 // CFR_OPTFLAG_VOLATILE:
 //   Implies READONLY.
 //   The option is not backed by a non-volatile variable. This is useful
@@ -50,149 +39,128 @@ extern EFI_GUID  gEfiCfrSetupMenuFormGuid;
 //   table, but it not useful other than to be shown at this spot in the
 //   UI.
 
-enum CFR_TAGS {
-  CB_CFR_TAG_OPTION_FORM         = 1,
-  CB_CFR_TAG_ENUM_VALUE          = 2,
-  CB_CFR_TAG_OPTION_ENUM         = 3,
-  CB_CFR_TAG_OPTION_NUMBER       = 4,
-  CB_CFR_TAG_OPTION_BOOL         = 5,
-  CB_CFR_TAG_OPTION_VARCHAR      = 6,
-  CB_CFR_TAG_VARCHAR_OPT_NAME    = 7,
-  CB_CFR_TAG_VARCHAR_UI_NAME     = 8,
-  CB_CFR_TAG_VARCHAR_UI_HELPTEXT = 9,
-  CB_CFR_TAG_VARCHAR_DEF_VALUE   = 10,
-  CB_CFR_TAG_OPTION_COMMENT      = 11,
-};
+typedef enum {
+  CFR_TAG_FORM,
+  CFR_TAG_ENUM_VALUE,
+  CFR_TAG_OPTION_ENUM,
+  CFR_TAG_OPTION_NUM_32,
+  CFR_TAG_OPTION_NUM_64,
+  CFR_TAG_OPTION_BOOL,
+  CFR_TAG_OPTION_STRING,
+  CFR_TAG_OPT_NAME,
+  CFR_TAG_PROMPT,
+  CFR_TAG_HELP,
+  CFR_TAG_DEFAULT,
+  CFR_TAG_COMMENT,
+  CFR_TAG_PROMPT_VALUE,
+  CFR_TAG_DEFAULT_VALUE,
 
-enum CFR_OPTION_FLAGS {
-  CFR_OPTFLAG_READONLY = 1 << 0,
-  CFR_OPTFLAG_GRAYOUT  = 1 << 1,
-  CFR_OPTFLAG_SUPPRESS = 1 << 2,
-  CFR_OPTFLAG_VOLATILE = 1 << 3,
-  CFR_OPTFLAG_RUNTIME  = 1 << 4,
-};
+  CFR_TAG_DEFAULT_VISIBLE,
+  CFR_TAG_PROMPT_VISIBLE,
+} CFR_TAG;
+
+typedef enum {
+  CFR_EXPR_TYPE_CONST_BOOL,
+  CFR_EXPR_TYPE_CONST_NUM,
+  CFR_EXPR_TYPE_CONST_STRING,
+  CFR_EXPR_TYPE_SYMBOL,
+  CFR_EXPR_TYPE_OPERATOR,
+} CFR_EXPR_TYPE;
+
+typedef enum {
+  CFR_OPERATOR_NOT,
+  CFR_OPERATOR_OR,
+  CFR_OPERATOR_AND,
+  CFR_OPERATOR_EQUAL
+} CFR_OPERATOR;
+
+typedef enum {           
+  CFR_OPTFLAG_VOLATILE = 1 << 0,
+  CFR_OPTFLAG_RUNTIME  = 1 << 1,
+} CFR_OPTION_FLAGS;
 
 #pragma pack(1)
-//
-// The CFR varbinary describes a variable length data
-// typically used by strings.
-//
-typedef struct {
-  UINT32    Tag;        // Any CFR_VARBINARY or CFR_VARCHAR
-  UINT32    Size;       // Length of the entire structure
-  UINT32    DataLength; // Length of data, including NULL terminator for strings
-  UINT8     Data[];
-} CFR_VARBINARY;
 
-//
-// A CFR enum value describes a possible option that is
-// used by a CFR_OPTION_NUMERIC option of type CFR_OPTION_ENUM
-//
 typedef struct {
-  UINT32    Tag;
-  UINT32    Size;
-  UINT32    Value;
-  //
-  // Child nodes:
-  // CFR_VARBINARY UiName
-  //
+  UINT32 Tag;
+  UINT32 Size;
+} CFR_HEADER;
+
+typedef struct {
+  UINT32 Tag;   // CFR_TAG_DEFAULT
+  UINT32 Size;  // size of struct (including optional structs below)
+  UINT64 Value;
+  /*
+   * CFR_EXPRESSION  default_value_visible (Optional)
+   */
+} CFR_DEFAULT;
+
+typedef UINT64 CFR_STRING;
+
+typedef struct {
+  UINT32 Tag;   // CFR_TAG_PROMPT
+  UINT32 Size;  // size of struct (including optional structs below)
+  CFR_STRING Prompt;
+  /*
+   * CFR_EXPRESSION  prompt_visible (Optional)
+   */
+} CFR_PROMPT;
+
+typedef struct {
+  UINT32 Type; // enum cfr_expr_type
+  UINT64 Value;
+} CFR_EXPR;
+
+typedef struct {
+  UINT32 Tag;  // CFR_TAG_VISIBLE
+  UINT32 Size; // Length of the entire structure
+  CFR_EXPR Exprs[]; // Expression stack
+} CFR_EXPRESSION;
+
+typedef struct {
+  UINT32 Tag;   // CFR_TAG_ENUM_VALUE
+  UINT32 Size;
+  UINT64 Value;
+  CFR_STRING Prompt;
 } CFR_ENUM_VALUE;
 
-//
-// A CFR numeric describes an integer option.
-// Integer options are used by
-//  - enum
-//  - number
-//  - boolean
-//
 typedef struct {
-  UINT32    Tag;                 // One of CFR_OPTION_ENUM, CFR_OPTION_NUMBER, CFR_OPTION_BOOL
-  UINT32    Size;                // Size including this header and variable body
-  UINT64    ObjectId;            // Uniqueue ID
-  UINT64    DependencyId;        // If non 0, check the referenced option of type
-                                 // lb_cfr_numeric_option and Grayout if value is 0.
-                                 // Ignore if field is 0.
-  UINT32    Flags;               // enum CFR_OPTION_FLAGS
-  UINT32    DefaultValue;
+  UINT32 Tag;       // CFR_TAG_OPTION_*
+  UINT32 Size;      // size of struct (including optional structs below)
+  UINT64 ObjectId;  // Uniqueue ID
+  UINT32 Flags;     // enum cfr_option_flags
+  CFR_STRING Name;
+  CFR_STRING Help;
+  /*
+   * CFR_PROMPT   prompt (Optional)
+   * CFR_DEFAULT  default (Optional)
+   *
+   * if CFR_TAG_OPTION_ENUM:
+   * struct lb_cfr_enum_value  enum_values[]
+   */
+} CFR_OPTION;
 
-  //
-  // Child nodes:
-  // CFR_VARBINARY      OptionName
-  // CFR_VARBINARY      UiName
-  // CFR_VARBINARY      UiHelpText (Optional)
-  // CFR_ENUM_VALUE     EnumValues[] (Optional)
-  //
-} CFR_OPTION_NUMERIC;
-
-//
-// A CFR varchar describes a string option
-//
 typedef struct {
-  UINT32    Tag;                 // CFR_OPTION_VARCHAR
-  UINT32    Size;                // Size including this header and variable body
-  UINT64    ObjectId;            // Uniqueue ID
-  UINT64    DependencyId;        // If non 0, check the referenced option of type
-                                 // lb_cfr_numeric_option and Grayout if value is 0.
-                                 // Ignore if field is 0.
-  UINT32    Flags;               // enum CFR_OPTION_FLAGS
+  UINT32 Tag;   // CFR_TAG_COMMENT
+  UINT32 Size;  // size of struct (including optional structs below)
+  /*
+   * CFR_PROMPT  prompt
+   */
+} CFR_COMMENT;
 
-  //
-  // Child nodes:
-  // CFR_VARBINARY      OptionName
-  // CFR_VARBINARY      UiName
-  // CFR_VARBINARY      UiHelpText (Optional)
-  // CFR_VARBINARY      DefaultValue
-  //
-} CFR_OPTION_VARCHAR;
-
-//
-// A CFR option comment is roughly equivalent to a Kconfig comment.
-// Option comments are *NOT* string options (see CFR_OPTION_VARCHAR
-// instead) but they're considered an option for simplicity's sake.
-//
 typedef struct {
-  UINT32    Tag;                 // CFR_OPTION_COMMENT
-  UINT32    Size;                // Size including this header and variable body
-  UINT64    ObjectId;            // Uniqueue ID
-  UINT64    DependencyId;        // If non 0, check the referenced option of type
-                                 // lb_cfr_numeric_option and Grayout if value is 0.
-                                 // Ignore if field is 0.
-  UINT32    Flags;               // enum CFR_OPTION_FLAGS
-  //
-  // Child nodes:
-  // CFR_VARBINARY      UiName
-  // CFR_VARBINARY      UiHelpText (Optional)
-  //
-} CFR_OPTION_COMMENT;
+  UINT32 Tag;   // CFR_TAG_FORM
+  UINT32 Size;  // size of struct (including optional structs below)
+  /*
+   * CFR_PROMPT  prompt
+   * CFR_OPTION,CFR_COMMENT,CFR_FORM  stuff[]
+   */
+} CFR_FORM;
 
-//
-// CFR forms are considered options as they can be nested inside other forms
-//
 typedef struct {
-  UINT32    Tag;                 // CFR_OPTION_FORM
-  UINT32    Size;                // Size including this header and variable body
-  UINT64    ObjectId;            // Uniqueue ID
-  UINT64    DependencyId;        // If non 0, check the referenced option of type
-                                 // lb_cfr_numeric_option and Grayout if value is 0.
-                                 // Ignore if field is 0.
-  UINT32    Flags;               // enum CFR_OPTION_FLAGS
-
-  //
-  // Child nodes:
-  // CFR_VARBINARY       UiName
-  // CFR_OPTION_COMMENT  Options[] (Optional)
-  // CFR_OPTION_VARCHAR  Options[] (Optional)
-  // CFR_OPTION_NUMERIC  Options[] (Optional)
-  //
-} CFR_OPTION_FORM;
-
-//
-// The CFR header is the same for defined structs above.
-//
-typedef struct {
-  UINT32    Tag;
-  UINT32    Size;
-} CFR_HEADER;
+  UINT32 Size;
+  CHAR8 Strings[];
+} CFR_STRINGS;
 
 #pragma pack(0)
 

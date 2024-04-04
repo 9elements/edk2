@@ -296,7 +296,7 @@ FindCbMemTable (
 
       DEBUG ((
         DEBUG_INFO,
-        "Find CbMemTable Id 0x%x, base %p, size 0x%x\n",
+        "Find CbMemTable Id 0x%x, base %p, size %u\n",
         TableId,
         *MemTable,
         Entries[Idx].size
@@ -605,70 +605,30 @@ ParseMiscInfo (
   VOID
   )
 {
-  struct cb_cfr    *CbCfrSetupMenu;
-  UINT32           CbCfrChecksum;
-  UINT32           CfrCalculatedChecksum;
-  UINTN            ProcessedLength;
-  CFR_OPTION_FORM  *CbCfrOuterFormOffset;
-  CFR_OPTION_FORM  *CfrSetupMenuForm;
+  CFR_FORM *CbCfrSetupMenu;
+  UINT32          CbCfrSetupMenuSize;
+  EFI_STATUS      Status;
 
-  //
-  // CFR has several CB tags, though these are nested structures,
-  // not for individual table-to-HOB conversion
-  //
-  CbCfrSetupMenu = FindCbTag (CB_TAG_CFR_ROOT);
-  if (CbCfrSetupMenu != NULL) {
-    //
-    // Checksums covers variable length body only
-    //
-    CfrCalculatedChecksum = CalculateCrc32 (
-                              (UINT8 *)CbCfrSetupMenu + sizeof (struct cb_cfr),
-                              CbCfrSetupMenu->size - sizeof (struct cb_cfr)
-                              );
+  Status = ParseCbMemTable (SIGNATURE_32 ('T', 'R', 'F', 'C'), (VOID **)&CbCfrSetupMenu, &CbCfrSetupMenuSize);
+  if (EFI_ERROR (Status) || CbCfrSetupMenu == NULL) {
+    return EFI_NOT_FOUND;
+  }
 
-    if (CfrCalculatedChecksum != CbCfrSetupMenu->checksum) {
-      DEBUG ((
-        DEBUG_WARN,
-        "CFR: Calculated CRC32 0x%x does not match stored CRC32 0x%x!\n",
-        CfrCalculatedChecksum,
-        CbCfrChecksum
-        ));
-    }
+  if (CbCfrSetupMenu->Tag != CFR_TAG_FORM) {
+    return EFI_NOT_FOUND;
+  }
 
-    ProcessedLength = sizeof (struct cb_cfr);
-
-    //
-    // Copy each form to HOB; TODO: This creates duplicate, copy pointer?
-    //
-    while (ProcessedLength < CbCfrSetupMenu->size) {
-      CbCfrOuterFormOffset = (CFR_OPTION_FORM *)((UINT8 *)CbCfrSetupMenu + ProcessedLength);
-      if (CbCfrOuterFormOffset->Tag != CB_CFR_TAG_OPTION_FORM) {
-        break;
-      }
-
-      if (CbCfrOuterFormOffset->Size < sizeof (CFR_OPTION_FORM)) {
-        break;
-      }
-
-      CfrSetupMenuForm = BuildGuidDataHob (
-                           &gEfiCfrSetupMenuFormGuid,
-                           CbCfrOuterFormOffset,
-                           CbCfrOuterFormOffset->Size
-                           );
-      if (CfrSetupMenuForm == NULL) {
-        ProcessedLength += CbCfrOuterFormOffset->Size;
-        continue;
-      }
-
-      DEBUG ((
-        DEBUG_INFO,
-        "CFR: Found form[%llx] of %d bytes\n",
-        CbCfrOuterFormOffset->ObjectId,
-        CbCfrOuterFormOffset->Size
-        ));
-
-      ProcessedLength += CbCfrOuterFormOffset->Size;
-    }
+  CFR_FORM *CfrSetupMenuForm = BuildGuidDataHob (&gEfiCfrSetupMenuFormGuid, CbCfrSetupMenu, CbCfrSetupMenu->Size);
+  if (!CfrSetupMenuForm) {
+    DEBUG ((DEBUG_ERROR, "CFR: could not add form of %d bytes\n", CbCfrSetupMenu->Size));
+    return EFI_OUT_OF_RESOURCES;
+  }
+  ASSERT(CbCfrSetupMenuSize > CbCfrSetupMenu->Size);
+  CFR_STRINGS *CbCfrStrings = (CFR_STRINGS *)((CHAR8 *)CbCfrSetupMenu + CbCfrSetupMenu->Size);
+  CFR_STRINGS *CfrStrings = BuildGuidDataHob (&gEfiCfrSetupMenuStringsGuid, CbCfrStrings, CbCfrStrings->Size);
+  if (!CfrStrings) {
+    DEBUG ((DEBUG_ERROR, "CFR: could not add Strings of %d bytes\n", CbCfrSetupMenu->Size));
+    return EFI_OUT_OF_RESOURCES;
   }
 
   return RETURN_SUCCESS;
