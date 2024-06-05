@@ -10,9 +10,8 @@
 #ifndef __EFI_DHCP6_UTILITY_H__
 #define __EFI_DHCP6_UTILITY_H__
 
-
-#define  DHCP6_10_BIT_MASK             0x3ff
-#define  DHCP6_DAD_ADDITIONAL_DELAY    30000000 // 3 seconds
+#define  DHCP6_10_BIT_MASK           0x3ff
+#define  DHCP6_DAD_ADDITIONAL_DELAY  30000000   // 3 seconds
 
 /**
   Generate client Duid in the format of Duid-llt.
@@ -25,7 +24,7 @@
 **/
 EFI_DHCP6_DUID *
 Dhcp6GenerateClientId (
-  IN EFI_SIMPLE_NETWORK_MODE    *Mode
+  IN EFI_SIMPLE_NETWORK_MODE  *Mode
   );
 
 /**
@@ -40,8 +39,8 @@ Dhcp6GenerateClientId (
 **/
 EFI_STATUS
 Dhcp6CopyConfigData (
-  IN EFI_DHCP6_CONFIG_DATA     *DstCfg,
-  IN EFI_DHCP6_CONFIG_DATA     *SorCfg
+  IN EFI_DHCP6_CONFIG_DATA  *DstCfg,
+  IN EFI_DHCP6_CONFIG_DATA  *SorCfg
   );
 
 /**
@@ -52,7 +51,7 @@ Dhcp6CopyConfigData (
 **/
 VOID
 Dhcp6CleanupConfigData (
-  IN OUT EFI_DHCP6_CONFIG_DATA       *CfgData
+  IN OUT EFI_DHCP6_CONFIG_DATA  *CfgData
   );
 
 /**
@@ -63,7 +62,7 @@ Dhcp6CleanupConfigData (
 **/
 VOID
 Dhcp6CleanupModeData (
-  IN OUT EFI_DHCP6_MODE_DATA        *ModeData
+  IN OUT EFI_DHCP6_MODE_DATA  *ModeData
   );
 
 /**
@@ -78,9 +77,9 @@ Dhcp6CleanupModeData (
 **/
 UINT32
 Dhcp6CalculateExpireTime (
-  IN UINT32                    Base,
-  IN BOOLEAN                   IsFirstRt,
-  IN BOOLEAN                   NeedSigned
+  IN UINT32   Base,
+  IN BOOLEAN  IsFirstRt,
+  IN BOOLEAN  NeedSigned
   );
 
 /**
@@ -91,7 +90,7 @@ Dhcp6CalculateExpireTime (
 **/
 VOID
 Dhcp6CalculateLeaseTime (
-  IN DHCP6_IA_CB               *IaCb
+  IN DHCP6_IA_CB  *IaCb
   );
 
 /**
@@ -107,9 +106,9 @@ Dhcp6CalculateLeaseTime (
 **/
 EFI_STATUS
 Dhcp6CheckAddress (
-  IN EFI_DHCP6_IA              *Ia,
-  IN UINT32                    AddressCount,
-  IN EFI_IPv6_ADDRESS          *Addresses
+  IN EFI_DHCP6_IA      *Ia,
+  IN UINT32            AddressCount,
+  IN EFI_IPv6_ADDRESS  *Addresses
   );
 
 /**
@@ -125,9 +124,9 @@ Dhcp6CheckAddress (
 **/
 EFI_DHCP6_IA *
 Dhcp6DepriveAddress (
-  IN EFI_DHCP6_IA              *Ia,
-  IN UINT32                    AddressCount,
-  IN EFI_IPv6_ADDRESS          *Addresses
+  IN EFI_DHCP6_IA      *Ia,
+  IN UINT32            AddressCount,
+  IN EFI_IPv6_ADDRESS  *Addresses
   );
 
 /**
@@ -139,7 +138,7 @@ Dhcp6DepriveAddress (
 VOID
 EFIAPI
 Dhcp6DummyExtFree (
-  IN VOID                      *Arg
+  IN VOID  *Arg
   );
 
 /**
@@ -154,81 +153,97 @@ Dhcp6DummyExtFree (
 VOID
 EFIAPI
 Dhcp6OnTransmitted (
-  IN NET_BUF                   *Wrap,
-  IN UDP_END_POINT             *EndPoint,
-  IN EFI_STATUS                IoStatus,
-  IN VOID                      *Context
+  IN NET_BUF        *Wrap,
+  IN UDP_END_POINT  *EndPoint,
+  IN EFI_STATUS     IoStatus,
+  IN VOID           *Context
   );
 
 /**
-  Append the appointed option to the buf, and move the buf to the end.
+  Append the option to Buf, update the length of packet, and move Buf to the end.
 
-  @param[in, out] Buf           The pointer to buffer.
-  @param[in]      OptType       The option type.
-  @param[in]      OptLen        The length of option content.s
-  @param[in]      Data          The pointer to the option content.
+  @param[in, out] Packet         A pointer to the packet, on success Packet->Length
+                                 will be updated.
+  @param[in, out] PacketCursor   The pointer in the packet, on success PacketCursor
+                                 will be moved to the end of the option.
+  @param[in]      OptType        The option type.
+  @param[in]      OptLen         The length of option contents.
+  @param[in]      Data           The pointer to the option content.
 
-  @return         Buf           The position to append the next option.
-
+  @retval   EFI_INVALID_PARAMETER An argument provided to the function was invalid
+  @retval   EFI_BUFFER_TOO_SMALL  The buffer is too small to append the option.
+  @retval   EFI_SUCCESS           The option is appended successfully.
 **/
-UINT8 *
+EFI_STATUS
 Dhcp6AppendOption (
-  IN OUT UINT8                 *Buf,
-  IN     UINT16                OptType,
-  IN     UINT16                OptLen,
-  IN     UINT8                 *Data
+  IN OUT EFI_DHCP6_PACKET  *Packet,
+  IN OUT UINT8             **PacketCursor,
+  IN     UINT16            OptType,
+  IN     UINT16            OptLen,
+  IN     UINT8             *Data
   );
 
 /**
-  Append the Ia option to Buf, and move Buf to the end.
-
-  @param[in, out] Buf           The pointer to the position to append.
+  Append the appointed Ia option to Buf, update the Ia option length, and move Buf
+  to the end of the option.
+  @param[in, out] Packet        A pointer to the packet, on success Packet->Length
+                                will be updated.
+  @param[in, out] PacketCursor   The pointer in the packet, on success PacketCursor
+                                 will be moved to the end of the option.
   @param[in]      Ia            The pointer to the Ia.
   @param[in]      T1            The time of T1.
   @param[in]      T2            The time of T2.
   @param[in]      MessageType   Message type of DHCP6 package.
 
-  @return         Buf           The position to append the next Ia option.
-
+  @retval   EFI_INVALID_PARAMETER An argument provided to the function was invalid
+  @retval   EFI_BUFFER_TOO_SMALL  The buffer is too small to append the option.
+  @retval   EFI_SUCCESS           The option is appended successfully.
 **/
-UINT8 *
+EFI_STATUS
 Dhcp6AppendIaOption (
-  IN OUT UINT8                  *Buf,
-  IN     EFI_DHCP6_IA           *Ia,
-  IN     UINT32                 T1,
-  IN     UINT32                 T2,
-  IN     UINT32                 MessageType
+  IN OUT EFI_DHCP6_PACKET  *Packet,
+  IN OUT UINT8             **PacketCursor,
+  IN     EFI_DHCP6_IA      *Ia,
+  IN     UINT32            T1,
+  IN     UINT32            T2,
+  IN     UINT32            MessageType
   );
 
 /**
   Append the appointed Elapsed time option to Buf, and move Buf to the end.
 
-  @param[in, out] Buf           The pointer to the position to append.
+  @param[in, out] Packet        A pointer to the packet, on success Packet->Length
+  @param[in, out] PacketCursor   The pointer in the packet, on success PacketCursor
+                                 will be moved to the end of the option.
   @param[in]      Instance      The pointer to the Dhcp6 instance.
   @param[out]     Elapsed       The pointer to the elapsed time value in
                                   the generated packet.
 
-  @return         Buf           The position to append the next Ia option.
+  @retval   EFI_INVALID_PARAMETER An argument provided to the function was invalid
+  @retval   EFI_BUFFER_TOO_SMALL  The buffer is too small to append the option.
+  @retval   EFI_SUCCESS           The option is appended successfully.
 
 **/
-UINT8 *
+EFI_STATUS
 Dhcp6AppendETOption (
-  IN OUT UINT8                  *Buf,
-  IN     DHCP6_INSTANCE         *Instance,
-  OUT    UINT16                 **Elapsed
+  IN OUT EFI_DHCP6_PACKET  *Packet,
+  IN OUT UINT8             **PacketCursor,
+  IN     DHCP6_INSTANCE    *Instance,
+  OUT    UINT16            **Elapsed
   );
 
 /**
   Set the elapsed time based on the given instance and the pointer to the
   elapsed time option.
 
-  @param[in]      Elapsed       The pointer to the position to append.
-  @param[in]      Instance      The pointer to the Dhcp6 instance.
+  @retval   EFI_INVALID_PARAMETER An argument provided to the function was invalid
+  @retval   EFI_BUFFER_TOO_SMALL  The buffer is too small to append the option.
+  @retval   EFI_SUCCESS           The option is appended successfully.
 **/
 VOID
 SetElapsedTime (
-  IN     UINT16                 *Elapsed,
-  IN     DHCP6_INSTANCE         *Instance
+  IN     UINT16          *Elapsed,
+  IN     DHCP6_INSTANCE  *Instance
   );
 
 /**
@@ -244,9 +259,9 @@ SetElapsedTime (
 **/
 UINT8 *
 Dhcp6SeekOption (
-  IN UINT8                     *Buf,
-  IN UINT32                    SeekLen,
-  IN UINT16                    OptType
+  IN UINT8   *Buf,
+  IN UINT32  SeekLen,
+  IN UINT16  OptType
   );
 
 /**
@@ -262,9 +277,9 @@ Dhcp6SeekOption (
 **/
 UINT8 *
 Dhcp6SeekIaOption (
-  IN UINT8                     *Buf,
-  IN UINT32                    SeekLen,
-  IN EFI_DHCP6_IA_DESCRIPTOR   *IaDesc
+  IN UINT8                    *Buf,
+  IN UINT32                   SeekLen,
+  IN EFI_DHCP6_IA_DESCRIPTOR  *IaDesc
   );
 
 /**
@@ -279,11 +294,11 @@ Dhcp6SeekIaOption (
 **/
 VOID
 Dhcp6ParseAddrOption (
-  IN     EFI_DHCP6_IA            *CurrentIa,
-  IN     UINT8                   *IaInnerOpt,
-  IN     UINT16                  IaInnerLen,
-     OUT UINT32                  *AddrNum,
-  IN OUT EFI_DHCP6_IA_ADDRESS    *AddrBuf
+  IN     EFI_DHCP6_IA          *CurrentIa,
+  IN     UINT8                 *IaInnerOpt,
+  IN     UINT16                IaInnerLen,
+  OUT UINT32                   *AddrNum,
+  IN OUT EFI_DHCP6_IA_ADDRESS  *AddrBuf
   );
 
 /**
@@ -303,13 +318,12 @@ Dhcp6ParseAddrOption (
 **/
 EFI_STATUS
 Dhcp6GenerateIaCb (
-  IN  DHCP6_INSTANCE           *Instance,
-  IN  UINT8                    *IaInnerOpt,
-  IN  UINT16                   IaInnerLen,
-  IN  UINT32                   T1,
-  IN  UINT32                   T2
+  IN  DHCP6_INSTANCE  *Instance,
+  IN  UINT8           *IaInnerOpt,
+  IN  UINT16          IaInnerLen,
+  IN  UINT32          T1,
+  IN  UINT32          T2
   );
-
 
 /**
   Cache the current IA configuration information.
@@ -322,9 +336,8 @@ Dhcp6GenerateIaCb (
 **/
 EFI_STATUS
 Dhcp6CacheIa (
-  IN DHCP6_INSTANCE           *Instance
+  IN DHCP6_INSTANCE  *Instance
   );
-
 
 /**
   Append CacheIa to the current IA. Meanwhile, clear CacheIa.ValidLifetime to 0.
@@ -334,7 +347,7 @@ Dhcp6CacheIa (
 **/
 VOID
 Dhcp6AppendCacheIa (
-  IN DHCP6_INSTANCE           *Instance
+  IN DHCP6_INSTANCE  *Instance
   );
 
 /**
@@ -348,7 +361,8 @@ Dhcp6AppendCacheIa (
 **/
 EFI_STATUS
 Dhcp6GetMappingTimeOut (
-  IN  EFI_IP6_CONFIG_PROTOCOL       *Ip6Cfg,
-  OUT UINTN                         *TimeOut
+  IN  EFI_IP6_CONFIG_PROTOCOL  *Ip6Cfg,
+  OUT UINTN                    *TimeOut
   );
+
 #endif

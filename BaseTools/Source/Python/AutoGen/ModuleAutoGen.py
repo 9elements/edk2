@@ -32,7 +32,7 @@ import tempfile
 ## Mapping Makefile type
 gMakeTypeMap = {TAB_COMPILER_MSFT:"nmake", "GCC":"gmake"}
 #
-# Regular expression for finding Include Directories, the difference between MSFT and INTEL/GCC/RVCT
+# Regular expression for finding Include Directories, the difference between MSFT and INTEL/GCC
 # is the former use /I , the Latter used -I to specify include directories
 #
 gBuildOptIncludePatternMsft = re.compile(r"(?:.*?)/I[ \t]*([^ ]*)", re.MULTILINE | re.DOTALL)
@@ -51,12 +51,12 @@ gInfSpecVersion = "0x00010017"
 #
 # Match name = variable
 #
-gEfiVarStoreNamePattern = re.compile("\s*name\s*=\s*(\w+)")
+gEfiVarStoreNamePattern = re.compile(r"\s*name\s*=\s*(\w+)")
 #
 # The format of guid in efivarstore statement likes following and must be correct:
 # guid = {0xA04A27f4, 0xDF00, 0x4D42, {0xB5, 0x52, 0x39, 0x51, 0x13, 0x02, 0x11, 0x3D}}
 #
-gEfiVarStoreGuidPattern = re.compile("\s*guid\s*=\s*({.*?{.*?}\s*})")
+gEfiVarStoreGuidPattern = re.compile(r"\s*guid\s*=\s*({.*?{.*?}\s*})")
 
 #
 # Template string to generic AsBuilt INF
@@ -254,7 +254,6 @@ class ModuleAutoGen(AutoGen):
         self.AutoGenDepSet = set()
         self.ReferenceModules = []
         self.ConstPcd                  = {}
-        self.Makefile         = None
         self.FileDependCache  = {}
 
     def __init_platform_info__(self):
@@ -685,12 +684,12 @@ class ModuleAutoGen(AutoGen):
     @cached_property
     def BuildOptionIncPathList(self):
         #
-        # Regular expression for finding Include Directories, the difference between MSFT and INTEL/GCC/RVCT
+        # Regular expression for finding Include Directories, the difference between MSFT and INTEL/GCC
         # is the former use /I , the Latter used -I to specify include directories
         #
         if self.PlatformInfo.ToolChainFamily in (TAB_COMPILER_MSFT):
             BuildOptIncludeRegEx = gBuildOptIncludePatternMsft
-        elif self.PlatformInfo.ToolChainFamily in ('INTEL', 'GCC', 'RVCT'):
+        elif self.PlatformInfo.ToolChainFamily in ('INTEL', 'GCC'):
             BuildOptIncludeRegEx = gBuildOptIncludePatternOther
         else:
             #
@@ -705,16 +704,7 @@ class ModuleAutoGen(AutoGen):
             except KeyError:
                 FlagOption = ''
 
-            if self.ToolChainFamily != 'RVCT':
-                IncPathList = [NormPath(Path, self.Macros) for Path in BuildOptIncludeRegEx.findall(FlagOption)]
-            else:
-                #
-                # RVCT may specify a list of directory seperated by commas
-                #
-                IncPathList = []
-                for Path in BuildOptIncludeRegEx.findall(FlagOption):
-                    PathList = GetSplitList(Path, TAB_COMMA_SPLIT)
-                    IncPathList.extend(NormPath(PathEntry, self.Macros) for PathEntry in PathList)
+            IncPathList = [NormPath(Path, self.Macros) for Path in BuildOptIncludeRegEx.findall(FlagOption)]
 
             #
             # EDK II modules must not reference header files outside of the packages they depend on or

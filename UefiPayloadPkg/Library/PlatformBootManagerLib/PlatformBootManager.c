@@ -2,35 +2,40 @@
   This file include all platform action which can be customized
   by IBV/OEM.
 
-Copyright (c) 2015 - 2018, Intel Corporation. All rights reserved.<BR>
+Copyright (c) 2015 - 2023, Intel Corporation. All rights reserved.<BR>
 SPDX-License-Identifier: BSD-2-Clause-Patent
 
 **/
 
 #include "PlatformBootManager.h"
 #include "PlatformConsole.h"
+#include <Protocol/FirmwareVolume2.h>
 
+/**
+  Signal EndOfDxe event and install SMM Ready to lock protocol.
+
+**/
 VOID
 InstallReadyToLock (
   VOID
   )
 {
-  EFI_STATUS                            Status;
-  EFI_HANDLE                            Handle;
-  EFI_SMM_ACCESS2_PROTOCOL              *SmmAccess;
+  EFI_STATUS                Status;
+  EFI_HANDLE                Handle;
+  EFI_SMM_ACCESS2_PROTOCOL  *SmmAccess;
 
-  DEBUG((DEBUG_INFO,"InstallReadyToLock  entering......\n"));
+  DEBUG ((DEBUG_INFO, "InstallReadyToLock  entering......\n"));
   //
   // Inform the SMM infrastructure that we're entering BDS and may run 3rd party code hereafter
   // Since PI1.2.1, we need signal EndOfDxe as ExitPmAuth
   //
   EfiEventGroupSignal (&gEfiEndOfDxeEventGroupGuid);
-  DEBUG((DEBUG_INFO,"All EndOfDxe callbacks have returned successfully\n"));
+  DEBUG ((DEBUG_INFO, "All EndOfDxe callbacks have returned successfully\n"));
 
   //
   // Install DxeSmmReadyToLock protocol in order to lock SMM
   //
-  Status = gBS->LocateProtocol (&gEfiSmmAccess2ProtocolGuid, NULL, (VOID **) &SmmAccess);
+  Status = gBS->LocateProtocol (&gEfiSmmAccess2ProtocolGuid, NULL, (VOID **)&SmmAccess);
   if (!EFI_ERROR (Status)) {
     Handle = NULL;
     Status = gBS->InstallProtocolInterface (
@@ -42,7 +47,7 @@ InstallReadyToLock (
     ASSERT_EFI_ERROR (Status);
   }
 
-  DEBUG((DEBUG_INFO,"InstallReadyToLock  end\n"));
+  DEBUG ((DEBUG_INFO, "InstallReadyToLock  end\n"));
   return;
 }
 
@@ -61,12 +66,12 @@ InstallReadyToLock (
 **/
 INTN
 PlatformFindLoadOption (
-  IN CONST EFI_BOOT_MANAGER_LOAD_OPTION *Key,
-  IN CONST EFI_BOOT_MANAGER_LOAD_OPTION *Array,
-  IN UINTN                              Count
-)
+  IN CONST EFI_BOOT_MANAGER_LOAD_OPTION  *Key,
+  IN CONST EFI_BOOT_MANAGER_LOAD_OPTION  *Array,
+  IN UINTN                               Count
+  )
 {
-  UINTN                             Index;
+  UINTN  Index;
 
   for (Index = 0; Index < Count; Index++) {
     if ((Key->OptionType == Array[Index].OptionType) &&
@@ -74,12 +79,84 @@ PlatformFindLoadOption (
         (StrCmp (Key->Description, Array[Index].Description) == 0) &&
         (CompareMem (Key->FilePath, Array[Index].FilePath, GetDevicePathSize (Key->FilePath)) == 0) &&
         (Key->OptionalDataSize == Array[Index].OptionalDataSize) &&
-        (CompareMem (Key->OptionalData, Array[Index].OptionalData, Key->OptionalDataSize) == 0)) {
-      return (INTN) Index;
+        (CompareMem (Key->OptionalData, Array[Index].OptionalData, Key->OptionalDataSize) == 0))
+    {
+      return (INTN)Index;
     }
   }
 
   return -1;
+}
+
+/**
+  Get the FV device path for the shell file.
+
+  @return   A pointer to device path structure.
+**/
+EFI_DEVICE_PATH_PROTOCOL *
+BdsGetShellFvDevicePath (
+  VOID
+  )
+{
+  UINTN                          FvHandleCount;
+  EFI_HANDLE                     *FvHandleBuffer;
+  UINTN                          Index;
+  EFI_STATUS                     Status;
+  EFI_FIRMWARE_VOLUME2_PROTOCOL  *Fv;
+  UINTN                          Size;
+  UINT32                         AuthenticationStatus;
+  EFI_DEVICE_PATH_PROTOCOL       *DevicePath;
+  EFI_FV_FILETYPE                FoundType;
+  EFI_FV_FILE_ATTRIBUTES         FileAttributes;
+
+  Status = EFI_SUCCESS;
+  gBS->LocateHandleBuffer (
+         ByProtocol,
+         &gEfiFirmwareVolume2ProtocolGuid,
+         NULL,
+         &FvHandleCount,
+         &FvHandleBuffer
+         );
+
+  for (Index = 0; Index < FvHandleCount; Index++) {
+    Size = 0;
+    gBS->HandleProtocol (
+           FvHandleBuffer[Index],
+           &gEfiFirmwareVolume2ProtocolGuid,
+           (VOID **)&Fv
+           );
+    Status = Fv->ReadFile (
+                   Fv,
+                   &gUefiShellFileGuid,
+                   NULL,
+                   &Size,
+                   &FoundType,
+                   &FileAttributes,
+                   &AuthenticationStatus
+                   );
+    if (!EFI_ERROR (Status)) {
+      //
+      // Found the shell file
+      //
+      break;
+    }
+  }
+
+  if (EFI_ERROR (Status)) {
+    if (FvHandleCount) {
+      FreePool (FvHandleBuffer);
+    }
+
+    return NULL;
+  }
+
+  DevicePath = DevicePathFromHandle (FvHandleBuffer[Index]);
+
+  if (FvHandleCount) {
+    FreePool (FvHandleBuffer);
+  }
+
+  return DevicePath;
 }
 
 /**
@@ -91,28 +168,24 @@ PlatformFindLoadOption (
 **/
 VOID
 PlatformRegisterFvBootOption (
-  EFI_GUID                         *FileGuid,
-  CHAR16                           *Description,
-  UINT32                           Attributes
-)
+  EFI_GUID  *FileGuid,
+  CHAR16    *Description,
+  UINT32    Attributes
+  )
 {
-  EFI_STATUS                        Status;
-  UINTN                             OptionIndex;
-  EFI_BOOT_MANAGER_LOAD_OPTION      NewOption;
-  EFI_BOOT_MANAGER_LOAD_OPTION      *BootOptions;
-  UINTN                             BootOptionCount;
-  MEDIA_FW_VOL_FILEPATH_DEVICE_PATH FileNode;
-  EFI_LOADED_IMAGE_PROTOCOL         *LoadedImage;
-  EFI_DEVICE_PATH_PROTOCOL          *DevicePath;
-
-  Status = gBS->HandleProtocol (gImageHandle, &gEfiLoadedImageProtocolGuid, (VOID **) &LoadedImage);
-  ASSERT_EFI_ERROR (Status);
+  EFI_STATUS                         Status;
+  UINTN                              OptionIndex;
+  EFI_BOOT_MANAGER_LOAD_OPTION       NewOption;
+  EFI_BOOT_MANAGER_LOAD_OPTION       *BootOptions;
+  UINTN                              BootOptionCount;
+  MEDIA_FW_VOL_FILEPATH_DEVICE_PATH  FileNode;
+  EFI_DEVICE_PATH_PROTOCOL           *DevicePath;
 
   EfiInitializeFwVolDevicepathNode (&FileNode, FileGuid);
   DevicePath = AppendDevicePathNode (
-                 DevicePathFromHandle (LoadedImage->DeviceHandle),
-                 (EFI_DEVICE_PATH_PROTOCOL *) &FileNode
-               );
+                 BdsGetShellFvDevicePath (),
+                 (EFI_DEVICE_PATH_PROTOCOL *)&FileNode
+                 );
 
   Status = EfiBootManagerInitializeLoadOption (
              &NewOption,
@@ -123,16 +196,17 @@ PlatformRegisterFvBootOption (
              DevicePath,
              NULL,
              0
-           );
+             );
   if (!EFI_ERROR (Status)) {
     BootOptions = EfiBootManagerGetLoadOptions (&BootOptionCount, LoadOptionTypeBoot);
 
     OptionIndex = PlatformFindLoadOption (&NewOption, BootOptions, BootOptionCount);
 
     if (OptionIndex == -1) {
-      Status = EfiBootManagerAddLoadOptionVariable (&NewOption, (UINTN) -1);
+      Status = EfiBootManagerAddLoadOptionVariable (&NewOption, (UINTN)-1);
       ASSERT_EFI_ERROR (Status);
     }
+
     EfiBootManagerFreeLoadOption (&NewOption);
     EfiBootManagerFreeLoadOptions (BootOptions, BootOptionCount);
   }
@@ -150,14 +224,12 @@ VOID
 EFIAPI
 PlatformBootManagerBeforeConsole (
   VOID
-)
+  )
 {
-  EFI_INPUT_KEY                Enter;
-  EFI_INPUT_KEY                F2;
-  EFI_INPUT_KEY                Down;
-  EFI_BOOT_MANAGER_LOAD_OPTION BootOption;
-
-  PlatformConsoleInit ();
+  EFI_INPUT_KEY                 Enter;
+  EFI_INPUT_KEY                 CustomKey;
+  EFI_INPUT_KEY                 Down;
+  EFI_BOOT_MANAGER_LOAD_OPTION  BootOption;
 
   //
   // Register ENTER as CONTINUE key
@@ -166,13 +238,22 @@ PlatformBootManagerBeforeConsole (
   Enter.UnicodeChar = CHAR_CARRIAGE_RETURN;
   EfiBootManagerRegisterContinueKeyOption (0, &Enter, NULL);
 
-  //
-  // Map F2 to Boot Manager Menu
-  //
-  F2.ScanCode    = SCAN_F2;
-  F2.UnicodeChar = CHAR_NULL;
+  if (FixedPcdGetBool (PcdBootManagerEscape)) {
+    //
+    // Map Esc to Boot Manager Menu
+    //
+    CustomKey.ScanCode    = SCAN_ESC;
+    CustomKey.UnicodeChar = CHAR_NULL;
+  } else {
+    //
+    // Map Esc to Boot Manager Menu
+    //
+    CustomKey.ScanCode    = SCAN_F2;
+    CustomKey.UnicodeChar = CHAR_NULL;
+  }
+
   EfiBootManagerGetBootManagerMenu (&BootOption);
-  EfiBootManagerAddKeyOptionVariable (NULL, (UINT16) BootOption.OptionNumber, 0, &F2, NULL);
+  EfiBootManagerAddKeyOptionVariable (NULL, (UINT16)BootOption.OptionNumber, 0, &CustomKey, NULL);
 
   //
   // Also add Down key to Boot Manager Menu since some serial terminals don't support F2 key.
@@ -180,7 +261,7 @@ PlatformBootManagerBeforeConsole (
   Down.ScanCode    = SCAN_DOWN;
   Down.UnicodeChar = CHAR_NULL;
   EfiBootManagerGetBootManagerMenu (&BootOption);
-  EfiBootManagerAddKeyOptionVariable (NULL, (UINT16) BootOption.OptionNumber, 0, &Down, NULL);
+  EfiBootManagerAddKeyOptionVariable (NULL, (UINT16)BootOption.OptionNumber, 0, &Down, NULL);
 
   //
   // Install ready to lock.
@@ -192,6 +273,8 @@ PlatformBootManagerBeforeConsole (
   // Dispatch deferred images after EndOfDxe event and ReadyToLock installation.
   //
   EfiBootManagerDispatchDeferredImages ();
+
+  PlatformConsoleInit ();
 }
 
 /**
@@ -208,13 +291,22 @@ VOID
 EFIAPI
 PlatformBootManagerAfterConsole (
   VOID
-)
+  )
 {
   EFI_GRAPHICS_OUTPUT_BLT_PIXEL  Black;
   EFI_GRAPHICS_OUTPUT_BLT_PIXEL  White;
+  EDKII_PLATFORM_LOGO_PROTOCOL   *PlatformLogo;
+  EFI_STATUS                     Status;
 
   Black.Blue = Black.Green = Black.Red = Black.Reserved = 0;
   White.Blue = White.Green = White.Red = White.Reserved = 0xFF;
+
+  Status = gBS->LocateProtocol (&gEdkiiPlatformLogoProtocolGuid, NULL, (VOID **)&PlatformLogo);
+
+  if (!EFI_ERROR (Status)) {
+    gST->ConOut->ClearScreen (gST->ConOut);
+    BootLogoEnableLogo ();
+  }
 
   EfiBootManagerConnectAll ();
   EfiBootManagerRefreshAllBootOption ();
@@ -222,15 +314,23 @@ PlatformBootManagerAfterConsole (
   //
   // Register UEFI Shell
   //
-  PlatformRegisterFvBootOption (PcdGetPtr (PcdShellFile), L"UEFI Shell", LOAD_OPTION_ACTIVE);
+  PlatformRegisterFvBootOption (&gUefiShellFileGuid, L"UEFI Shell", LOAD_OPTION_ACTIVE);
 
-  Print (
-    L"\n"
-    L"F2 or Down      to enter Boot Manager Menu.\n"
-    L"ENTER           to boot directly.\n"
-    L"\n"
-  );
-
+  if (FixedPcdGetBool (PcdBootManagerEscape)) {
+    Print (
+      L"\n"
+      L"    Esc or Down      to enter Boot Manager Menu.\n"
+      L"    ENTER            to boot directly.\n"
+      L"\n"
+      );
+  } else {
+    Print (
+      L"\n"
+      L"    F2 or Down      to enter Boot Manager Menu.\n"
+      L"    ENTER           to boot directly.\n"
+      L"\n"
+      );
+  }
 }
 
 /**
@@ -241,8 +341,8 @@ PlatformBootManagerAfterConsole (
 VOID
 EFIAPI
 PlatformBootManagerWaitCallback (
-  UINT16          TimeoutRemain
-)
+  UINT16  TimeoutRemain
+  )
 {
   return;
 }
@@ -262,4 +362,3 @@ PlatformBootManagerUnableToBoot (
 {
   return;
 }
-

@@ -7,12 +7,27 @@
 ##
 import os
 import logging
+import sys
 from edk2toolext.environment import shell_environment
 from edk2toolext.invocables.edk2_ci_build import CiBuildSettingsManager
 from edk2toolext.invocables.edk2_setup import SetupSettingsManager, RequiredSubmodule
 from edk2toolext.invocables.edk2_update import UpdateSettingsManager
 from edk2toolext.invocables.edk2_pr_eval import PrEvalSettingsManager
 from edk2toollib.utility_functions import GetHostInfo
+from pathlib import Path
+
+
+try:
+    # Temporarily needed until edk2 can update to the latest edk2-pytools
+    # that has the CodeQL helpers.
+    #
+    # May not be present until submodules are populated.
+    #
+    root = Path(__file__).parent.parent.resolve()
+    sys.path.append(str(root/'BaseTools'/'Plugin'/'CodeQL'/'integration'))
+    import stuart_codeql as codeql_helpers
+except ImportError:
+    pass
 
 
 class Settings(CiBuildSettingsManager, UpdateSettingsManager, SetupSettingsManager, PrEvalSettingsManager):
@@ -22,16 +37,34 @@ class Settings(CiBuildSettingsManager, UpdateSettingsManager, SetupSettingsManag
         self.ActualTargets = []
         self.ActualArchitectures = []
         self.ActualToolChainTag = ""
+        self.UseBuiltInBaseTools = None
+        self.ActualScopes = None
 
     # ####################################################################################### #
     #                             Extra CmdLine configuration                                 #
     # ####################################################################################### #
 
     def AddCommandLineOptions(self, parserObj):
-        pass
+        group = parserObj.add_mutually_exclusive_group()
+        group.add_argument("-force_piptools", "--fpt", dest="force_piptools", action="store_true", default=False, help="Force the system to use pip tools")
+        group.add_argument("-no_piptools", "--npt", dest="no_piptools", action="store_true", default=False, help="Force the system to not use pip tools")
+
+        try:
+            codeql_helpers.add_command_line_option(parserObj)
+        except NameError:
+            pass
 
     def RetrieveCommandLineOptions(self, args):
-        pass
+        super().RetrieveCommandLineOptions(args)
+        if args.force_piptools:
+            self.UseBuiltInBaseTools = True
+        if args.no_piptools:
+            self.UseBuiltInBaseTools = False
+
+        try:
+            self.codeql = codeql_helpers.is_codeql_enabled_on_command_line(args)
+        except NameError:
+            pass
 
     # ####################################################################################### #
     #                        Default Support for this Ci Build                                #
@@ -41,9 +74,14 @@ class Settings(CiBuildSettingsManager, UpdateSettingsManager, SetupSettingsManag
         ''' return iterable of edk2 packages supported by this build.
         These should be edk2 workspace relative paths '''
 
-        return ("ArmVirtPkg",
+        return ("ArmPkg",
+                "ArmPlatformPkg",
+                "ArmVirtPkg",
                 "DynamicTablesPkg",
+                "EmbeddedPkg",
                 "EmulatorPkg",
+                "IntelFsp2Pkg",
+                "IntelFsp2WrapperPkg",
                 "MdePkg",
                 "MdeModulePkg",
                 "NetworkPkg",
@@ -52,12 +90,16 @@ class Settings(CiBuildSettingsManager, UpdateSettingsManager, SetupSettingsManag
                 "UefiCpuPkg",
                 "FmpDevicePkg",
                 "ShellPkg",
+                "SignedCapsulePkg",
                 "StandaloneMmPkg",
                 "FatPkg",
                 "CryptoPkg",
+                "PrmPkg",
                 "UnitTestFrameworkPkg",
                 "OvmfPkg",
-                "RedfishPkg"
+                "RedfishPkg",
+                "SourceLevelDebugPkg",
+                "UefiPayloadPkg"
                 )
 
     def GetArchitecturesSupported(self):
@@ -67,7 +109,8 @@ class Settings(CiBuildSettingsManager, UpdateSettingsManager, SetupSettingsManag
                 "X64",
                 "ARM",
                 "AARCH64",
-                "RISCV64")
+                "RISCV64",
+                "LOONGARCH64")
 
     def GetTargetsSupported(self):
         ''' return iterable of edk2 target tags supported by this build '''
@@ -128,19 +171,42 @@ class Settings(CiBuildSettingsManager, UpdateSettingsManager, SetupSettingsManag
 
     def GetActiveScopes(self):
         ''' return tuple containing scopes that should be active for this process '''
-        scopes = ("cibuild", "edk2-build", "host-based-test")
+        if self.ActualScopes is None:
+            scopes = ("cibuild", "edk2-build", "host-based-test")
 
-        self.ActualToolChainTag = shell_environment.GetBuildVars().GetValue("TOOL_CHAIN_TAG", "")
+            self.ActualToolChainTag = shell_environment.GetBuildVars().GetValue("TOOL_CHAIN_TAG", "")
 
-        if GetHostInfo().os.upper() == "LINUX" and self.ActualToolChainTag.upper().startswith("GCC"):
-            if "AARCH64" in self.ActualArchitectures:
-                scopes += ("gcc_aarch64_linux",)
-            if "ARM" in self.ActualArchitectures:
-                scopes += ("gcc_arm_linux",)
-            if "RISCV64" in self.ActualArchitectures:
-                scopes += ("gcc_riscv64_unknown",)
+            is_linux = GetHostInfo().os.upper() == "LINUX"
 
-        return scopes
+            if self.UseBuiltInBaseTools is None:
+                is_linux = GetHostInfo().os.upper() == "LINUX"
+                # try and import the pip module for basetools
+                try:
+                    import edk2basetools
+                    self.UseBuiltInBaseTools = True
+                except ImportError:
+                    self.UseBuiltInBaseTools = False
+                    pass
+
+            if self.UseBuiltInBaseTools == True:
+                scopes += ('pipbuild-unix',) if is_linux else ('pipbuild-win',)
+                logging.warning("Using Pip Tools based BaseTools")
+            else:
+                logging.warning("Falling back to using in-tree BaseTools")
+
+            try:
+                scopes += codeql_helpers.get_scopes(self.codeql)
+
+                if self.codeql:
+                    shell_environment.GetBuildVars().SetValue(
+                        "STUART_CODEQL_AUDIT_ONLY",
+                        "TRUE",
+                        "Set in CISettings.py")
+            except NameError:
+                pass
+
+            self.ActualScopes = scopes
+        return self.ActualScopes
 
     def GetRequiredSubmodules(self):
         ''' return iterable containing RequiredSubmodule objects.
@@ -154,6 +220,8 @@ class Settings(CiBuildSettingsManager, UpdateSettingsManager, SetupSettingsManag
         rs.append(RequiredSubmodule(
             "UnitTestFrameworkPkg/Library/CmockaLib/cmocka", False))
         rs.append(RequiredSubmodule(
+            "UnitTestFrameworkPkg/Library/GoogleTestLib/googletest", False))
+        rs.append(RequiredSubmodule(
             "MdeModulePkg/Universal/RegularExpressionDxe/oniguruma", False))
         rs.append(RequiredSubmodule(
             "MdeModulePkg/Library/BrotliCustomDecompressLib/brotli", False))
@@ -161,6 +229,16 @@ class Settings(CiBuildSettingsManager, UpdateSettingsManager, SetupSettingsManag
             "BaseTools/Source/C/BrotliCompress/brotli", False))
         rs.append(RequiredSubmodule(
             "RedfishPkg/Library/JsonLib/jansson", False))
+        rs.append(RequiredSubmodule(
+            "UnitTestFrameworkPkg/Library/SubhookLib/subhook", False))
+        rs.append(RequiredSubmodule(
+            "MdePkg/Library/BaseFdtLib/libfdt", False))
+        rs.append(RequiredSubmodule(
+            "MdePkg/Library/MipiSysTLib/mipisyst", False))
+        rs.append(RequiredSubmodule(
+            "CryptoPkg/Library/MbedTlsLib/mbedtls", False))
+        rs.append(RequiredSubmodule(
+            "SecurityPkg/DeviceSecurity/SpdmLib/libspdm", False))
         return rs
 
     def GetName(self):

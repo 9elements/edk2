@@ -9,19 +9,16 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include "DxeMain.h"
 #include "Handle.h"
 
-
 //
 // mProtocolDatabase     - A list of all protocols in the system.  (simple list for now)
 // gHandleList           - A list of all the handles in the system
 // gProtocolDatabaseLock - Lock to protect the mProtocolDatabase
 // gHandleDatabaseKey    -  The Key to show that the handle has been created/modified
 //
-LIST_ENTRY      mProtocolDatabase     = INITIALIZE_LIST_HEAD_VARIABLE (mProtocolDatabase);
-LIST_ENTRY      gHandleList           = INITIALIZE_LIST_HEAD_VARIABLE (gHandleList);
-EFI_LOCK        gProtocolDatabaseLock = EFI_INITIALIZE_LOCK_VARIABLE (TPL_NOTIFY);
-UINT64          gHandleDatabaseKey    = 0;
-
-
+LIST_ENTRY  mProtocolDatabase     = INITIALIZE_LIST_HEAD_VARIABLE (mProtocolDatabase);
+LIST_ENTRY  gHandleList           = INITIALIZE_LIST_HEAD_VARIABLE (gHandleList);
+EFI_LOCK    gProtocolDatabaseLock = EFI_INITIALIZE_LOCK_VARIABLE (TPL_NOTIFY);
+UINT64      gHandleDatabaseKey    = 0;
 
 /**
   Acquire lock on gProtocolDatabaseLock.
@@ -35,8 +32,6 @@ CoreAcquireProtocolLock (
   CoreAcquireLock (&gProtocolDatabaseLock);
 }
 
-
-
 /**
   Release lock on gProtocolDatabaseLock.
 
@@ -49,10 +44,9 @@ CoreReleaseProtocolLock (
   CoreReleaseLock (&gProtocolDatabaseLock);
 }
 
-
-
 /**
   Check whether a handle is a valid EFI_HANDLE
+  The gProtocolDatabaseLock must be owned
 
   @param  UserHandle             The handle to check
 
@@ -62,27 +56,27 @@ CoreReleaseProtocolLock (
 **/
 EFI_STATUS
 CoreValidateHandle (
-  IN  EFI_HANDLE                UserHandle
+  IN  EFI_HANDLE  UserHandle
   )
 {
-  IHANDLE             *Handle;
-  LIST_ENTRY          *Link;
+  IHANDLE     *Handle;
+  LIST_ENTRY  *Link;
 
   if (UserHandle == NULL) {
     return EFI_INVALID_PARAMETER;
   }
 
+  ASSERT_LOCKED (&gProtocolDatabaseLock);
+
   for (Link = gHandleList.BackLink; Link != &gHandleList; Link = Link->BackLink) {
     Handle = CR (Link, IHANDLE, AllHandles, EFI_HANDLE_SIGNATURE);
-    if (Handle == (IHANDLE *) UserHandle) {
+    if (Handle == (IHANDLE *)UserHandle) {
       return EFI_SUCCESS;
     }
   }
 
   return EFI_INVALID_PARAMETER;
 }
-
-
 
 /**
   Finds the protocol entry for the requested protocol.
@@ -96,15 +90,15 @@ CoreValidateHandle (
 **/
 PROTOCOL_ENTRY  *
 CoreFindProtocolEntry (
-  IN EFI_GUID   *Protocol,
-  IN BOOLEAN    Create
+  IN EFI_GUID  *Protocol,
+  IN BOOLEAN   Create
   )
 {
-  LIST_ENTRY          *Link;
-  PROTOCOL_ENTRY      *Item;
-  PROTOCOL_ENTRY      *ProtEntry;
+  LIST_ENTRY      *Link;
+  PROTOCOL_ENTRY  *Item;
+  PROTOCOL_ENTRY  *ProtEntry;
 
-  ASSERT_LOCKED(&gProtocolDatabaseLock);
+  ASSERT_LOCKED (&gProtocolDatabaseLock);
 
   //
   // Search the database for the matching GUID
@@ -113,11 +107,10 @@ CoreFindProtocolEntry (
   ProtEntry = NULL;
   for (Link = mProtocolDatabase.ForwardLink;
        Link != &mProtocolDatabase;
-       Link = Link->ForwardLink) {
-
-    Item = CR(Link, PROTOCOL_ENTRY, AllEntries, PROTOCOL_ENTRY_SIGNATURE);
+       Link = Link->ForwardLink)
+  {
+    Item = CR (Link, PROTOCOL_ENTRY, AllEntries, PROTOCOL_ENTRY_SIGNATURE);
     if (CompareGuid (&Item->ProtocolID, Protocol)) {
-
       //
       // This is the protocol entry
       //
@@ -132,7 +125,7 @@ CoreFindProtocolEntry (
   // allocate a new entry
   //
   if ((ProtEntry == NULL) && Create) {
-    ProtEntry = AllocatePool (sizeof(PROTOCOL_ENTRY));
+    ProtEntry = AllocatePool (sizeof (PROTOCOL_ENTRY));
 
     if (ProtEntry != NULL) {
       //
@@ -153,8 +146,6 @@ CoreFindProtocolEntry (
   return ProtEntry;
 }
 
-
-
 /**
   Finds the protocol instance for the requested handle and protocol.
   Note: This function doesn't do parameters checking, it's caller's responsibility
@@ -169,16 +160,16 @@ CoreFindProtocolEntry (
 **/
 PROTOCOL_INTERFACE *
 CoreFindProtocolInterface (
-  IN IHANDLE        *Handle,
-  IN EFI_GUID       *Protocol,
-  IN VOID           *Interface
+  IN IHANDLE   *Handle,
+  IN EFI_GUID  *Protocol,
+  IN VOID      *Interface
   )
 {
   PROTOCOL_INTERFACE  *Prot;
   PROTOCOL_ENTRY      *ProtEntry;
   LIST_ENTRY          *Link;
 
-  ASSERT_LOCKED(&gProtocolDatabaseLock);
+  ASSERT_LOCKED (&gProtocolDatabaseLock);
   Prot = NULL;
 
   //
@@ -187,17 +178,15 @@ CoreFindProtocolInterface (
 
   ProtEntry = CoreFindProtocolEntry (Protocol, FALSE);
   if (ProtEntry != NULL) {
-
     //
     // Look at each protocol interface for any matches
     //
-    for (Link = Handle->Protocols.ForwardLink; Link != &Handle->Protocols; Link=Link->ForwardLink) {
-
+    for (Link = Handle->Protocols.ForwardLink; Link != &Handle->Protocols; Link = Link->ForwardLink) {
       //
       // If this protocol interface matches, remove it
       //
-      Prot = CR(Link, PROTOCOL_INTERFACE, Link, PROTOCOL_INTERFACE_SIGNATURE);
-      if (Prot->Interface == Interface && Prot->Protocol == ProtEntry) {
+      Prot = CR (Link, PROTOCOL_INTERFACE, Link, PROTOCOL_INTERFACE_SIGNATURE);
+      if ((Prot->Interface == Interface) && (Prot->Protocol == ProtEntry)) {
         break;
       }
 
@@ -208,6 +197,65 @@ CoreFindProtocolInterface (
   return Prot;
 }
 
+/**
+  Check if the given device path is already installed.
+
+  @param  DevicePath            The given device path
+
+  @retval TRUE                  The device path is already installed
+  @retval FALSE                 The device path is not installed
+
+**/
+BOOLEAN
+IsDevicePathInstalled (
+  IN EFI_DEVICE_PATH_PROTOCOL  *DevicePath
+  )
+{
+  UINTN               SourceSize;
+  UINTN               Size;
+  BOOLEAN             Found;
+  LIST_ENTRY          *Link;
+  PROTOCOL_ENTRY      *ProtEntry;
+  PROTOCOL_INTERFACE  *Prot;
+
+  if (DevicePath == NULL) {
+    return FALSE;
+  }
+
+  Found      = FALSE;
+  SourceSize = GetDevicePathSize (DevicePath);
+  ASSERT (SourceSize >= END_DEVICE_PATH_LENGTH);
+
+  CoreAcquireProtocolLock ();
+  //
+  // Look up the protocol entry
+  //
+  ProtEntry = CoreFindProtocolEntry (&gEfiDevicePathProtocolGuid, FALSE);
+  if (ProtEntry == NULL) {
+    goto Done;
+  }
+
+  for (Link = ProtEntry->Protocols.ForwardLink; Link != &ProtEntry->Protocols; Link = Link->ForwardLink) {
+    //
+    // Loop on the DevicePathProtocol interfaces
+    //
+    Prot = CR (Link, PROTOCOL_INTERFACE, ByProtocol, PROTOCOL_INTERFACE_SIGNATURE);
+
+    //
+    // Check if DevicePath is same as this interface
+    //
+    Size = GetDevicePathSize (Prot->Interface);
+    ASSERT (Size >= END_DEVICE_PATH_LENGTH);
+    if ((Size == SourceSize) && (CompareMem (DevicePath, Prot->Interface, Size - END_DEVICE_PATH_LENGTH) == 0)) {
+      Found = TRUE;
+      break;
+    }
+  }
+
+Done:
+  CoreReleaseProtocolLock ();
+  return Found;
+}
 
 /**
   Removes an event from a register protocol notify list on a protocol.
@@ -221,31 +269,31 @@ CoreFindProtocolInterface (
 **/
 EFI_STATUS
 CoreUnregisterProtocolNotifyEvent (
-  IN EFI_EVENT      Event
+  IN EFI_EVENT  Event
   )
 {
-  LIST_ENTRY         *Link;
-  PROTOCOL_ENTRY     *ProtEntry;
-  LIST_ENTRY         *NotifyLink;
-  PROTOCOL_NOTIFY    *ProtNotify;
+  LIST_ENTRY       *Link;
+  PROTOCOL_ENTRY   *ProtEntry;
+  LIST_ENTRY       *NotifyLink;
+  PROTOCOL_NOTIFY  *ProtNotify;
 
   CoreAcquireProtocolLock ();
 
   for ( Link =  mProtocolDatabase.ForwardLink;
         Link != &mProtocolDatabase;
-        Link =  Link->ForwardLink) {
-
-    ProtEntry = CR(Link, PROTOCOL_ENTRY, AllEntries, PROTOCOL_ENTRY_SIGNATURE);
+        Link =  Link->ForwardLink)
+  {
+    ProtEntry = CR (Link, PROTOCOL_ENTRY, AllEntries, PROTOCOL_ENTRY_SIGNATURE);
 
     for ( NotifyLink =  ProtEntry->Notify.ForwardLink;
           NotifyLink != &ProtEntry->Notify;
-          NotifyLink =  NotifyLink->ForwardLink) {
-
-      ProtNotify = CR(NotifyLink, PROTOCOL_NOTIFY, Link, PROTOCOL_NOTIFY_SIGNATURE);
+          NotifyLink =  NotifyLink->ForwardLink)
+    {
+      ProtNotify = CR (NotifyLink, PROTOCOL_NOTIFY, Link, PROTOCOL_NOTIFY_SIGNATURE);
 
       if (ProtNotify->Event == Event) {
-        RemoveEntryList(&ProtNotify->Link);
-        CoreFreePool(ProtNotify);
+        RemoveEntryList (&ProtNotify->Link);
+        CoreFreePool (ProtNotify);
         CoreReleaseProtocolLock ();
         return EFI_SUCCESS;
       }
@@ -255,8 +303,6 @@ CoreUnregisterProtocolNotifyEvent (
   CoreReleaseProtocolLock ();
   return EFI_NOT_FOUND;
 }
-
-
 
 /**
   Removes all the events in the protocol database that match Event.
@@ -269,10 +315,10 @@ CoreUnregisterProtocolNotifyEvent (
 **/
 EFI_STATUS
 CoreUnregisterProtocolNotify (
-  IN EFI_EVENT      Event
+  IN EFI_EVENT  Event
   )
 {
-  EFI_STATUS       Status;
+  EFI_STATUS  Status;
 
   do {
     Status = CoreUnregisterProtocolNotifyEvent (Event);
@@ -280,9 +326,6 @@ CoreUnregisterProtocolNotify (
 
   return EFI_SUCCESS;
 }
-
-
-
 
 /**
   Wrapper function to CoreInstallProtocolInterfaceNotify.  This is the public API which
@@ -301,21 +344,20 @@ CoreUnregisterProtocolNotify (
 EFI_STATUS
 EFIAPI
 CoreInstallProtocolInterface (
-  IN OUT EFI_HANDLE     *UserHandle,
-  IN EFI_GUID           *Protocol,
-  IN EFI_INTERFACE_TYPE InterfaceType,
-  IN VOID               *Interface
+  IN OUT EFI_HANDLE      *UserHandle,
+  IN EFI_GUID            *Protocol,
+  IN EFI_INTERFACE_TYPE  InterfaceType,
+  IN VOID                *Interface
   )
 {
   return CoreInstallProtocolInterfaceNotify (
-            UserHandle,
-            Protocol,
-            InterfaceType,
-            Interface,
-            TRUE
-            );
+           UserHandle,
+           Protocol,
+           InterfaceType,
+           Interface,
+           TRUE
+           );
 }
-
 
 /**
   Installs a protocol interface into the boot services environment.
@@ -336,11 +378,11 @@ CoreInstallProtocolInterface (
 **/
 EFI_STATUS
 CoreInstallProtocolInterfaceNotify (
-  IN OUT EFI_HANDLE     *UserHandle,
-  IN EFI_GUID           *Protocol,
-  IN EFI_INTERFACE_TYPE InterfaceType,
-  IN VOID               *Interface,
-  IN BOOLEAN            Notify
+  IN OUT EFI_HANDLE      *UserHandle,
+  IN EFI_GUID            *Protocol,
+  IN EFI_INTERFACE_TYPE  InterfaceType,
+  IN VOID                *Interface,
+  IN BOOLEAN             Notify
   )
 {
   PROTOCOL_INTERFACE  *Prot;
@@ -353,7 +395,7 @@ CoreInstallProtocolInterfaceNotify (
   // returns EFI_INVALID_PARAMETER if InterfaceType is invalid.
   // Also added check for invalid UserHandle and Protocol pointers.
   //
-  if (UserHandle == NULL || Protocol == NULL) {
+  if ((UserHandle == NULL) || (Protocol == NULL)) {
     return EFI_INVALID_PARAMETER;
   }
 
@@ -364,10 +406,10 @@ CoreInstallProtocolInterfaceNotify (
   //
   // Print debug message
   //
-  DEBUG((DEBUG_INFO, "InstallProtocolInterface: %g %p\n", Protocol, Interface));
+  DEBUG ((DEBUG_INFO, "InstallProtocolInterface: %g %p\n", Protocol, Interface));
 
   Status = EFI_OUT_OF_RESOURCES;
-  Prot = NULL;
+  Prot   = NULL;
   Handle = NULL;
 
   if (*UserHandle != NULL) {
@@ -393,7 +435,7 @@ CoreInstallProtocolInterfaceNotify (
   //
   // Allocate a new protocol interface structure
   //
-  Prot = AllocateZeroPool (sizeof(PROTOCOL_INTERFACE));
+  Prot = AllocateZeroPool (sizeof (PROTOCOL_INTERFACE));
   if (Prot == NULL) {
     Status = EFI_OUT_OF_RESOURCES;
     goto Done;
@@ -404,7 +446,7 @@ CoreInstallProtocolInterfaceNotify (
   //
   Handle = (IHANDLE *)*UserHandle;
   if (Handle == NULL) {
-    Handle = AllocateZeroPool (sizeof(IHANDLE));
+    Handle = AllocateZeroPool (sizeof (IHANDLE));
     if (Handle == NULL) {
       Status = EFI_OUT_OF_RESOURCES;
       goto Done;
@@ -430,7 +472,7 @@ CoreInstallProtocolInterfaceNotify (
   } else {
     Status = CoreValidateHandle (Handle);
     if (EFI_ERROR (Status)) {
-      DEBUG((DEBUG_ERROR, "InstallProtocolInterface: input handle at 0x%x is invalid\n", Handle));
+      DEBUG ((DEBUG_ERROR, "InstallProtocolInterface: input handle at 0x%x is invalid\n", Handle));
       goto Done;
     }
   }
@@ -444,8 +486,8 @@ CoreInstallProtocolInterfaceNotify (
   // Initialize the protocol interface structure
   //
   Prot->Signature = PROTOCOL_INTERFACE_SIGNATURE;
-  Prot->Handle = Handle;
-  Prot->Protocol = ProtEntry;
+  Prot->Handle    = Handle;
+  Prot->Protocol  = ProtEntry;
   Prot->Interface = Interface;
 
   //
@@ -472,6 +514,7 @@ CoreInstallProtocolInterfaceNotify (
   if (Notify) {
     CoreNotifyProtocolEntry (ProtEntry);
   }
+
   Status = EFI_SUCCESS;
 
 Done:
@@ -491,14 +534,12 @@ Done:
     if (Prot != NULL) {
       CoreFreePool (Prot);
     }
-    DEBUG((DEBUG_ERROR, "InstallProtocolInterface: %g %p failed with %r\n", Protocol, Interface, Status));
+
+    DEBUG ((DEBUG_ERROR, "InstallProtocolInterface: %g %p failed with %r\n", Protocol, Interface, Status));
   }
 
   return Status;
 }
-
-
-
 
 /**
   Installs a list of protocol interface into the boot services environment.
@@ -525,19 +566,17 @@ Done:
 EFI_STATUS
 EFIAPI
 CoreInstallMultipleProtocolInterfaces (
-  IN OUT EFI_HANDLE           *Handle,
+  IN OUT EFI_HANDLE  *Handle,
   ...
   )
 {
-  VA_LIST                   Args;
-  EFI_STATUS                Status;
-  EFI_GUID                  *Protocol;
-  VOID                      *Interface;
-  EFI_TPL                   OldTpl;
-  UINTN                     Index;
-  EFI_HANDLE                OldHandle;
-  EFI_HANDLE                DeviceHandle;
-  EFI_DEVICE_PATH_PROTOCOL  *DevicePath;
+  VA_LIST     Args;
+  EFI_STATUS  Status;
+  EFI_GUID    *Protocol;
+  VOID        *Interface;
+  EFI_TPL     OldTpl;
+  UINTN       Index;
+  EFI_HANDLE  OldHandle;
 
   if (Handle == NULL) {
     return EFI_INVALID_PARAMETER;
@@ -546,7 +585,7 @@ CoreInstallMultipleProtocolInterfaces (
   //
   // Syncronize with notifcations.
   //
-  OldTpl = CoreRaiseTpl (TPL_NOTIFY);
+  OldTpl    = CoreRaiseTpl (TPL_NOTIFY);
   OldHandle = *Handle;
 
   //
@@ -567,14 +606,11 @@ CoreInstallMultipleProtocolInterfaces (
     //
     // Make sure you are installing on top a device path that has already been added.
     //
-    if (CompareGuid (Protocol, &gEfiDevicePathProtocolGuid)) {
-      DeviceHandle = NULL;
-      DevicePath   = Interface;
-      Status = CoreLocateDevicePath (&gEfiDevicePathProtocolGuid, &DevicePath, &DeviceHandle);
-      if (!EFI_ERROR (Status) && (DeviceHandle != NULL) && IsDevicePathEnd(DevicePath)) {
-        Status = EFI_ALREADY_STARTED;
-        continue;
-      }
+    if (CompareGuid (Protocol, &gEfiDevicePathProtocolGuid) &&
+        IsDevicePathInstalled (Interface))
+    {
+      Status = EFI_ALREADY_STARTED;
+      continue;
     }
 
     //
@@ -582,6 +618,7 @@ CoreInstallMultipleProtocolInterfaces (
     //
     Status = CoreInstallProtocolInterface (Handle, Protocol, EFI_NATIVE_INTERFACE, Interface);
   }
+
   VA_END (Args);
 
   //
@@ -592,11 +629,12 @@ CoreInstallMultipleProtocolInterfaces (
     // Reset the va_arg back to the first argument.
     //
     VA_START (Args, Handle);
-    for (; Index > 1; Index--) {
-      Protocol = VA_ARG (Args, EFI_GUID *);
+    for ( ; Index > 1; Index--) {
+      Protocol  = VA_ARG (Args, EFI_GUID *);
       Interface = VA_ARG (Args, VOID *);
       CoreUninstallProtocolInterface (*Handle, Protocol, Interface);
     }
+
     VA_END (Args);
 
     *Handle = OldHandle;
@@ -608,7 +646,6 @@ CoreInstallMultipleProtocolInterfaces (
   CoreRestoreTpl (OldTpl);
   return Status;
 }
-
 
 /**
   Attempts to disconnect all drivers that are using the protocol interface being queried.
@@ -626,14 +663,14 @@ CoreInstallMultipleProtocolInterfaces (
 **/
 EFI_STATUS
 CoreDisconnectControllersUsingProtocolInterface (
-  IN EFI_HANDLE           UserHandle,
-  IN PROTOCOL_INTERFACE   *Prot
+  IN EFI_HANDLE          UserHandle,
+  IN PROTOCOL_INTERFACE  *Prot
   )
 {
-  EFI_STATUS            Status;
-  BOOLEAN               ItemFound;
-  LIST_ENTRY            *Link;
-  OPEN_PROTOCOL_DATA    *OpenData;
+  EFI_STATUS          Status;
+  BOOLEAN             ItemFound;
+  LIST_ENTRY          *Link;
+  OPEN_PROTOCOL_DATA  *OpenData;
 
   Status = EFI_SUCCESS;
 
@@ -651,6 +688,7 @@ CoreDisconnectControllersUsingProtocolInterface (
         if (!EFI_ERROR (Status)) {
           ItemFound = TRUE;
         }
+
         break;
       }
     }
@@ -663,7 +701,8 @@ CoreDisconnectControllersUsingProtocolInterface (
     for (Link = Prot->OpenList.ForwardLink; Link != &Prot->OpenList;) {
       OpenData = CR (Link, OPEN_PROTOCOL_DATA, Link, OPEN_PROTOCOL_DATA_SIGNATURE);
       if ((OpenData->Attributes &
-          (EFI_OPEN_PROTOCOL_BY_HANDLE_PROTOCOL | EFI_OPEN_PROTOCOL_GET_PROTOCOL | EFI_OPEN_PROTOCOL_TEST_PROTOCOL)) != 0) {
+           (EFI_OPEN_PROTOCOL_BY_HANDLE_PROTOCOL | EFI_OPEN_PROTOCOL_GET_PROTOCOL | EFI_OPEN_PROTOCOL_TEST_PROTOCOL)) != 0)
+      {
         Link = RemoveEntryList (&OpenData->Link);
         Prot->OpenListCount--;
         CoreFreePool (OpenData);
@@ -686,8 +725,6 @@ CoreDisconnectControllersUsingProtocolInterface (
   return Status;
 }
 
-
-
 /**
   Uninstalls all instances of a protocol:interfacer from a handle.
   If the last protocol interface is remove from the handle, the
@@ -704,14 +741,14 @@ CoreDisconnectControllersUsingProtocolInterface (
 EFI_STATUS
 EFIAPI
 CoreUninstallProtocolInterface (
-  IN EFI_HANDLE       UserHandle,
-  IN EFI_GUID         *Protocol,
-  IN VOID             *Interface
+  IN EFI_HANDLE  UserHandle,
+  IN EFI_GUID    *Protocol,
+  IN VOID        *Interface
   )
 {
-  EFI_STATUS            Status;
-  IHANDLE               *Handle;
-  PROTOCOL_INTERFACE    *Prot;
+  EFI_STATUS          Status;
+  IHANDLE             *Handle;
+  PROTOCOL_INTERFACE  *Prot;
 
   //
   // Check that Protocol is valid
@@ -721,17 +758,17 @@ CoreUninstallProtocolInterface (
   }
 
   //
+  // Lock the protocol database
+  //
+  CoreAcquireProtocolLock ();
+
+  //
   // Check that UserHandle is a valid handle
   //
   Status = CoreValidateHandle (UserHandle);
   if (EFI_ERROR (Status)) {
-    return Status;
+    goto Done;
   }
-
-  //
-  // Lock the protocol database
-  //
-  CoreAcquireProtocolLock ();
 
   //
   // Check that Protocol exists on UserHandle, and Interface matches the interface in the database
@@ -800,8 +837,6 @@ Done:
   return Status;
 }
 
-
-
 /**
   Uninstalls a list of protocol interface in the boot services environment.
   This function calls UninstallProtocolInterface() in a loop. This is
@@ -827,15 +862,15 @@ Done:
 EFI_STATUS
 EFIAPI
 CoreUninstallMultipleProtocolInterfaces (
-  IN EFI_HANDLE           Handle,
+  IN EFI_HANDLE  Handle,
   ...
   )
 {
-  EFI_STATUS      Status;
-  VA_LIST         Args;
-  EFI_GUID        *Protocol;
-  VOID            *Interface;
-  UINTN           Index;
+  EFI_STATUS  Status;
+  VA_LIST     Args;
+  EFI_GUID    *Protocol;
+  VOID        *Interface;
+  UINTN       Index;
 
   VA_START (Args, Handle);
   for (Index = 0, Status = EFI_SUCCESS; !EFI_ERROR (Status); Index++) {
@@ -854,6 +889,7 @@ CoreUninstallMultipleProtocolInterfaces (
     //
     Status = CoreUninstallProtocolInterface (Handle, Protocol, Interface);
   }
+
   VA_END (Args);
 
   //
@@ -865,11 +901,12 @@ CoreUninstallMultipleProtocolInterfaces (
     // Reset the va_arg back to the first argument.
     //
     VA_START (Args, Handle);
-    for (; Index > 1; Index--) {
-      Protocol = VA_ARG(Args, EFI_GUID *);
-      Interface = VA_ARG(Args, VOID *);
+    for ( ; Index > 1; Index--) {
+      Protocol  = VA_ARG (Args, EFI_GUID *);
+      Interface = VA_ARG (Args, VOID *);
       CoreInstallProtocolInterface (&Handle, Protocol, EFI_NATIVE_INTERFACE, Interface);
     }
+
     VA_END (Args);
     Status = EFI_INVALID_PARAMETER;
   }
@@ -877,32 +914,28 @@ CoreUninstallMultipleProtocolInterfaces (
   return Status;
 }
 
-
 /**
   Locate a certain GUID protocol interface in a Handle's protocols.
 
   @param  UserHandle             The handle to obtain the protocol interface on
+                                 The caller must pass in a valid UserHandle that
+                                 is checked with CoreValidateHandle().
   @param  Protocol               The GUID of the protocol
 
   @return The requested protocol interface for the handle
 
 **/
+STATIC
 PROTOCOL_INTERFACE  *
 CoreGetProtocolInterface (
-  IN  EFI_HANDLE                UserHandle,
-  IN  EFI_GUID                  *Protocol
+  IN  EFI_HANDLE  UserHandle,
+  IN  EFI_GUID    *Protocol
   )
 {
-  EFI_STATUS          Status;
   PROTOCOL_ENTRY      *ProtEntry;
   PROTOCOL_INTERFACE  *Prot;
   IHANDLE             *Handle;
   LIST_ENTRY          *Link;
-
-  Status = CoreValidateHandle (UserHandle);
-  if (EFI_ERROR (Status)) {
-    return NULL;
-  }
 
   Handle = (IHANDLE *)UserHandle;
 
@@ -910,16 +943,15 @@ CoreGetProtocolInterface (
   // Look at each protocol interface for a match
   //
   for (Link = Handle->Protocols.ForwardLink; Link != &Handle->Protocols; Link = Link->ForwardLink) {
-    Prot = CR(Link, PROTOCOL_INTERFACE, Link, PROTOCOL_INTERFACE_SIGNATURE);
+    Prot      = CR (Link, PROTOCOL_INTERFACE, Link, PROTOCOL_INTERFACE_SIGNATURE);
     ProtEntry = Prot->Protocol;
     if (CompareGuid (&ProtEntry->ProtocolID, Protocol)) {
       return Prot;
     }
   }
+
   return NULL;
 }
-
-
 
 /**
   Queries a handle to determine if it supports a specified protocol.
@@ -939,22 +971,20 @@ CoreGetProtocolInterface (
 EFI_STATUS
 EFIAPI
 CoreHandleProtocol (
-  IN EFI_HANDLE       UserHandle,
-  IN EFI_GUID         *Protocol,
-  OUT VOID            **Interface
+  IN EFI_HANDLE  UserHandle,
+  IN EFI_GUID    *Protocol,
+  OUT VOID       **Interface
   )
 {
   return CoreOpenProtocol (
-          UserHandle,
-          Protocol,
-          Interface,
-          gDxeCoreImageHandle,
-          NULL,
-          EFI_OPEN_PROTOCOL_BY_HANDLE_PROTOCOL
-          );
+           UserHandle,
+           Protocol,
+           Interface,
+           gDxeCoreImageHandle,
+           NULL,
+           EFI_OPEN_PROTOCOL_BY_HANDLE_PROTOCOL
+           );
 }
-
-
 
 /**
   Locates the installed protocol handler for the handle, and
@@ -979,12 +1009,12 @@ CoreHandleProtocol (
 EFI_STATUS
 EFIAPI
 CoreOpenProtocol (
-  IN  EFI_HANDLE                UserHandle,
-  IN  EFI_GUID                  *Protocol,
-  OUT VOID                      **Interface OPTIONAL,
-  IN  EFI_HANDLE                ImageHandle,
-  IN  EFI_HANDLE                ControllerHandle,
-  IN  UINT32                    Attributes
+  IN  EFI_HANDLE  UserHandle,
+  IN  EFI_GUID    *Protocol,
+  OUT VOID        **Interface OPTIONAL,
+  IN  EFI_HANDLE  ImageHandle,
+  IN  EFI_HANDLE  ControllerHandle,
+  IN  UINT32      Attributes
   )
 {
   EFI_STATUS          Status;
@@ -1011,59 +1041,67 @@ CoreOpenProtocol (
   }
 
   //
+  // Lock the protocol database
+  //
+  CoreAcquireProtocolLock ();
+
+  //
   // Check for invalid UserHandle
   //
   Status = CoreValidateHandle (UserHandle);
   if (EFI_ERROR (Status)) {
-    return Status;
+    goto Done;
   }
 
   //
   // Check for invalid Attributes
   //
   switch (Attributes) {
-  case EFI_OPEN_PROTOCOL_BY_CHILD_CONTROLLER :
-    Status = CoreValidateHandle (ImageHandle);
-    if (EFI_ERROR (Status)) {
-      return Status;
-    }
-    Status = CoreValidateHandle (ControllerHandle);
-    if (EFI_ERROR (Status)) {
-      return Status;
-    }
-    if (UserHandle == ControllerHandle) {
-      return EFI_INVALID_PARAMETER;
-    }
-    break;
-  case EFI_OPEN_PROTOCOL_BY_DRIVER :
-  case EFI_OPEN_PROTOCOL_BY_DRIVER | EFI_OPEN_PROTOCOL_EXCLUSIVE :
-    Status = CoreValidateHandle (ImageHandle);
-    if (EFI_ERROR (Status)) {
-      return Status;
-    }
-    Status = CoreValidateHandle (ControllerHandle);
-    if (EFI_ERROR (Status)) {
-      return Status;
-    }
-    break;
-  case EFI_OPEN_PROTOCOL_EXCLUSIVE :
-    Status = CoreValidateHandle (ImageHandle);
-    if (EFI_ERROR (Status)) {
-      return Status;
-    }
-    break;
-  case EFI_OPEN_PROTOCOL_BY_HANDLE_PROTOCOL :
-  case EFI_OPEN_PROTOCOL_GET_PROTOCOL :
-  case EFI_OPEN_PROTOCOL_TEST_PROTOCOL :
-    break;
-  default:
-    return EFI_INVALID_PARAMETER;
-  }
+    case EFI_OPEN_PROTOCOL_BY_CHILD_CONTROLLER:
+      Status = CoreValidateHandle (ImageHandle);
+      if (EFI_ERROR (Status)) {
+        goto Done;
+      }
 
-  //
-  // Lock the protocol database
-  //
-  CoreAcquireProtocolLock ();
+      Status = CoreValidateHandle (ControllerHandle);
+      if (EFI_ERROR (Status)) {
+        goto Done;
+      }
+
+      if (UserHandle == ControllerHandle) {
+        Status = EFI_INVALID_PARAMETER;
+        goto Done;
+      }
+
+      break;
+    case EFI_OPEN_PROTOCOL_BY_DRIVER:
+    case EFI_OPEN_PROTOCOL_BY_DRIVER | EFI_OPEN_PROTOCOL_EXCLUSIVE:
+      Status = CoreValidateHandle (ImageHandle);
+      if (EFI_ERROR (Status)) {
+        goto Done;
+      }
+
+      Status = CoreValidateHandle (ControllerHandle);
+      if (EFI_ERROR (Status)) {
+        goto Done;
+      }
+
+      break;
+    case EFI_OPEN_PROTOCOL_EXCLUSIVE:
+      Status = CoreValidateHandle (ImageHandle);
+      if (EFI_ERROR (Status)) {
+        goto Done;
+      }
+
+      break;
+    case EFI_OPEN_PROTOCOL_BY_HANDLE_PROTOCOL:
+    case EFI_OPEN_PROTOCOL_GET_PROTOCOL:
+    case EFI_OPEN_PROTOCOL_TEST_PROTOCOL:
+      break;
+    default:
+      Status = EFI_INVALID_PARAMETER;
+      goto Done;
+  }
 
   //
   // Look at each protocol interface for a match
@@ -1076,10 +1114,10 @@ CoreOpenProtocol (
 
   Status = EFI_SUCCESS;
 
-  ByDriver        = FALSE;
-  Exclusive       = FALSE;
+  ByDriver  = FALSE;
+  Exclusive = FALSE;
   for ( Link = Prot->OpenList.ForwardLink; Link != &Prot->OpenList; Link = Link->ForwardLink) {
-    OpenData = CR (Link, OPEN_PROTOCOL_DATA, Link, OPEN_PROTOCOL_DATA_SIGNATURE);
+    OpenData   = CR (Link, OPEN_PROTOCOL_DATA, Link, OPEN_PROTOCOL_DATA_SIGNATURE);
     ExactMatch =  (BOOLEAN)((OpenData->AgentHandle == ImageHandle) &&
                             (OpenData->Attributes == Attributes)  &&
                             (OpenData->ControllerHandle == ControllerHandle));
@@ -1090,6 +1128,7 @@ CoreOpenProtocol (
         goto Done;
       }
     }
+
     if ((OpenData->Attributes & EFI_OPEN_PROTOCOL_EXCLUSIVE) != 0) {
       Exclusive = TRUE;
     } else if (ExactMatch) {
@@ -1107,62 +1146,66 @@ CoreOpenProtocol (
   //
 
   switch (Attributes) {
-  case EFI_OPEN_PROTOCOL_BY_DRIVER :
-    if (Exclusive || ByDriver) {
-      Status = EFI_ACCESS_DENIED;
-      goto Done;
-    }
-    break;
-  case EFI_OPEN_PROTOCOL_BY_DRIVER | EFI_OPEN_PROTOCOL_EXCLUSIVE :
-  case EFI_OPEN_PROTOCOL_EXCLUSIVE :
-    if (Exclusive) {
-      Status = EFI_ACCESS_DENIED;
-      goto Done;
-    }
-    if (ByDriver) {
-      do {
-        Disconnect = FALSE;
-        for (Link = Prot->OpenList.ForwardLink; Link != &Prot->OpenList; Link = Link->ForwardLink) {
-          OpenData = CR (Link, OPEN_PROTOCOL_DATA, Link, OPEN_PROTOCOL_DATA_SIGNATURE);
-          if ((OpenData->Attributes & EFI_OPEN_PROTOCOL_BY_DRIVER) != 0) {
-            Disconnect = TRUE;
-            CoreReleaseProtocolLock ();
-            Status = CoreDisconnectController (UserHandle, OpenData->AgentHandle, NULL);
-            CoreAcquireProtocolLock ();
-            if (EFI_ERROR (Status)) {
-              Status = EFI_ACCESS_DENIED;
-              goto Done;
-            } else {
-              break;
+    case EFI_OPEN_PROTOCOL_BY_DRIVER:
+      if (Exclusive || ByDriver) {
+        Status = EFI_ACCESS_DENIED;
+        goto Done;
+      }
+
+      break;
+    case EFI_OPEN_PROTOCOL_BY_DRIVER | EFI_OPEN_PROTOCOL_EXCLUSIVE:
+    case EFI_OPEN_PROTOCOL_EXCLUSIVE:
+      if (Exclusive) {
+        Status = EFI_ACCESS_DENIED;
+        goto Done;
+      }
+
+      if (ByDriver) {
+        do {
+          Disconnect = FALSE;
+          for (Link = Prot->OpenList.ForwardLink; Link != &Prot->OpenList; Link = Link->ForwardLink) {
+            OpenData = CR (Link, OPEN_PROTOCOL_DATA, Link, OPEN_PROTOCOL_DATA_SIGNATURE);
+            if ((OpenData->Attributes & EFI_OPEN_PROTOCOL_BY_DRIVER) != 0) {
+              Disconnect = TRUE;
+              CoreReleaseProtocolLock ();
+              Status = CoreDisconnectController (UserHandle, OpenData->AgentHandle, NULL);
+              CoreAcquireProtocolLock ();
+              if (EFI_ERROR (Status)) {
+                Status = EFI_ACCESS_DENIED;
+                goto Done;
+              } else {
+                break;
+              }
             }
           }
-        }
-      } while (Disconnect);
-    }
-    break;
-  case EFI_OPEN_PROTOCOL_BY_CHILD_CONTROLLER :
-  case EFI_OPEN_PROTOCOL_BY_HANDLE_PROTOCOL :
-  case EFI_OPEN_PROTOCOL_GET_PROTOCOL :
-  case EFI_OPEN_PROTOCOL_TEST_PROTOCOL :
-    break;
+        } while (Disconnect);
+      }
+
+      break;
+    case EFI_OPEN_PROTOCOL_BY_CHILD_CONTROLLER:
+    case EFI_OPEN_PROTOCOL_BY_HANDLE_PROTOCOL:
+    case EFI_OPEN_PROTOCOL_GET_PROTOCOL:
+    case EFI_OPEN_PROTOCOL_TEST_PROTOCOL:
+      break;
   }
 
   if (ImageHandle == NULL) {
     Status = EFI_SUCCESS;
     goto Done;
   }
+
   //
   // Create new entry
   //
-  OpenData = AllocatePool (sizeof(OPEN_PROTOCOL_DATA));
+  OpenData = AllocatePool (sizeof (OPEN_PROTOCOL_DATA));
   if (OpenData == NULL) {
     Status = EFI_OUT_OF_RESOURCES;
   } else {
-    OpenData->Signature         = OPEN_PROTOCOL_DATA_SIGNATURE;
-    OpenData->AgentHandle       = ImageHandle;
-    OpenData->ControllerHandle  = ControllerHandle;
-    OpenData->Attributes        = Attributes;
-    OpenData->OpenCount         = 1;
+    OpenData->Signature        = OPEN_PROTOCOL_DATA_SIGNATURE;
+    OpenData->AgentHandle      = ImageHandle;
+    OpenData->ControllerHandle = ControllerHandle;
+    OpenData->Attributes       = Attributes;
+    OpenData->OpenCount        = 1;
     InsertTailList (&Prot->OpenList, &OpenData->Link);
     Prot->OpenListCount++;
     Status = EFI_SUCCESS;
@@ -1175,7 +1218,7 @@ Done:
     // Keep Interface unmodified in case of any Error
     // except EFI_ALREADY_STARTED and EFI_UNSUPPORTED.
     //
-    if (!EFI_ERROR (Status) || Status == EFI_ALREADY_STARTED) {
+    if (!EFI_ERROR (Status) || (Status == EFI_ALREADY_STARTED)) {
       //
       // According to above logic, if 'Prot' is NULL, then the 'Status' must be
       // EFI_UNSUPPORTED. Here the 'Status' is not EFI_UNSUPPORTED, so 'Prot'
@@ -1205,8 +1248,6 @@ Done:
   return Status;
 }
 
-
-
 /**
   Closes a protocol on a handle that was opened using OpenProtocol().
 
@@ -1235,10 +1276,10 @@ Done:
 EFI_STATUS
 EFIAPI
 CoreCloseProtocol (
-  IN  EFI_HANDLE                UserHandle,
-  IN  EFI_GUID                  *Protocol,
-  IN  EFI_HANDLE                AgentHandle,
-  IN  EFI_HANDLE                ControllerHandle
+  IN  EFI_HANDLE  UserHandle,
+  IN  EFI_GUID    *Protocol,
+  IN  EFI_HANDLE  AgentHandle,
+  IN  EFI_HANDLE  ControllerHandle
   )
 {
   EFI_STATUS          Status;
@@ -1247,35 +1288,39 @@ CoreCloseProtocol (
   OPEN_PROTOCOL_DATA  *OpenData;
 
   //
-  // Check for invalid parameters
-  //
-  Status = CoreValidateHandle (UserHandle);
-  if (EFI_ERROR (Status)) {
-    return Status;
-  }
-  Status = CoreValidateHandle (AgentHandle);
-  if (EFI_ERROR (Status)) {
-    return Status;
-  }
-  if (ControllerHandle != NULL) {
-    Status = CoreValidateHandle (ControllerHandle);
-    if (EFI_ERROR (Status)) {
-      return Status;
-    }
-  }
-  if (Protocol == NULL) {
-    return EFI_INVALID_PARAMETER;
-  }
-
-  //
   // Lock the protocol database
   //
   CoreAcquireProtocolLock ();
 
   //
+  // Check for invalid parameters
+  //
+  Status = CoreValidateHandle (UserHandle);
+  if (EFI_ERROR (Status)) {
+    goto Done;
+  }
+
+  Status = CoreValidateHandle (AgentHandle);
+  if (EFI_ERROR (Status)) {
+    goto Done;
+  }
+
+  if (ControllerHandle != NULL) {
+    Status = CoreValidateHandle (ControllerHandle);
+    if (EFI_ERROR (Status)) {
+      goto Done;
+    }
+  }
+
+  if (Protocol == NULL) {
+    Status = EFI_INVALID_PARAMETER;
+    goto Done;
+  }
+
+  //
   // Look at each protocol interface for a match
   //
-  Status = EFI_NOT_FOUND;
+  Status            = EFI_NOT_FOUND;
   ProtocolInterface = CoreGetProtocolInterface (UserHandle, Protocol);
   if (ProtocolInterface == NULL) {
     goto Done;
@@ -1287,12 +1332,12 @@ CoreCloseProtocol (
   Link = ProtocolInterface->OpenList.ForwardLink;
   while (Link != &ProtocolInterface->OpenList) {
     OpenData = CR (Link, OPEN_PROTOCOL_DATA, Link, OPEN_PROTOCOL_DATA_SIGNATURE);
-    Link = Link->ForwardLink;
+    Link     = Link->ForwardLink;
     if ((OpenData->AgentHandle == AgentHandle) && (OpenData->ControllerHandle == ControllerHandle)) {
-        RemoveEntryList (&OpenData->Link);
-        ProtocolInterface->OpenListCount--;
-        CoreFreePool (OpenData);
-        Status = EFI_SUCCESS;
+      RemoveEntryList (&OpenData->Link);
+      ProtocolInterface->OpenListCount--;
+      CoreFreePool (OpenData);
+      Status = EFI_SUCCESS;
     }
   }
 
@@ -1303,9 +1348,6 @@ Done:
   CoreReleaseProtocolLock ();
   return Status;
 }
-
-
-
 
 /**
   Return information about Opened protocols in the system
@@ -1325,22 +1367,22 @@ Done:
 EFI_STATUS
 EFIAPI
 CoreOpenProtocolInformation (
-  IN  EFI_HANDLE                          UserHandle,
-  IN  EFI_GUID                            *Protocol,
-  OUT EFI_OPEN_PROTOCOL_INFORMATION_ENTRY **EntryBuffer,
-  OUT UINTN                               *EntryCount
+  IN  EFI_HANDLE                           UserHandle,
+  IN  EFI_GUID                             *Protocol,
+  OUT EFI_OPEN_PROTOCOL_INFORMATION_ENTRY  **EntryBuffer,
+  OUT UINTN                                *EntryCount
   )
 {
-  EFI_STATUS                          Status;
-  PROTOCOL_INTERFACE                  *ProtocolInterface;
-  LIST_ENTRY                          *Link;
-  OPEN_PROTOCOL_DATA                  *OpenData;
-  EFI_OPEN_PROTOCOL_INFORMATION_ENTRY *Buffer;
-  UINTN                               Count;
-  UINTN                               Size;
+  EFI_STATUS                           Status;
+  PROTOCOL_INTERFACE                   *ProtocolInterface;
+  LIST_ENTRY                           *Link;
+  OPEN_PROTOCOL_DATA                   *OpenData;
+  EFI_OPEN_PROTOCOL_INFORMATION_ENTRY  *Buffer;
+  UINTN                                Count;
+  UINTN                                Size;
 
   *EntryBuffer = NULL;
-  *EntryCount = 0;
+  *EntryCount  = 0;
 
   //
   // Lock the protocol database
@@ -1348,9 +1390,18 @@ CoreOpenProtocolInformation (
   CoreAcquireProtocolLock ();
 
   //
+  // Check for invalid UserHandle
+  //
+  Status = CoreValidateHandle (UserHandle);
+  if (EFI_ERROR (Status)) {
+    Status = EFI_NOT_FOUND;
+    goto Done;
+  }
+
+  //
   // Look at each protocol interface for a match
   //
-  Status = EFI_NOT_FOUND;
+  Status            = EFI_NOT_FOUND;
   ProtocolInterface = CoreGetProtocolInterface (UserHandle, Protocol);
   if (ProtocolInterface == NULL) {
     goto Done;
@@ -1360,17 +1411,18 @@ CoreOpenProtocolInformation (
   // Count the number of Open Entries
   //
   for ( Link = ProtocolInterface->OpenList.ForwardLink, Count = 0;
-        (Link != &ProtocolInterface->OpenList) ;
-        Link = Link->ForwardLink  ) {
+        (Link != &ProtocolInterface->OpenList);
+        Link = Link->ForwardLink  )
+  {
     Count++;
   }
 
   ASSERT (Count == ProtocolInterface->OpenListCount);
 
   if (Count == 0) {
-    Size = sizeof(EFI_OPEN_PROTOCOL_INFORMATION_ENTRY);
+    Size = sizeof (EFI_OPEN_PROTOCOL_INFORMATION_ENTRY);
   } else {
-    Size = Count * sizeof(EFI_OPEN_PROTOCOL_INFORMATION_ENTRY);
+    Size = Count * sizeof (EFI_OPEN_PROTOCOL_INFORMATION_ENTRY);
   }
 
   Buffer = AllocatePool (Size);
@@ -1382,7 +1434,8 @@ CoreOpenProtocolInformation (
   Status = EFI_SUCCESS;
   for ( Link = ProtocolInterface->OpenList.ForwardLink, Count = 0;
         (Link != &ProtocolInterface->OpenList);
-        Link = Link->ForwardLink, Count++  ) {
+        Link = Link->ForwardLink, Count++  )
+  {
     OpenData = CR (Link, OPEN_PROTOCOL_DATA, Link, OPEN_PROTOCOL_DATA_SIGNATURE);
 
     Buffer[Count].AgentHandle      = OpenData->AgentHandle;
@@ -1392,7 +1445,7 @@ CoreOpenProtocolInformation (
   }
 
   *EntryBuffer = Buffer;
-  *EntryCount = Count;
+  *EntryCount  = Count;
 
 Done:
   //
@@ -1401,9 +1454,6 @@ Done:
   CoreReleaseProtocolLock ();
   return Status;
 }
-
-
-
 
 /**
   Retrieves the list of protocol interface GUIDs that are installed on a handle in a buffer allocated
@@ -1431,24 +1481,17 @@ Done:
 EFI_STATUS
 EFIAPI
 CoreProtocolsPerHandle (
-  IN EFI_HANDLE       UserHandle,
-  OUT EFI_GUID        ***ProtocolBuffer,
-  OUT UINTN           *ProtocolBufferCount
+  IN EFI_HANDLE  UserHandle,
+  OUT EFI_GUID   ***ProtocolBuffer,
+  OUT UINTN      *ProtocolBufferCount
   )
 {
-  EFI_STATUS                          Status;
-  IHANDLE                             *Handle;
-  PROTOCOL_INTERFACE                  *Prot;
-  LIST_ENTRY                          *Link;
-  UINTN                               ProtocolCount;
-  EFI_GUID                            **Buffer;
-
-  Status = CoreValidateHandle (UserHandle);
-  if (EFI_ERROR (Status)) {
-    return Status;
-  }
-
-  Handle = (IHANDLE *)UserHandle;
+  EFI_STATUS          Status;
+  IHANDLE             *Handle;
+  PROTOCOL_INTERFACE  *Prot;
+  LIST_ENTRY          *Link;
+  UINTN               ProtocolCount;
+  EFI_GUID            **Buffer;
 
   if (ProtocolBuffer == NULL) {
     return EFI_INVALID_PARAMETER;
@@ -1463,6 +1506,13 @@ CoreProtocolsPerHandle (
   ProtocolCount = 0;
 
   CoreAcquireProtocolLock ();
+
+  Status = CoreValidateHandle (UserHandle);
+  if (EFI_ERROR (Status)) {
+    goto Done;
+  }
+
+  Handle = (IHANDLE *)UserHandle;
 
   for (Link = Handle->Protocols.ForwardLink; Link != &Handle->Protocols; Link = Link->ForwardLink) {
     ProtocolCount++;
@@ -1482,23 +1532,23 @@ CoreProtocolsPerHandle (
     goto Done;
   }
 
-  *ProtocolBuffer = Buffer;
+  *ProtocolBuffer      = Buffer;
   *ProtocolBufferCount = ProtocolCount;
 
   for ( Link = Handle->Protocols.ForwardLink, ProtocolCount = 0;
         Link != &Handle->Protocols;
-        Link = Link->ForwardLink, ProtocolCount++) {
-    Prot = CR(Link, PROTOCOL_INTERFACE, Link, PROTOCOL_INTERFACE_SIGNATURE);
+        Link = Link->ForwardLink, ProtocolCount++)
+  {
+    Prot                  = CR (Link, PROTOCOL_INTERFACE, Link, PROTOCOL_INTERFACE_SIGNATURE);
     Buffer[ProtocolCount] = &(Prot->Protocol->ProtocolID);
   }
+
   Status = EFI_SUCCESS;
 
 Done:
   CoreReleaseProtocolLock ();
   return Status;
 }
-
-
 
 /**
   return handle database key.
@@ -1515,8 +1565,6 @@ CoreGetHandleDatabaseKey (
   return gHandleDatabaseKey;
 }
 
-
-
 /**
   Go connect any handles that were created or modified while a image executed.
 
@@ -1529,11 +1577,11 @@ CoreConnectHandlesByKey (
   UINT64  Key
   )
 {
-  UINTN           Count;
-  LIST_ENTRY      *Link;
-  EFI_HANDLE      *HandleBuffer;
-  IHANDLE         *Handle;
-  UINTN           Index;
+  UINTN       Count;
+  LIST_ENTRY  *Link;
+  EFI_HANDLE  *HandleBuffer;
+  IHANDLE     *Handle;
+  UINTN       Index;
 
   //
   // Lock the protocol database
@@ -1572,5 +1620,5 @@ CoreConnectHandlesByKey (
     CoreConnectController (HandleBuffer[Index], NULL, NULL, TRUE);
   }
 
-  CoreFreePool(HandleBuffer);
+  CoreFreePool (HandleBuffer);
 }

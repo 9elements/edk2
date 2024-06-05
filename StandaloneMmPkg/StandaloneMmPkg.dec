@@ -25,17 +25,14 @@
   ##  @libraryclass  Defines a set of interfaces for the MM core entrypoint.
   StandaloneMmCoreEntryPoint|Include/Library/StandaloneMmCoreEntryPoint.h
 
-  ##  @libraryclass  Defines a set of interfaces for the MM driver entrypoint.
-  StandaloneMmDriverEntryPoint|Include/Library/StandaloneMmDriverEntryPoint.h
-
   ##  @libraryclass  Defines a set of interfaces that provides services for
   ##                 MM Memory Operation.
   MemLib|Include/Library/StandaloneMmMemLib.h
 
-[LibraryClasses.AArch64]
+[LibraryClasses.AArch64, LibraryClasses.ARM]
   ##  @libraryclass  Defines a set of interfaces for the MM core entrypoint for
-  ##                 AArch64.
-  StandaloneMmCoreEntryPoint|Include/Library/AArch64/StandaloneMmCoreEntryPoint.h
+  ##                 AArch64 and ARM.
+  StandaloneMmCoreEntryPoint|Include/Library/Arm/StandaloneMmCoreEntryPoint.h
 
 [Guids]
   gStandaloneMmPkgTokenSpaceGuid           = { 0x18fe7632, 0xf5c8, 0x4e63, { 0x8d, 0xe8, 0x17, 0xa5, 0x5c, 0x59, 0x13, 0xbd }}
@@ -49,5 +46,10 @@
   gEfiMmPeiMmramMemoryReserveGuid          = { 0x0703f912, 0xbf8d, 0x4e2a, { 0xbe, 0x07, 0xab, 0x27, 0x25, 0x25, 0xc5, 0x92 }}
 
   gEfiStandaloneMmNonSecureBufferGuid      = { 0xf00497e3, 0xbfa2, 0x41a1, { 0x9d, 0x29, 0x54, 0xc2, 0xe9, 0x37, 0x21, 0xc5 }}
-  gEfiArmTfCpuDriverEpDescriptorGuid       = { 0x6ecbd5a1, 0xc0f8, 0x4702, { 0x83, 0x01, 0x4f, 0xc2, 0xc5, 0x47, 0x0a, 0x51 }}
+  gEfiMmCpuDriverEpDescriptorGuid          = { 0x6ecbd5a1, 0xc0f8, 0x4702, { 0x83, 0x01, 0x4f, 0xc2, 0xc5, 0x47, 0x0a, 0x51 }}
 
+[PcdsFixedAtBuild, PcdsPatchableInModule]
+  ## Maximum permitted encapsulation levels of sections in a firmware volume,
+  #  in the MM phase. Minimum value is 1. Sections nested more deeply are rejected.
+  # @Prompt Maximum permitted FwVol section nesting depth (exclusive) in MM.
+  gStandaloneMmPkgTokenSpaceGuid.PcdFwVolMmMaxEncapsulationDepth|0x10|UINT32|0x00000001

@@ -2,7 +2,7 @@
   Definition of Neighbor Discovery support routines.
 
   Copyright (c) 2009 - 2012, Intel Corporation. All rights reserved.<BR>
-
+  Copyright (c) Microsoft Corporation
   SPDX-License-Identifier: BSD-2-Clause-Patent
 
 **/
@@ -13,82 +13,117 @@
 #define IP6_GET_TICKS(Ms)  (((Ms) + IP6_TIMER_INTERVAL_IN_MS - 1) / IP6_TIMER_INTERVAL_IN_MS)
 
 enum {
-  IP6_INF_ROUTER_LIFETIME        = 0xFFFF,
+  IP6_INF_ROUTER_LIFETIME = 0xFFFF,
 
   IP6_MAX_RTR_SOLICITATION_DELAY = 1000, ///< 1000 milliseconds
   IP6_MAX_RTR_SOLICITATIONS      = 3,
   IP6_RTR_SOLICITATION_INTERVAL  = 4000,
 
-  IP6_MIN_RANDOM_FACTOR_SCALED   = 1,
-  IP6_MAX_RANDOM_FACTOR_SCALED   = 3,
-  IP6_RANDOM_FACTOR_SCALE        = 2,
+  IP6_MIN_RANDOM_FACTOR_SCALED = 1,
+  IP6_MAX_RANDOM_FACTOR_SCALED = 3,
+  IP6_RANDOM_FACTOR_SCALE      = 2,
 
-  IP6_MAX_MULTICAST_SOLICIT      = 3,
-  IP6_MAX_UNICAST_SOLICIT        = 3,
-  IP6_MAX_ANYCAST_DELAY_TIME     = 1,
-  IP6_MAX_NEIGHBOR_ADV           = 3,
-  IP6_REACHABLE_TIME             = 30000,
-  IP6_RETRANS_TIMER              = 1000,
-  IP6_DELAY_FIRST_PROBE_TIME     = 5000,
+  IP6_MAX_MULTICAST_SOLICIT  = 3,
+  IP6_MAX_UNICAST_SOLICIT    = 3,
+  IP6_MAX_ANYCAST_DELAY_TIME = 1,
+  IP6_MAX_NEIGHBOR_ADV       = 3,
+  IP6_REACHABLE_TIME         = 30000,
+  IP6_RETRANS_TIMER          = 1000,
+  IP6_DELAY_FIRST_PROBE_TIME = 5000,
 
-  IP6_MIN_LINK_MTU               = 1280,
-  IP6_MAX_LINK_MTU               = 1500,
+  IP6_MIN_LINK_MTU = 1280,
+  IP6_MAX_LINK_MTU = 1500,
 
-  IP6_IS_ROUTER_FLAG             = 0x80,
-  IP6_SOLICITED_FLAG             = 0x40,
-  IP6_OVERRIDE_FLAG              = 0x20,
+  IP6_IS_ROUTER_FLAG = 0x80,
+  IP6_SOLICITED_FLAG = 0x40,
+  IP6_OVERRIDE_FLAG  = 0x20,
 
-  IP6_M_ADDR_CONFIG_FLAG         = 0x80,
-  IP6_O_CONFIG_FLAG              = 0x40,
+  IP6_M_ADDR_CONFIG_FLAG = 0x80,
+  IP6_O_CONFIG_FLAG      = 0x40,
 
-  IP6_ON_LINK_FLAG               = 0x80,
-  IP6_AUTO_CONFIG_FLAG           = 0x40,
+  IP6_ON_LINK_FLAG     = 0x80,
+  IP6_AUTO_CONFIG_FLAG = 0x40,
 
-  IP6_ND_LENGTH                  = 24,
-  IP6_RA_LENGTH                  = 16,
-  IP6_REDITECT_LENGTH            = 40,
-  IP6_DAD_ENTRY_SIGNATURE        = SIGNATURE_32 ('I', 'P', 'D', 'E')
+  IP6_ND_LENGTH           = 24,
+  IP6_RA_LENGTH           = 16,
+  IP6_REDITECT_LENGTH     = 40,
+  IP6_DAD_ENTRY_SIGNATURE = SIGNATURE_32 ('I', 'P', 'D', 'E')
 };
 
 typedef
 VOID
 (*IP6_ARP_CALLBACK) (
-  VOID                      *Context
+  VOID  *Context
   );
 
+//
+// Per RFC8200 Section 4.2
+//
+//   Two of the currently-defined extension headers -- the Hop-by-Hop
+//   Options header and the Destination Options header -- carry a variable
+//   number of type-length-value (TLV) encoded "options", of the following
+//   format:
+//
+//      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+- - - - - - - - -
+//      |  Option Type  |  Opt Data Len |  Option Data
+//      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+- - - - - - - - -
+//
+//      Option Type          8-bit identifier of the type of option.
+//
+//      Opt Data Len         8-bit unsigned integer.  Length of the Option
+//                           Data field of this option, in octets.
+//
+//      Option Data          Variable-length field.  Option-Type-specific
+//                           data.
+//
 typedef struct _IP6_OPTION_HEADER {
-  UINT8                     Type;
-  UINT8                     Length;
+  ///
+  /// identifier of the type of option.
+  ///
+  UINT8    Type;
+  ///
+  /// Length of the Option Data field of this option, in octets.
+  ///
+  UINT8    Length;
+  ///
+  /// Option-Type-specific data.
+  ///
 } IP6_OPTION_HEADER;
 
 STATIC_ASSERT (sizeof (IP6_OPTION_HEADER) == 2, "IP6_OPTION_HEADER is expected to be exactly 2 bytes long.");
 
+#define IP6_NEXT_OPTION_OFFSET(offset, length)  (offset + sizeof(IP6_OPTION_HEADER) + length)
+STATIC_ASSERT (
+  IP6_NEXT_OPTION_OFFSET (0, 0) == 2,
+  "The next option is minimally the combined size of the option tag and length"
+  );
+
 typedef struct _IP6_ETHE_ADDR_OPTION {
-  UINT8                     Type;
-  UINT8                     Length;
-  UINT8                     EtherAddr[6];
+  UINT8    Type;
+  UINT8    Length;
+  UINT8    EtherAddr[6];
 } IP6_ETHER_ADDR_OPTION;
 
 STATIC_ASSERT (sizeof (IP6_ETHER_ADDR_OPTION) == 8, "IP6_ETHER_ADDR_OPTION is expected to be exactly 8 bytes long.");
 
 typedef struct _IP6_MTU_OPTION {
-  UINT8                     Type;
-  UINT8                     Length;
-  UINT16                    Reserved;
-  UINT32                    Mtu;
+  UINT8     Type;
+  UINT8     Length;
+  UINT16    Reserved;
+  UINT32    Mtu;
 } IP6_MTU_OPTION;
 
 STATIC_ASSERT (sizeof (IP6_MTU_OPTION) == 8, "IP6_MTU_OPTION is expected to be exactly 8 bytes long.");
 
 typedef struct _IP6_PREFIX_INFO_OPTION {
-  UINT8                     Type;
-  UINT8                     Length;
-  UINT8                     PrefixLength;
-  UINT8                     Reserved1;
-  UINT32                    ValidLifetime;
-  UINT32                    PreferredLifetime;
-  UINT32                    Reserved2;
-  EFI_IPv6_ADDRESS          Prefix;
+  UINT8               Type;
+  UINT8               Length;
+  UINT8               PrefixLength;
+  UINT8               Reserved1;
+  UINT32              ValidLifetime;
+  UINT32              PreferredLifetime;
+  UINT32              Reserved2;
+  EFI_IPv6_ADDRESS    Prefix;
 } IP6_PREFIX_INFO_OPTION;
 
 STATIC_ASSERT (sizeof (IP6_PREFIX_INFO_OPTION) == 32, "IP6_PREFIX_INFO_OPTION is expected to be exactly 32 bytes long.");
@@ -102,25 +137,25 @@ VOID
   );
 
 typedef struct _IP6_DAD_ENTRY {
-  UINT32                    Signature;
-  LIST_ENTRY                Link;
-  UINT32                    MaxTransmit;
-  UINT32                    Transmit;
-  UINT32                    Receive;
-  UINT32                    RetransTick;
-  IP6_ADDRESS_INFO          *AddressInfo;
-  EFI_IPv6_ADDRESS          Destination;
-  IP6_DAD_CALLBACK          Callback;
-  VOID                      *Context;
+  UINT32              Signature;
+  LIST_ENTRY          Link;
+  UINT32              MaxTransmit;
+  UINT32              Transmit;
+  UINT32              Receive;
+  UINT32              RetransTick;
+  IP6_ADDRESS_INFO    *AddressInfo;
+  EFI_IPv6_ADDRESS    Destination;
+  IP6_DAD_CALLBACK    Callback;
+  VOID                *Context;
 } IP6_DAD_ENTRY;
 
 typedef struct _IP6_DELAY_JOIN_LIST {
-  LIST_ENTRY                Link;
-  UINT32                    DelayTime; ///< in tick per 50 milliseconds
-  IP6_INTERFACE             *Interface;
-  IP6_ADDRESS_INFO          *AddressInfo;
-  IP6_DAD_CALLBACK          DadCallback;
-  VOID                      *Context;
+  LIST_ENTRY          Link;
+  UINT32              DelayTime;       ///< in tick per 50 milliseconds
+  IP6_INTERFACE       *Interface;
+  IP6_ADDRESS_INFO    *AddressInfo;
+  IP6_DAD_CALLBACK    DadCallback;
+  VOID                *Context;
 } IP6_DELAY_JOIN_LIST;
 
 typedef struct _IP6_NEIGHBOR_ENTRY {
@@ -142,20 +177,20 @@ typedef struct _IP6_NEIGHBOR_ENTRY {
 } IP6_NEIGHBOR_ENTRY;
 
 typedef struct _IP6_DEFAULT_ROUTER {
-  LIST_ENTRY                Link;
-  INTN                      RefCnt;
-  UINT16                    Lifetime;
-  EFI_IPv6_ADDRESS          Router;
-  IP6_NEIGHBOR_ENTRY        *NeighborCache;
+  LIST_ENTRY            Link;
+  INTN                  RefCnt;
+  UINT16                Lifetime;
+  EFI_IPv6_ADDRESS      Router;
+  IP6_NEIGHBOR_ENTRY    *NeighborCache;
 } IP6_DEFAULT_ROUTER;
 
 typedef struct _IP6_PREFIX_LIST_ENTRY {
-  LIST_ENTRY                Link;
-  INTN                      RefCnt;
-  UINT32                    ValidLifetime;
-  UINT32                    PreferredLifetime;
-  UINT8                     PrefixLength;
-  EFI_IPv6_ADDRESS          Prefix;
+  LIST_ENTRY          Link;
+  INTN                RefCnt;
+  UINT32              ValidLifetime;
+  UINT32              PreferredLifetime;
+  UINT8               PrefixLength;
+  EFI_IPv6_ADDRESS    Prefix;
 } IP6_PREFIX_LIST_ENTRY;
 
 /**
@@ -172,9 +207,9 @@ typedef struct _IP6_PREFIX_LIST_ENTRY {
 **/
 EFI_STATUS
 Ip6BuildEfiNeighborCache (
-  IN IP6_PROTOCOL            *IpInstance,
-  OUT UINT32                 *NeighborCount,
-  OUT EFI_IP6_NEIGHBOR_CACHE **NeighborCache
+  IN IP6_PROTOCOL             *IpInstance,
+  OUT UINT32                  *NeighborCount,
+  OUT EFI_IP6_NEIGHBOR_CACHE  **NeighborCache
   );
 
 /**
@@ -210,9 +245,9 @@ Ip6BuildPrefixTable (
 **/
 IP6_DEFAULT_ROUTER *
 Ip6CreateDefaultRouter (
-  IN IP6_SERVICE            *IpSb,
-  IN EFI_IPv6_ADDRESS       *Ip6Address,
-  IN UINT16                 RouterLifetime
+  IN IP6_SERVICE       *IpSb,
+  IN EFI_IPv6_ADDRESS  *Ip6Address,
+  IN UINT16            RouterLifetime
   );
 
 /**
@@ -224,8 +259,8 @@ Ip6CreateDefaultRouter (
 **/
 VOID
 Ip6DestroyDefaultRouter (
-  IN IP6_SERVICE            *IpSb,
-  IN IP6_DEFAULT_ROUTER     *DefaultRouter
+  IN IP6_SERVICE         *IpSb,
+  IN IP6_DEFAULT_ROUTER  *DefaultRouter
   );
 
 /**
@@ -236,7 +271,7 @@ Ip6DestroyDefaultRouter (
 **/
 VOID
 Ip6CleanDefaultRouterList (
-  IN IP6_SERVICE            *IpSb
+  IN IP6_SERVICE  *IpSb
   );
 
 /**
@@ -251,8 +286,8 @@ Ip6CleanDefaultRouterList (
 **/
 IP6_DEFAULT_ROUTER *
 Ip6FindDefaultRouter (
-  IN IP6_SERVICE            *IpSb,
-  IN EFI_IPv6_ADDRESS       *Ip6Address
+  IN IP6_SERVICE       *IpSb,
+  IN EFI_IPv6_ADDRESS  *Ip6Address
   );
 
 /**
@@ -289,10 +324,10 @@ Ip6OnDADFinished (
 **/
 EFI_STATUS
 Ip6InitDADProcess (
-  IN IP6_INTERFACE          *IpIf,
-  IN IP6_ADDRESS_INFO       *AddressInfo,
-  IN IP6_DAD_CALLBACK       Callback  OPTIONAL,
-  IN VOID                   *Context  OPTIONAL
+  IN IP6_INTERFACE     *IpIf,
+  IN IP6_ADDRESS_INFO  *AddressInfo,
+  IN IP6_DAD_CALLBACK  Callback  OPTIONAL,
+  IN VOID              *Context  OPTIONAL
   );
 
 /**
@@ -309,9 +344,9 @@ Ip6InitDADProcess (
 **/
 IP6_DAD_ENTRY *
 Ip6FindDADEntry (
-  IN  IP6_SERVICE      *IpSb,
-  IN  EFI_IPv6_ADDRESS *Target,
-  OUT IP6_INTERFACE    **Interface OPTIONAL
+  IN  IP6_SERVICE       *IpSb,
+  IN  EFI_IPv6_ADDRESS  *Target,
+  OUT IP6_INTERFACE     **Interface OPTIONAL
   );
 
 /**
@@ -334,12 +369,12 @@ Ip6FindDADEntry (
 **/
 IP6_PREFIX_LIST_ENTRY *
 Ip6CreatePrefixListEntry (
-  IN IP6_SERVICE            *IpSb,
-  IN BOOLEAN                OnLinkOrAuto,
-  IN UINT32                 ValidLifetime,
-  IN UINT32                 PreferredLifetime,
-  IN UINT8                  PrefixLength,
-  IN EFI_IPv6_ADDRESS       *Prefix
+  IN IP6_SERVICE       *IpSb,
+  IN BOOLEAN           OnLinkOrAuto,
+  IN UINT32            ValidLifetime,
+  IN UINT32            PreferredLifetime,
+  IN UINT8             PrefixLength,
+  IN EFI_IPv6_ADDRESS  *Prefix
   );
 
 /**
@@ -377,10 +412,10 @@ Ip6DestroyPrefixListEntry (
 **/
 IP6_PREFIX_LIST_ENTRY *
 Ip6FindPrefixListEntry (
-  IN IP6_SERVICE            *IpSb,
-  IN BOOLEAN                OnLinkOrAuto,
-  IN UINT8                  PrefixLength,
-  IN EFI_IPv6_ADDRESS       *Prefix
+  IN IP6_SERVICE       *IpSb,
+  IN BOOLEAN           OnLinkOrAuto,
+  IN UINT8             PrefixLength,
+  IN EFI_IPv6_ADDRESS  *Prefix
   );
 
 /**
@@ -393,8 +428,8 @@ Ip6FindPrefixListEntry (
 **/
 VOID
 Ip6CleanPrefixListTable (
-  IN IP6_SERVICE            *IpSb,
-  IN LIST_ENTRY             *ListHead
+  IN IP6_SERVICE  *IpSb,
+  IN LIST_ENTRY   *ListHead
   );
 
 /**
@@ -413,10 +448,10 @@ Ip6CleanPrefixListTable (
 **/
 IP6_NEIGHBOR_ENTRY *
 Ip6CreateNeighborEntry (
-  IN IP6_SERVICE            *IpSb,
-  IN IP6_ARP_CALLBACK       CallBack,
-  IN EFI_IPv6_ADDRESS       *Ip6Address,
-  IN EFI_MAC_ADDRESS        *LinkAddress OPTIONAL
+  IN IP6_SERVICE       *IpSb,
+  IN IP6_ARP_CALLBACK  CallBack,
+  IN EFI_IPv6_ADDRESS  *Ip6Address,
+  IN EFI_MAC_ADDRESS   *LinkAddress OPTIONAL
   );
 
 /**
@@ -431,8 +466,8 @@ Ip6CreateNeighborEntry (
 **/
 IP6_NEIGHBOR_ENTRY *
 Ip6FindNeighborEntry (
-  IN IP6_SERVICE            *IpSb,
-  IN EFI_IPv6_ADDRESS       *Ip6Address
+  IN IP6_SERVICE       *IpSb,
+  IN EFI_IPv6_ADDRESS  *Ip6Address
   );
 
 /**
@@ -458,13 +493,13 @@ Ip6FindNeighborEntry (
 **/
 EFI_STATUS
 Ip6FreeNeighborEntry (
-  IN IP6_SERVICE            *IpSb,
-  IN IP6_NEIGHBOR_ENTRY     *NeighborCache,
-  IN BOOLEAN                SendIcmpError,
-  IN BOOLEAN                FullFree,
-  IN EFI_STATUS             IoStatus,
-  IN IP6_FRAME_TO_CANCEL    FrameToCancel OPTIONAL,
-  IN VOID                   *Context      OPTIONAL
+  IN IP6_SERVICE          *IpSb,
+  IN IP6_NEIGHBOR_ENTRY   *NeighborCache,
+  IN BOOLEAN              SendIcmpError,
+  IN BOOLEAN              FullFree,
+  IN EFI_STATUS           IoStatus,
+  IN IP6_FRAME_TO_CANCEL  FrameToCancel OPTIONAL,
+  IN VOID                 *Context      OPTIONAL
   );
 
 /**
@@ -493,11 +528,11 @@ Ip6FreeNeighborEntry (
 **/
 EFI_STATUS
 Ip6AddNeighbor (
-  IN IP6_SERVICE            *IpSb,
-  IN EFI_IPv6_ADDRESS       *TargetIp6Address,
-  IN EFI_MAC_ADDRESS        *TargetLinkAddress OPTIONAL,
-  IN UINT32                 Timeout,
-  IN BOOLEAN                Override
+  IN IP6_SERVICE       *IpSb,
+  IN EFI_IPv6_ADDRESS  *TargetIp6Address,
+  IN EFI_MAC_ADDRESS   *TargetLinkAddress OPTIONAL,
+  IN UINT32            Timeout,
+  IN BOOLEAN           Override
   );
 
 /**
@@ -521,11 +556,11 @@ Ip6AddNeighbor (
 **/
 EFI_STATUS
 Ip6DelNeighbor (
-  IN IP6_SERVICE            *IpSb,
-  IN EFI_IPv6_ADDRESS       *TargetIp6Address,
-  IN EFI_MAC_ADDRESS        *TargetLinkAddress OPTIONAL,
-  IN UINT32                 Timeout,
-  IN BOOLEAN                Override
+  IN IP6_SERVICE       *IpSb,
+  IN EFI_IPv6_ADDRESS  *TargetIp6Address,
+  IN EFI_MAC_ADDRESS   *TargetLinkAddress OPTIONAL,
+  IN UINT32            Timeout,
+  IN BOOLEAN           Override
   );
 
 /**
@@ -544,9 +579,9 @@ Ip6DelNeighbor (
 **/
 EFI_STATUS
 Ip6ProcessNeighborSolicit (
-  IN IP6_SERVICE            *IpSb,
-  IN EFI_IP6_HEADER         *Head,
-  IN NET_BUF                *Packet
+  IN IP6_SERVICE     *IpSb,
+  IN EFI_IP6_HEADER  *Head,
+  IN NET_BUF         *Packet
   );
 
 /**
@@ -564,9 +599,9 @@ Ip6ProcessNeighborSolicit (
 **/
 EFI_STATUS
 Ip6ProcessNeighborAdvertise (
-  IN IP6_SERVICE            *IpSb,
-  IN EFI_IP6_HEADER         *Head,
-  IN NET_BUF                *Packet
+  IN IP6_SERVICE     *IpSb,
+  IN EFI_IP6_HEADER  *Head,
+  IN NET_BUF         *Packet
   );
 
 /**
@@ -584,9 +619,9 @@ Ip6ProcessNeighborAdvertise (
 **/
 EFI_STATUS
 Ip6ProcessRouterAdvertise (
-  IN IP6_SERVICE            *IpSb,
-  IN EFI_IP6_HEADER         *Head,
-  IN NET_BUF                *Packet
+  IN IP6_SERVICE     *IpSb,
+  IN EFI_IP6_HEADER  *Head,
+  IN NET_BUF         *Packet
   );
 
 /**
@@ -607,9 +642,9 @@ Ip6ProcessRouterAdvertise (
 **/
 EFI_STATUS
 Ip6ProcessRedirect (
-  IN IP6_SERVICE            *IpSb,
-  IN EFI_IP6_HEADER         *Head,
-  IN NET_BUF                *Packet
+  IN IP6_SERVICE     *IpSb,
+  IN EFI_IP6_HEADER  *Head,
+  IN NET_BUF         *Packet
   );
 
 /**
@@ -631,11 +666,11 @@ Ip6ProcessRedirect (
 **/
 EFI_STATUS
 Ip6SendRouterSolicit (
-  IN IP6_SERVICE            *IpSb,
-  IN IP6_INTERFACE          *Interface          OPTIONAL,
-  IN EFI_IPv6_ADDRESS       *SourceAddress      OPTIONAL,
-  IN EFI_IPv6_ADDRESS       *DestinationAddress OPTIONAL,
-  IN EFI_MAC_ADDRESS        *SourceLinkAddress  OPTIONAL
+  IN IP6_SERVICE       *IpSb,
+  IN IP6_INTERFACE     *Interface          OPTIONAL,
+  IN EFI_IPv6_ADDRESS  *SourceAddress      OPTIONAL,
+  IN EFI_IPv6_ADDRESS  *DestinationAddress OPTIONAL,
+  IN EFI_MAC_ADDRESS   *SourceLinkAddress  OPTIONAL
   );
 
 /**
@@ -658,11 +693,11 @@ Ip6SendRouterSolicit (
 **/
 EFI_STATUS
 Ip6SendNeighborSolicit (
-  IN IP6_SERVICE            *IpSb,
-  IN EFI_IPv6_ADDRESS       *SourceAddress,
-  IN EFI_IPv6_ADDRESS       *DestinationAddress,
-  IN EFI_IPv6_ADDRESS       *TargetIp6Address,
-  IN EFI_MAC_ADDRESS        *SourceLinkAddress OPTIONAL
+  IN IP6_SERVICE       *IpSb,
+  IN EFI_IPv6_ADDRESS  *SourceAddress,
+  IN EFI_IPv6_ADDRESS  *DestinationAddress,
+  IN EFI_IPv6_ADDRESS  *TargetIp6Address,
+  IN EFI_MAC_ADDRESS   *SourceLinkAddress OPTIONAL
   );
 
 /**
@@ -690,14 +725,14 @@ Ip6SendNeighborSolicit (
 **/
 EFI_STATUS
 Ip6SetAddress (
-  IN IP6_INTERFACE          *Interface,
-  IN EFI_IPv6_ADDRESS       *Ip6Addr,
-  IN BOOLEAN                IsAnycast,
-  IN UINT8                  PrefixLength,
-  IN UINT32                 ValidLifetime,
-  IN UINT32                 PreferredLifetime,
-  IN IP6_DAD_CALLBACK       DadCallback  OPTIONAL,
-  IN VOID                   *Context     OPTIONAL
+  IN IP6_INTERFACE     *Interface,
+  IN EFI_IPv6_ADDRESS  *Ip6Addr,
+  IN BOOLEAN           IsAnycast,
+  IN UINT8             PrefixLength,
+  IN UINT32            ValidLifetime,
+  IN UINT32            PreferredLifetime,
+  IN IP6_DAD_CALLBACK  DadCallback  OPTIONAL,
+  IN VOID              *Context     OPTIONAL
   );
 
 /**
@@ -712,8 +747,8 @@ Ip6SetAddress (
 VOID
 EFIAPI
 Ip6NdFasterTimerTicking (
-  IN EFI_EVENT              Event,
-  IN VOID                   *Context
+  IN EFI_EVENT  Event,
+  IN VOID       *Context
   );
 
 /**
@@ -726,7 +761,7 @@ Ip6NdFasterTimerTicking (
 **/
 VOID
 Ip6NdTimerTicking (
-  IN IP6_SERVICE            *IpSb
+  IN IP6_SERVICE  *IpSb
   );
 
 /**
@@ -739,16 +774,16 @@ Ip6NdTimerTicking (
 **/
 VOID
 Ip6OnArpResolved (
-  IN VOID                   *Context
+  IN VOID  *Context
   );
 
 /**
   Update the ReachableTime in IP6 service binding instance data, in milliseconds.
 
-  @param[in, out] IpSb     Points to the IP6_SERVICE.
-
+  @retval EFI_SUCCESS           ReachableTime Updated
+  @retval others                Failed to update ReachableTime
 **/
-VOID
+EFI_STATUS
 Ip6UpdateReachableTime (
   IN OUT IP6_SERVICE  *IpSb
   );

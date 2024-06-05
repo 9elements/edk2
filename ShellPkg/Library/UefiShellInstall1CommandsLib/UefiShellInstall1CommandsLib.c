@@ -16,7 +16,7 @@
   @param ImageHandle    the image handle of the process
   @param SystemTable    the EFI System Table pointer
 
-  @retval EFI_SUCCESS        the shell command handlers were installed sucessfully
+  @retval EFI_SUCCESS        the shell command handlers were installed successfully
   @retval EFI_UNSUPPORTED    the shell level required was not found.
 **/
 EFI_STATUS
@@ -29,11 +29,11 @@ ShellInstall1CommandsLibConstructor (
   //
   // check our bit of the profiles mask
   //
-  if ((PcdGet8(PcdShellProfileMask) & BIT2) == 0) {
+  if ((PcdGet8 (PcdShellProfileMask) & BIT2) == 0) {
     return (EFI_SUCCESS);
   }
 
-  return (BcfgLibraryRegisterBcfgCommand(ImageHandle, SystemTable, L"Install1"));
+  return (BcfgLibraryRegisterBcfgCommand (ImageHandle, SystemTable, L"Install1"));
 }
 
 /**
@@ -49,5 +49,5 @@ ShellInstall1CommandsLibDestructor (
   IN EFI_SYSTEM_TABLE  *SystemTable
   )
 {
-  return (BcfgLibraryUnregisterBcfgCommand(ImageHandle, SystemTable));
+  return (BcfgLibraryUnregisterBcfgCommand (ImageHandle, SystemTable));
 }

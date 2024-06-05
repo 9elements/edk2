@@ -1,7 +1,7 @@
 /** @file
   MTRR setting library
 
-  Copyright (c) 2008 - 2020, Intel Corporation. All rights reserved.<BR>
+  Copyright (c) 2008 - 2023, Intel Corporation. All rights reserved.<BR>
   SPDX-License-Identifier: BSD-2-Clause-Patent
 
 **/
@@ -24,27 +24,27 @@
 //
 #define  RESERVED_FIRMWARE_VARIABLE_MTRR_NUMBER  2
 
-#define  MTRR_NUMBER_OF_FIXED_MTRR      11
+#define  MTRR_NUMBER_OF_FIXED_MTRR  11
 
 //
 // Structure to describe a fixed MTRR
 //
 typedef struct {
-  UINT32  Msr;
-  UINT32  BaseAddress;
-  UINT32  Length;
+  UINT32    Msr;
+  UINT32    BaseAddress;
+  UINT32    Length;
 } FIXED_MTRR;
 
 //
 // Structure to describe a variable MTRR
 //
 typedef struct {
-  UINT64  BaseAddress;
-  UINT64  Length;
-  UINT64  Type;
-  UINT32  Msr;
-  BOOLEAN Valid;
-  BOOLEAN Used;
+  UINT64     BaseAddress;
+  UINT64     Length;
+  UINT64     Type;
+  UINT32     Msr;
+  BOOLEAN    Valid;
+  BOOLEAN    Used;
 } VARIABLE_MTRR;
 
 //
@@ -59,14 +59,14 @@ typedef struct _MTRR_VARIABLE_SETTING_ {
 // Array for variable MTRRs
 //
 typedef struct _MTRR_VARIABLE_SETTINGS_ {
-  MTRR_VARIABLE_SETTING   Mtrr[MTRR_NUMBER_OF_VARIABLE_MTRR];
+  MTRR_VARIABLE_SETTING    Mtrr[MTRR_NUMBER_OF_VARIABLE_MTRR];
 } MTRR_VARIABLE_SETTINGS;
 
 //
 // Array for fixed MTRRs
 //
 typedef  struct  _MTRR_FIXED_SETTINGS_ {
-  UINT64       Mtrr[MTRR_NUMBER_OF_FIXED_MTRR];
+  UINT64    Mtrr[MTRR_NUMBER_OF_FIXED_MTRR];
 } MTRR_FIXED_SETTINGS;
 
 //
@@ -98,9 +98,9 @@ typedef enum {
 #define  MTRR_CACHE_INVALID_TYPE     7
 
 typedef struct {
-  UINT64                 BaseAddress;
-  UINT64                 Length;
-  MTRR_MEMORY_CACHE_TYPE Type;
+  UINT64                    BaseAddress;
+  UINT64                    Length;
+  MTRR_MEMORY_CACHE_TYPE    Type;
 } MTRR_MEMORY_RANGE;
 
 /**
@@ -168,7 +168,6 @@ MtrrSetMemoryAttribute (
   IN MTRR_MEMORY_CACHE_TYPE  Attribute
   );
 
-
 /**
   This function will get the memory cache type of the specific address.
   This function is mainly for debugging purposes.
@@ -181,9 +180,8 @@ MtrrSetMemoryAttribute (
 MTRR_MEMORY_CACHE_TYPE
 EFIAPI
 MtrrGetMemoryAttribute (
-  IN PHYSICAL_ADDRESS   Address
+  IN PHYSICAL_ADDRESS  Address
   );
-
 
 /**
   This function gets the content in fixed MTRRs
@@ -193,12 +191,11 @@ MtrrGetMemoryAttribute (
   @return The pointer of FixedSettings
 
 **/
-MTRR_FIXED_SETTINGS*
+MTRR_FIXED_SETTINGS *
 EFIAPI
 MtrrGetFixedMtrr (
-  OUT MTRR_FIXED_SETTINGS         *FixedSettings
+  OUT MTRR_FIXED_SETTINGS  *FixedSettings
   );
-
 
 /**
   This function gets the content in all MTRRs (variable and fixed)
@@ -211,24 +208,25 @@ MtrrGetFixedMtrr (
 MTRR_SETTINGS *
 EFIAPI
 MtrrGetAllMtrrs (
-  OUT MTRR_SETTINGS                *MtrrSetting
+  OUT MTRR_SETTINGS  *MtrrSetting
   );
-
 
 /**
   This function sets all MTRRs (variable and fixed)
 
-  @param[in]  MtrrSetting   A buffer to hold all MTRRs content.
+  Note: The behavior of this function is to program everything in MtrrSetting to hardware.
+        MTRR might not be enabled due to enable bit is clear in MtrrSetting->MtrrDefType.
 
-  @return The pointer of MtrrSetting
+  @param[in]  MtrrSetting  A buffer holding all MTRRs content.
+
+  @retval The pointer of MtrrSetting
 
 **/
 MTRR_SETTINGS *
 EFIAPI
 MtrrSetAllMtrrs (
-  IN MTRR_SETTINGS                *MtrrSetting
+  IN MTRR_SETTINGS  *MtrrSetting
   );
-
 
 /**
   Get the attribute of variable MTRRs.
@@ -248,11 +246,10 @@ MtrrSetAllMtrrs (
 UINT32
 EFIAPI
 MtrrGetMemoryAttributeInVariableMtrr (
-  IN  UINT64                    MtrrValidBitsMask,
-  IN  UINT64                    MtrrValidAddressMask,
-  OUT VARIABLE_MTRR             *VariableMtrr
+  IN  UINT64         MtrrValidBitsMask,
+  IN  UINT64         MtrrValidAddressMask,
+  OUT VARIABLE_MTRR  *VariableMtrr
   );
-
 
 /**
   This function prints all MTRRs for debugging.
@@ -355,10 +352,34 @@ MtrrSetMemoryAttributeInMtrrSettings (
 RETURN_STATUS
 EFIAPI
 MtrrSetMemoryAttributesInMtrrSettings (
-  IN OUT MTRR_SETTINGS           *MtrrSetting,
-  IN     VOID                    *Scratch,
-  IN OUT UINTN                   *ScratchSize,
-  IN     CONST MTRR_MEMORY_RANGE *Ranges,
-  IN     UINTN                   RangeCount
+  IN OUT MTRR_SETTINGS            *MtrrSetting,
+  IN     VOID                     *Scratch,
+  IN OUT UINTN                    *ScratchSize,
+  IN     CONST MTRR_MEMORY_RANGE  *Ranges,
+  IN     UINTN                    RangeCount
   );
+
+/**
+  This function returns a Ranges array containing the memory cache types
+  of all memory addresses.
+
+  @param[in]      MtrrSetting  MTRR setting buffer to parse.
+  @param[out]     Ranges       Pointer to an array of MTRR_MEMORY_RANGE.
+  @param[in,out]  RangeCount   Count of MTRR_MEMORY_RANGE.
+                               On input, the maximum entries the Ranges can hold.
+                               On output, the actual entries that the function returns.
+
+  @retval RETURN_INVALID_PARAMETER RangeCount is NULL.
+  @retval RETURN_INVALID_PARAMETER *RangeCount is not 0 but Ranges is NULL.
+  @retval RETURN_BUFFER_TOO_SMALL  *RangeCount is too small.
+  @retval RETURN_SUCCESS           Ranges are successfully returned.
+**/
+RETURN_STATUS
+EFIAPI
+MtrrGetMemoryAttributesInMtrrSettings (
+  IN CONST MTRR_SETTINGS      *MtrrSetting OPTIONAL,
+  OUT      MTRR_MEMORY_RANGE  *Ranges,
+  IN OUT   UINTN              *RangeCount
+  );
+
 #endif // _MTRR_LIB_H_

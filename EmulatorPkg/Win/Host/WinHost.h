@@ -1,6 +1,6 @@
 /**@file
 
-Copyright (c) 2006 - 2018, Intel Corporation. All rights reserved.<BR>
+Copyright (c) 2006 - 2022, Intel Corporation. All rights reserved.<BR>
 (C) Copyright 2020 Hewlett Packard Enterprise Development LP<BR>
 SPDX-License-Identifier: BSD-2-Clause-Patent
 
@@ -12,6 +12,7 @@ Abstract:
   Include file for Windows Host
 
 **/
+
 #ifndef _HOST_H_
 #define _HOST_H_
 
@@ -25,6 +26,7 @@ Abstract:
 #include <Guid/FileSystemInfo.h>
 #include <Guid/FileSystemVolumeLabelInfo.h>
 #include <Ppi/EmuThunk.h>
+#include <Ppi/Reset2.h>
 #include <Protocol/EmuThunk.h>
 #include <Protocol/SimpleFileSystem.h>
 
@@ -45,17 +47,16 @@ Abstract:
 #include <Library/PeCoffExtraActionLib.h>
 #include <Library/NetLib.h>
 
-
-#define TEMPORARY_RAM_SIZE                0x20000
+#define TEMPORARY_RAM_SIZE  0x20000
 
 typedef struct {
-  VOID                  *Address;
-  UINTN                 Size;
+  VOID     *Address;
+  UINTN    Size;
 } NT_FD_INFO;
 
 typedef struct {
-  EFI_PHYSICAL_ADDRESS  Memory;
-  UINT64                Size;
+  EFI_PHYSICAL_ADDRESS    Memory;
+  UINT64                  Size;
 } NT_SYSTEM_MEMORY;
 
 RETURN_STATUS
@@ -63,16 +64,17 @@ EFIAPI
 SecPeCoffGetEntryPoint (
   IN     VOID  *Pe32Data,
   IN OUT VOID  **EntryPoint
-);
+  );
 
 VOID
 SecLoadSecCore (
-  IN  UINTN   TemporaryRam,
-  IN  UINTN   TemporaryRamSize,
-  IN  VOID    *BootFirmwareVolumeBase,
-  IN  UINTN   BootFirmwareVolumeSize,
-  IN  VOID    *SecCorePe32File
-)
+  IN  UINTN  TemporaryRam,
+  IN  UINTN  TemporaryRamSize,
+  IN  VOID   *BootFirmwareVolumeBase,
+  IN  UINTN  BootFirmwareVolumeSize,
+  IN  VOID   *SecCorePe32File
+  )
+
 /*++
 
 Routine Description:
@@ -97,6 +99,7 @@ SecWinNtFdAddress (
   IN OUT EFI_PHYSICAL_ADDRESS  *FdBase,
   IN OUT UINT64                *FdSize
   )
+
 /*++
 
 Routine Description:
@@ -116,15 +119,15 @@ Returns:
 --*/
 ;
 
-
 EFI_STATUS
 EFIAPI
 SecImageRead (
-  IN     VOID    *FileHandle,
-  IN     UINTN   FileOffset,
-  IN OUT UINTN   *ReadSize,
-  OUT    VOID    *Buffer
+  IN     VOID   *FileHandle,
+  IN     UINTN  FileOffset,
+  IN OUT UINTN  *ReadSize,
+  OUT    VOID   *Buffer
   )
+
 /*++
 
 Routine Description:
@@ -147,9 +150,10 @@ Returns:
 
 CHAR16                            *
 AsciiToUnicode (
-  IN  CHAR8   *Ascii,
-  IN  UINTN   *StrLen OPTIONAL
+  IN  CHAR8  *Ascii,
+  IN  UINTN  *StrLen OPTIONAL
   )
+
 /*++
 
 Routine Description:
@@ -170,9 +174,10 @@ Returns:
 
 UINTN
 CountSeparatorsInString (
-  IN  CONST CHAR16   *String,
-  IN  CHAR16   Separator
+  IN  CONST CHAR16  *String,
+  IN  CHAR16        Separator
   )
+
 /*++
 
 Routine Description:
@@ -193,16 +198,18 @@ Returns:
 
 BOOLEAN
 EfiSystemMemoryRange (
-  IN  VOID *MemoryAddress
+  IN  VOID  *MemoryAddress
   );
+
 VOID
 SecInitializeThunk (
   VOID
-);
-extern EMU_THUNK_PROTOCOL    gEmuThunkProtocol;
-extern EMU_IO_THUNK_PROTOCOL mWinNtWndThunkIo;
-extern EMU_IO_THUNK_PROTOCOL mWinNtFileSystemThunkIo;
-extern EMU_IO_THUNK_PROTOCOL mWinNtBlockIoThunkIo;
-extern EMU_IO_THUNK_PROTOCOL mWinNtSnpThunkIo;
+  );
+
+extern EMU_THUNK_PROTOCOL     gEmuThunkProtocol;
+extern EMU_IO_THUNK_PROTOCOL  mWinNtWndThunkIo;
+extern EMU_IO_THUNK_PROTOCOL  mWinNtFileSystemThunkIo;
+extern EMU_IO_THUNK_PROTOCOL  mWinNtBlockIoThunkIo;
+extern EMU_IO_THUNK_PROTOCOL  mWinNtSnpThunkIo;
 
 #endif

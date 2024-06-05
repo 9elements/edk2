@@ -306,7 +306,7 @@ class BuildRule:
     _SubSectionList = [_InputFile, _OutputFile, _Command]
 
     _PATH_SEP = "(+)"
-    _FileTypePattern = re.compile("^[_a-zA-Z][_\-0-9a-zA-Z]*$")
+    _FileTypePattern = re.compile(r"^[_a-zA-Z][_\-0-9a-zA-Z]*$")
     _BinaryFileRule = FileBuildRule(TAB_DEFAULT_BINARY_FILE, [], [os.path.join("$(OUTPUT_DIR)", "${s_name}")],
                                     ["$(CP) ${src} ${dst}"], [])
 
@@ -317,7 +317,7 @@ class BuildRule:
     #   @param  LineIndex           The line number from which the parsing will begin
     #   @param  SupportedFamily     The list of supported tool chain families
     #
-    def __init__(self, File=None, Content=None, LineIndex=0, SupportedFamily=[TAB_COMPILER_MSFT, "INTEL", "GCC", "RVCT"]):
+    def __init__(self, File=None, Content=None, LineIndex=0, SupportedFamily=[TAB_COMPILER_MSFT, "INTEL", "GCC"]):
         self.RuleFile = File
         # Read build rules from file if it's not none
         if File is not None:

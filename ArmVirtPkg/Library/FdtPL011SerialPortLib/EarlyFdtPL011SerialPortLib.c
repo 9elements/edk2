@@ -15,7 +15,7 @@
 #include <Library/PcdLib.h>
 #include <Library/PL011UartLib.h>
 #include <Library/SerialPortLib.h>
-#include <libfdt.h>
+#include <Library/FdtSerialPortAddressLib.h>
 
 RETURN_STATUS
 EFIAPI
@@ -56,74 +56,50 @@ SerialPortGetBaseAddress (
   UINT8               DataBits;
   EFI_STOP_BITS_TYPE  StopBits;
   VOID                *DeviceTreeBase;
-  INT32               Node, Prev;
-  INT32               Len;
-  CONST CHAR8         *Compatible;
-  CONST CHAR8         *NodeStatus;
-  CONST CHAR8         *CompatibleItem;
-  CONST UINT64        *RegProperty;
-  UINTN               UartBase;
+  FDT_SERIAL_PORTS    Ports;
+  UINT64              UartBase;
   RETURN_STATUS       Status;
 
   DeviceTreeBase = (VOID *)(UINTN)PcdGet64 (PcdDeviceTreeInitialBaseAddress);
 
-  if ((DeviceTreeBase == NULL) || (fdt_check_header (DeviceTreeBase) != 0)) {
+  if (DeviceTreeBase == NULL) {
+    return 0;
+  }
+
+  Status = FdtSerialGetPorts (DeviceTreeBase, "arm,pl011", &Ports);
+  if (RETURN_ERROR (Status)) {
     return 0;
   }
 
   //
-  // Enumerate all FDT nodes looking for a PL011 and capture its base address
+  // Default to the first port found, but (if there are multiple ports) allow
+  // the "/chosen" node to override it. Note that if FdtSerialGetConsolePort()
+  // fails, it does not modify UartBase.
   //
-  for (Prev = 0;; Prev = Node) {
-    Node = fdt_next_node (DeviceTreeBase, Prev, NULL);
-    if (Node < 0) {
-      break;
-    }
-
-    Compatible = fdt_getprop (DeviceTreeBase, Node, "compatible", &Len);
-    if (Compatible == NULL) {
-      continue;
-    }
-
-    //
-    // Iterate over the NULL-separated items in the compatible string
-    //
-    for (CompatibleItem = Compatible; CompatibleItem < Compatible + Len;
-      CompatibleItem += 1 + AsciiStrLen (CompatibleItem)) {
-
-      if (AsciiStrCmp (CompatibleItem, "arm,pl011") == 0) {
-        NodeStatus = fdt_getprop (DeviceTreeBase, Node, "status", &Len);
-        if (NodeStatus != NULL && AsciiStrCmp (NodeStatus, "okay") != 0) {
-          continue;
-        }
-
-        RegProperty = fdt_getprop (DeviceTreeBase, Node, "reg", &Len);
-        if (Len != 16) {
-          return 0;
-        }
-        UartBase = (UINTN)fdt64_to_cpu (ReadUnaligned64 (RegProperty));
-
-        BaudRate = (UINTN)FixedPcdGet64 (PcdUartDefaultBaudRate);
-        ReceiveFifoDepth = 0; // Use the default value for Fifo depth
-        Parity = (EFI_PARITY_TYPE)FixedPcdGet8 (PcdUartDefaultParity);
-        DataBits = FixedPcdGet8 (PcdUartDefaultDataBits);
-        StopBits = (EFI_STOP_BITS_TYPE) FixedPcdGet8 (PcdUartDefaultStopBits);
-
-        Status = PL011UartInitializePort (
-                   UartBase,
-                   FixedPcdGet32 (PL011UartClkInHz),
-                   &BaudRate,
-                   &ReceiveFifoDepth,
-                   &Parity,
-                   &DataBits,
-                   &StopBits
-                   );
-        if (!EFI_ERROR (Status)) {
-          return UartBase;
-        }
-      }
-    }
+  UartBase = Ports.BaseAddress[0];
+  if (Ports.NumberOfPorts > 1) {
+    FdtSerialGetConsolePort (DeviceTreeBase, &UartBase);
   }
+
+  BaudRate         = (UINTN)FixedPcdGet64 (PcdUartDefaultBaudRate);
+  ReceiveFifoDepth = 0; // Use the default value for Fifo depth
+  Parity           = (EFI_PARITY_TYPE)FixedPcdGet8 (PcdUartDefaultParity);
+  DataBits         = FixedPcdGet8 (PcdUartDefaultDataBits);
+  StopBits         = (EFI_STOP_BITS_TYPE)FixedPcdGet8 (PcdUartDefaultStopBits);
+
+  Status = PL011UartInitializePort (
+             UartBase,
+             FixedPcdGet32 (PL011UartClkInHz),
+             &BaudRate,
+             &ReceiveFifoDepth,
+             &Parity,
+             &DataBits,
+             &StopBits
+             );
+  if (!RETURN_ERROR (Status)) {
+    return UartBase;
+  }
+
   return 0;
 }
 
@@ -140,16 +116,17 @@ SerialPortGetBaseAddress (
 UINTN
 EFIAPI
 SerialPortWrite (
-  IN UINT8     *Buffer,
-  IN UINTN     NumberOfBytes
+  IN UINT8  *Buffer,
+  IN UINTN  NumberOfBytes
   )
 {
-  UINT64 SerialRegisterBase;
+  UINT64  SerialRegisterBase;
 
   SerialRegisterBase = SerialPortGetBaseAddress ();
   if (SerialRegisterBase != 0) {
     return PL011UartWrite ((UINTN)SerialRegisterBase, Buffer, NumberOfBytes);
   }
+
   return 0;
 }
 
@@ -166,9 +143,9 @@ SerialPortWrite (
 UINTN
 EFIAPI
 SerialPortRead (
-  OUT UINT8     *Buffer,
-  IN  UINTN     NumberOfBytes
-)
+  OUT UINT8  *Buffer,
+  IN  UINTN  NumberOfBytes
+  )
 {
   return 0;
 }
@@ -202,7 +179,7 @@ SerialPortPoll (
 RETURN_STATUS
 EFIAPI
 SerialPortSetControl (
-  IN UINT32 Control
+  IN UINT32  Control
   )
 {
   return RETURN_UNSUPPORTED;
@@ -221,7 +198,7 @@ SerialPortSetControl (
 RETURN_STATUS
 EFIAPI
 SerialPortGetControl (
-  OUT UINT32 *Control
+  OUT UINT32  *Control
   )
 {
   return RETURN_UNSUPPORTED;
@@ -263,14 +240,13 @@ SerialPortGetControl (
 RETURN_STATUS
 EFIAPI
 SerialPortSetAttributes (
-  IN OUT UINT64             *BaudRate,
-  IN OUT UINT32             *ReceiveFifoDepth,
-  IN OUT UINT32             *Timeout,
-  IN OUT EFI_PARITY_TYPE    *Parity,
-  IN OUT UINT8              *DataBits,
-  IN OUT EFI_STOP_BITS_TYPE *StopBits
+  IN OUT UINT64              *BaudRate,
+  IN OUT UINT32              *ReceiveFifoDepth,
+  IN OUT UINT32              *Timeout,
+  IN OUT EFI_PARITY_TYPE     *Parity,
+  IN OUT UINT8               *DataBits,
+  IN OUT EFI_STOP_BITS_TYPE  *StopBits
   )
 {
   return RETURN_UNSUPPORTED;
 }
-

@@ -1,6 +1,7 @@
 ##  @file
 # Provides Shell 'acpiview' command functions
 #
+# Copyright (c) 2022, NVIDIA CORPORATION. All rights reserved.
 # Copyright (c) 2016 - 2020, Arm Limited. All rights reserved.<BR>
 #
 #  SPDX-License-Identifier: BSD-2-Clause-Patent
@@ -28,12 +29,16 @@
   AcpiViewConfig.c
   AcpiViewConfig.h
   Parsers/Aest/AestParser.c
+  Parsers/Apmt/ApmtParser.c
   Parsers/Bgrt/BgrtParser.c
   Parsers/Dbg2/Dbg2Parser.c
   Parsers/Dsdt/DsdtParser.c
+  Parsers/Erst/ErstParser.c
   Parsers/Facs/FacsParser.c
   Parsers/Fadt/FadtParser.c
   Parsers/Gtdt/GtdtParser.c
+  Parsers/Hmat/HmatParser.c
+  Parsers/Hpet/HpetParser.c
   Parsers/Iort/IortParser.c
   Parsers/Madt/MadtParser.c
   Parsers/Madt/MadtParser.h
@@ -47,6 +52,7 @@
   Parsers/Spcr/SpcrParser.c
   Parsers/Srat/SratParser.c
   Parsers/Ssdt/SsdtParser.c
+  Parsers/Wsmt/WsmtParser.c
   Parsers/Xsdt/XsdtParser.c
   UefiShellAcpiViewCommandLib.c
   UefiShellAcpiViewCommandLib.uni

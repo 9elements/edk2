@@ -31,6 +31,8 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include <Library/MemoryAllocationLib.h>
 #include <Library/AuthVariableLib.h>
 #include <Library/VarCheckLib.h>
+#include <Library/VariableFlashInfoLib.h>
+#include <Library/SafeIntLib.h>
 #include <Guid/GlobalVariable.h>
 #include <Guid/EventGroup.h>
 #include <Guid/VariableFormat.h>
@@ -40,12 +42,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 
 #include "PrivilegePolymorphic.h"
 
-#define NV_STORAGE_VARIABLE_BASE (EFI_PHYSICAL_ADDRESS) \
-                                   (PcdGet64 (PcdFlashNvStorageVariableBase64) != 0 ? \
-                                    PcdGet64 (PcdFlashNvStorageVariableBase64) : \
-                                    PcdGet32 (PcdFlashNvStorageVariableBase))
-
-#define EFI_VARIABLE_ATTRIBUTES_MASK (EFI_VARIABLE_NON_VOLATILE | \
+#define EFI_VARIABLE_ATTRIBUTES_MASK  (EFI_VARIABLE_NON_VOLATILE |\
                                       EFI_VARIABLE_BOOTSERVICE_ACCESS | \
                                       EFI_VARIABLE_RUNTIME_ACCESS | \
                                       EFI_VARIABLE_HARDWARE_ERROR_RECORD | \
@@ -55,7 +52,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 ///
 /// The size of a 3 character ISO639 language code.
 ///
-#define ISO_639_2_ENTRY_SIZE    3
+#define ISO_639_2_ENTRY_SIZE  3
 
 typedef enum {
   VariableStoreTypeVolatile,
@@ -65,65 +62,65 @@ typedef enum {
 } VARIABLE_STORE_TYPE;
 
 typedef struct {
-  UINT32                  PendingUpdateOffset;
-  UINT32                  PendingUpdateLength;
-  VARIABLE_STORE_HEADER   *Store;
+  UINT32                   PendingUpdateOffset;
+  UINT32                   PendingUpdateLength;
+  VARIABLE_STORE_HEADER    *Store;
 } VARIABLE_RUNTIME_CACHE;
 
 typedef struct {
-  BOOLEAN                 *ReadLock;
-  BOOLEAN                 *PendingUpdate;
-  BOOLEAN                 *HobFlushComplete;
-  VARIABLE_RUNTIME_CACHE  VariableRuntimeHobCache;
-  VARIABLE_RUNTIME_CACHE  VariableRuntimeNvCache;
-  VARIABLE_RUNTIME_CACHE  VariableRuntimeVolatileCache;
+  BOOLEAN                   *ReadLock;
+  BOOLEAN                   *PendingUpdate;
+  BOOLEAN                   *HobFlushComplete;
+  VARIABLE_RUNTIME_CACHE    VariableRuntimeHobCache;
+  VARIABLE_RUNTIME_CACHE    VariableRuntimeNvCache;
+  VARIABLE_RUNTIME_CACHE    VariableRuntimeVolatileCache;
 } VARIABLE_RUNTIME_CACHE_CONTEXT;
 
 typedef struct {
-  VARIABLE_HEADER *CurrPtr;
+  VARIABLE_HEADER    *CurrPtr;
   //
   // If both ADDED and IN_DELETED_TRANSITION variable are present,
   // InDeletedTransitionPtr will point to the IN_DELETED_TRANSITION one.
   // Otherwise, CurrPtr will point to the ADDED or IN_DELETED_TRANSITION one,
   // and InDeletedTransitionPtr will be NULL at the same time.
   //
-  VARIABLE_HEADER *InDeletedTransitionPtr;
-  VARIABLE_HEADER *EndPtr;
-  VARIABLE_HEADER *StartPtr;
-  BOOLEAN         Volatile;
+  VARIABLE_HEADER    *InDeletedTransitionPtr;
+  VARIABLE_HEADER    *EndPtr;
+  VARIABLE_HEADER    *StartPtr;
+  BOOLEAN            Volatile;
 } VARIABLE_POINTER_TRACK;
 
 typedef struct {
-  EFI_PHYSICAL_ADDRESS            HobVariableBase;
-  EFI_PHYSICAL_ADDRESS            VolatileVariableBase;
-  EFI_PHYSICAL_ADDRESS            NonVolatileVariableBase;
-  VARIABLE_RUNTIME_CACHE_CONTEXT  VariableRuntimeCacheContext;
-  EFI_LOCK                        VariableServicesLock;
-  UINT32                          ReentrantState;
-  BOOLEAN                         AuthFormat;
-  BOOLEAN                         AuthSupport;
-  BOOLEAN                         EmuNvMode;
+  EFI_PHYSICAL_ADDRESS              HobVariableBase;
+  EFI_PHYSICAL_ADDRESS              VolatileVariableBase;
+  EFI_PHYSICAL_ADDRESS              NonVolatileVariableBase;
+  VARIABLE_RUNTIME_CACHE_CONTEXT    VariableRuntimeCacheContext;
+  EFI_LOCK                          VariableServicesLock;
+  UINT32                            ReentrantState;
+  BOOLEAN                           AuthFormat;
+  BOOLEAN                           AuthSupport;
+  BOOLEAN                           EmuNvMode;
 } VARIABLE_GLOBAL;
 
 typedef struct {
-  VARIABLE_GLOBAL VariableGlobal;
-  UINTN           VolatileLastVariableOffset;
-  UINTN           NonVolatileLastVariableOffset;
-  UINTN           CommonVariableSpace;
-  UINTN           CommonMaxUserVariableSpace;
-  UINTN           CommonRuntimeVariableSpace;
-  UINTN           CommonVariableTotalSize;
-  UINTN           CommonUserVariableTotalSize;
-  UINTN           HwErrVariableTotalSize;
-  UINTN           MaxVariableSize;
-  UINTN           MaxAuthVariableSize;
-  UINTN           MaxVolatileVariableSize;
-  UINTN           ScratchBufferSize;
-  CHAR8           *PlatformLangCodes;
-  CHAR8           *LangCodes;
-  CHAR8           *PlatformLang;
-  CHAR8           Lang[ISO_639_2_ENTRY_SIZE + 1];
-  EFI_FIRMWARE_VOLUME_BLOCK_PROTOCOL *FvbInstance;
+  VARIABLE_GLOBAL                       VariableGlobal;
+  UINTN                                 VolatileLastVariableOffset;
+  UINTN                                 NonVolatileLastVariableOffset;
+  UINTN                                 CommonVariableSpace;
+  UINTN                                 CommonMaxUserVariableSpace;
+  UINTN                                 CommonRuntimeVariableSpace;
+  UINTN                                 CommonVariableTotalSize;
+  UINTN                                 CommonUserVariableTotalSize;
+  UINTN                                 HwErrVariableTotalSize;
+  UINTN                                 MaxVariableSize;
+  UINTN                                 MaxAuthVariableSize;
+  UINTN                                 MaxVolatileVariableSize;
+  UINTN                                 ScratchBufferSize;
+  CHAR8                                 *PlatformLangCodes;
+  CHAR8                                 *LangCodes;
+  CHAR8                                 *PlatformLang;
+  CHAR8                                 Lang[ISO_639_2_ENTRY_SIZE + 1];
+  EFI_FIRMWARE_VOLUME_BLOCK_PROTOCOL    *FvbInstance;
 } VARIABLE_MODULE_GLOBAL;
 
 /**
@@ -135,8 +132,8 @@ typedef struct {
 **/
 VOID
 FlushHobVariableToFlash (
-  IN CHAR16                     *VariableName,
-  IN EFI_GUID                   *VendorGuid
+  IN CHAR16    *VariableName,
+  IN EFI_GUID  *VendorGuid
   );
 
 /**
@@ -218,8 +215,8 @@ FindVariable (
 BOOLEAN
 EFIAPI
 CheckRemainingSpaceForConsistencyInternal (
-  IN UINT32                     Attributes,
-  IN VA_LIST                    Marker
+  IN UINT32   Attributes,
+  IN VA_LIST  Marker
   );
 
 /**
@@ -243,17 +240,16 @@ CheckRemainingSpaceForConsistencyInternal (
 **/
 EFI_STATUS
 UpdateVariable (
-  IN      CHAR16          *VariableName,
-  IN      EFI_GUID        *VendorGuid,
-  IN      VOID            *Data,
-  IN      UINTN           DataSize,
-  IN      UINT32          Attributes OPTIONAL,
-  IN      UINT32          KeyIndex  OPTIONAL,
-  IN      UINT64          MonotonicCount  OPTIONAL,
-  IN OUT  VARIABLE_POINTER_TRACK *Variable,
-  IN      EFI_TIME        *TimeStamp  OPTIONAL
+  IN      CHAR16                  *VariableName,
+  IN      EFI_GUID                *VendorGuid,
+  IN      VOID                    *Data,
+  IN      UINTN                   DataSize,
+  IN      UINT32                  Attributes OPTIONAL,
+  IN      UINT32                  KeyIndex  OPTIONAL,
+  IN      UINT64                  MonotonicCount  OPTIONAL,
+  IN OUT  VARIABLE_POINTER_TRACK  *Variable,
+  IN      EFI_TIME                *TimeStamp  OPTIONAL
   );
-
 
 /**
   Return TRUE if ExitBootServices () has been called.
@@ -284,9 +280,8 @@ AtRuntime (
 EFI_LOCK *
 InitializeLock (
   IN OUT EFI_LOCK  *Lock,
-  IN EFI_TPL        Priority
+  IN EFI_TPL       Priority
   );
-
 
 /**
   Acquires lock only at boot time. Simply returns at runtime.
@@ -304,7 +299,6 @@ VOID
 AcquireLockOnlyAtBootTime (
   IN EFI_LOCK  *Lock
   );
-
 
 /**
   Releases lock only at boot time. Simply returns at runtime.
@@ -358,8 +352,8 @@ GetFvbByHandle (
 **/
 EFI_STATUS
 GetFvbCountAndBuffer (
-  OUT UINTN                               *NumberHandles,
-  OUT EFI_HANDLE                          **Buffer
+  OUT UINTN       *NumberHandles,
+  OUT EFI_HANDLE  **Buffer
   );
 
 /**
@@ -379,7 +373,7 @@ VariableCommonInitialize (
 
 **/
 VOID
-ReclaimForOS(
+ReclaimForOS (
   VOID
   );
 
@@ -418,7 +412,7 @@ VariableWriteServiceInitialize (
 **/
 EFI_STATUS
 GetFtwProtocol (
-  OUT VOID                                **FtwProtocol
+  OUT VOID  **FtwProtocol
   );
 
 /**
@@ -452,20 +446,29 @@ GetFvbInfoByAddress (
   @param Data                       The buffer to return the contents of the variable. May be NULL
                                     with a zero DataSize in order to determine the size buffer needed.
 
-  @return EFI_INVALID_PARAMETER     Invalid parameter.
-  @return EFI_SUCCESS               Find the specified variable.
-  @return EFI_NOT_FOUND             Not found.
-  @return EFI_BUFFER_TO_SMALL       DataSize is too small for the result.
+  @retval EFI_SUCCESS            The function completed successfully.
+  @retval EFI_NOT_FOUND          The variable was not found.
+  @retval EFI_BUFFER_TOO_SMALL   The DataSize is too small for the result.
+  @retval EFI_INVALID_PARAMETER  VariableName is NULL.
+  @retval EFI_INVALID_PARAMETER  VendorGuid is NULL.
+  @retval EFI_INVALID_PARAMETER  DataSize is NULL.
+  @retval EFI_INVALID_PARAMETER  The DataSize is not too small and Data is NULL.
+  @retval EFI_DEVICE_ERROR       The variable could not be retrieved due to a hardware error.
+  @retval EFI_SECURITY_VIOLATION The variable could not be retrieved due to an authentication failure.
+  @retval EFI_UNSUPPORTED        After ExitBootServices() has been called, this return code may be returned
+                                 if no variable storage is supported. The platform should describe this
+                                 runtime service as unsupported at runtime via an EFI_RT_PROPERTIES_TABLE
+                                 configuration table.
 
 **/
 EFI_STATUS
 EFIAPI
 VariableServiceGetVariable (
-  IN      CHAR16            *VariableName,
-  IN      EFI_GUID          *VendorGuid,
-  OUT     UINT32            *Attributes OPTIONAL,
-  IN OUT  UINTN             *DataSize,
-  OUT     VOID              *Data OPTIONAL
+  IN      CHAR16    *VariableName,
+  IN      EFI_GUID  *VendorGuid,
+  OUT     UINT32    *Attributes OPTIONAL,
+  IN OUT  UINTN     *DataSize,
+  OUT     VOID      *Data OPTIONAL
   );
 
 /**
@@ -491,14 +494,19 @@ VariableServiceGetVariable (
                                     GUID of an existing variable.
   @retval EFI_INVALID_PARAMETER     Null-terminator is not found in the first VariableNameSize bytes of
                                     the input VariableName buffer.
+  @retval EFI_DEVICE_ERROR          The variable could not be retrieved due to a hardware error.
+  @retval EFI_UNSUPPORTED           After ExitBootServices() has been called, this return code may be returned
+                                    if no variable storage is supported. The platform should describe this
+                                    runtime service as unsupported at runtime via an EFI_RT_PROPERTIES_TABLE
+                                    configuration table.
 
 **/
 EFI_STATUS
 EFIAPI
 VariableServiceGetNextVariableName (
-  IN OUT  UINTN             *VariableNameSize,
-  IN OUT  CHAR16            *VariableName,
-  IN OUT  EFI_GUID          *VendorGuid
+  IN OUT  UINTN     *VariableNameSize,
+  IN OUT  CHAR16    *VariableName,
+  IN OUT  EFI_GUID  *VendorGuid
   );
 
 /**
@@ -519,21 +527,29 @@ VariableServiceGetNextVariableName (
                                           data, this value contains the required size.
   @param Data                             Data pointer.
 
-  @return EFI_INVALID_PARAMETER           Invalid parameter.
-  @return EFI_SUCCESS                     Set successfully.
-  @return EFI_OUT_OF_RESOURCES            Resource not enough to set variable.
-  @return EFI_NOT_FOUND                   Not found.
-  @return EFI_WRITE_PROTECTED             Variable is read-only.
+  @retval EFI_SUCCESS                     The function completed successfully.
+  @retval EFI_NOT_FOUND                   The variable was not found.
+  @retval EFI_BUFFER_TOO_SMALL            The DataSize is too small for the result.
+  @retval EFI_INVALID_PARAMETER           VariableName is NULL.
+  @retval EFI_INVALID_PARAMETER           VendorGuid is NULL.
+  @retval EFI_INVALID_PARAMETER           DataSize is NULL.
+  @retval EFI_INVALID_PARAMETER           The DataSize is not too small and Data is NULL.
+  @retval EFI_DEVICE_ERROR                The variable could not be retrieved due to a hardware error.
+  @retval EFI_SECURITY_VIOLATION          The variable could not be retrieved due to an authentication failure.
+  @retval EFI_UNSUPPORTED                 After ExitBootServices() has been called, this return code may be returned
+                                          if no variable storage is supported. The platform should describe this
+                                          runtime service as unsupported at runtime via an EFI_RT_PROPERTIES_TABLE
+                                          configuration table.
 
 **/
 EFI_STATUS
 EFIAPI
 VariableServiceSetVariable (
-  IN CHAR16                  *VariableName,
-  IN EFI_GUID                *VendorGuid,
-  IN UINT32                  Attributes,
-  IN UINTN                   DataSize,
-  IN VOID                    *Data
+  IN CHAR16    *VariableName,
+  IN EFI_GUID  *VendorGuid,
+  IN UINT32    Attributes,
+  IN UINTN     DataSize,
+  IN VOID      *Data
   );
 
 /**
@@ -558,10 +574,10 @@ VariableServiceSetVariable (
 EFI_STATUS
 EFIAPI
 VariableServiceQueryVariableInfoInternal (
-  IN  UINT32                 Attributes,
-  OUT UINT64                 *MaximumVariableStorageSize,
-  OUT UINT64                 *RemainingVariableStorageSize,
-  OUT UINT64                 *MaximumVariableSize
+  IN  UINT32  Attributes,
+  OUT UINT64  *MaximumVariableStorageSize,
+  OUT UINT64  *RemainingVariableStorageSize,
+  OUT UINT64  *MaximumVariableSize
   );
 
 /**
@@ -588,10 +604,10 @@ VariableServiceQueryVariableInfoInternal (
 EFI_STATUS
 EFIAPI
 VariableServiceQueryVariableInfo (
-  IN  UINT32                 Attributes,
-  OUT UINT64                 *MaximumVariableStorageSize,
-  OUT UINT64                 *RemainingVariableStorageSize,
-  OUT UINT64                 *MaximumVariableSize
+  IN  UINT32  Attributes,
+  OUT UINT64  *MaximumVariableStorageSize,
+  OUT UINT64  *RemainingVariableStorageSize,
+  OUT UINT64  *MaximumVariableSize
   );
 
 /**
@@ -612,9 +628,9 @@ VariableServiceQueryVariableInfo (
 EFI_STATUS
 EFIAPI
 VariableLockRequestToLock (
-  IN CONST EDKII_VARIABLE_LOCK_PROTOCOL *This,
-  IN       CHAR16                       *VariableName,
-  IN       EFI_GUID                     *VendorGuid
+  IN CONST EDKII_VARIABLE_LOCK_PROTOCOL  *This,
+  IN       CHAR16                        *VariableName,
+  IN       EFI_GUID                      *VendorGuid
   );
 
 /**
@@ -634,7 +650,7 @@ VariableLockRequestToLock (
 EFI_STATUS
 EFIAPI
 VarCheckRegisterSetVariableCheckHandler (
-  IN VAR_CHECK_SET_VARIABLE_CHECK_HANDLER   Handler
+  IN VAR_CHECK_SET_VARIABLE_CHECK_HANDLER  Handler
   );
 
 /**
@@ -655,9 +671,9 @@ VarCheckRegisterSetVariableCheckHandler (
 EFI_STATUS
 EFIAPI
 VarCheckVariablePropertySet (
-  IN CHAR16                         *Name,
-  IN EFI_GUID                       *Guid,
-  IN VAR_CHECK_VARIABLE_PROPERTY    *VariableProperty
+  IN CHAR16                       *Name,
+  IN EFI_GUID                     *Guid,
+  IN VAR_CHECK_VARIABLE_PROPERTY  *VariableProperty
   );
 
 /**
@@ -675,9 +691,9 @@ VarCheckVariablePropertySet (
 EFI_STATUS
 EFIAPI
 VarCheckVariablePropertyGet (
-  IN CHAR16                         *Name,
-  IN EFI_GUID                       *Guid,
-  OUT VAR_CHECK_VARIABLE_PROPERTY   *VariableProperty
+  IN CHAR16                        *Name,
+  IN EFI_GUID                      *Guid,
+  OUT VAR_CHECK_VARIABLE_PROPERTY  *VariableProperty
   );
 
 /**
@@ -689,14 +705,14 @@ InitializeVariableQuota (
   VOID
   );
 
-extern VARIABLE_MODULE_GLOBAL       *mVariableModuleGlobal;
-extern EFI_FIRMWARE_VOLUME_HEADER   *mNvFvHeaderCache;
-extern VARIABLE_STORE_HEADER        *mNvVariableCache;
-extern VARIABLE_INFO_ENTRY          *gVariableInfo;
-extern BOOLEAN                      mEndOfDxe;
-extern VAR_CHECK_REQUEST_SOURCE     mRequestSource;
+extern VARIABLE_MODULE_GLOBAL      *mVariableModuleGlobal;
+extern EFI_FIRMWARE_VOLUME_HEADER  *mNvFvHeaderCache;
+extern VARIABLE_STORE_HEADER       *mNvVariableCache;
+extern VARIABLE_INFO_ENTRY         *gVariableInfo;
+extern BOOLEAN                     mEndOfDxe;
+extern VAR_CHECK_REQUEST_SOURCE    mRequestSource;
 
-extern AUTH_VAR_LIB_CONTEXT_OUT     mAuthContextOut;
+extern AUTH_VAR_LIB_CONTEXT_OUT  mAuthContextOut;
 
 /**
   Finds variable in storage blocks of volatile and non-volatile storage areas.
@@ -719,9 +735,9 @@ extern AUTH_VAR_LIB_CONTEXT_OUT     mAuthContextOut;
 EFI_STATUS
 EFIAPI
 VariableExLibFindVariable (
-  IN  CHAR16                *VariableName,
-  IN  EFI_GUID              *VendorGuid,
-  OUT AUTH_VARIABLE_INFO    *AuthVariableInfo
+  IN  CHAR16              *VariableName,
+  IN  EFI_GUID            *VendorGuid,
+  OUT AUTH_VARIABLE_INFO  *AuthVariableInfo
   );
 
 /**
@@ -745,9 +761,9 @@ VariableExLibFindVariable (
 EFI_STATUS
 EFIAPI
 VariableExLibFindNextVariable (
-  IN  CHAR16                *VariableName,
-  IN  EFI_GUID              *VendorGuid,
-  OUT AUTH_VARIABLE_INFO    *AuthVariableInfo
+  IN  CHAR16              *VariableName,
+  IN  EFI_GUID            *VendorGuid,
+  OUT AUTH_VARIABLE_INFO  *AuthVariableInfo
   );
 
 /**
@@ -765,7 +781,7 @@ VariableExLibFindNextVariable (
 EFI_STATUS
 EFIAPI
 VariableExLibUpdateVariable (
-  IN AUTH_VARIABLE_INFO     *AuthVariableInfo
+  IN AUTH_VARIABLE_INFO  *AuthVariableInfo
   );
 
 /**
@@ -783,8 +799,8 @@ VariableExLibUpdateVariable (
 EFI_STATUS
 EFIAPI
 VariableExLibGetScratchBuffer (
-  IN OUT UINTN      *ScratchBufferSize,
-  OUT    VOID       **ScratchBuffer
+  IN OUT UINTN  *ScratchBufferSize,
+  OUT    VOID   **ScratchBuffer
   );
 
 /**
@@ -809,7 +825,7 @@ VariableExLibGetScratchBuffer (
 BOOLEAN
 EFIAPI
 VariableExLibCheckRemainingSpaceForConsistency (
-  IN UINT32                     Attributes,
+  IN UINT32  Attributes,
   ...
   );
 

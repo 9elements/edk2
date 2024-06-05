@@ -1,7 +1,7 @@
 ## @file
 #  The CPU specific programming for PiSmmCpuDxeSmm module.
 #
-#  Copyright (c) 2009 - 2015, Intel Corporation. All rights reserved.<BR>
+#  Copyright (c) 2009 - 2023, Intel Corporation. All rights reserved.<BR>
 #
 #  SPDX-License-Identifier: BSD-2-Clause-Patent
 #
@@ -30,9 +30,17 @@
   BaseMemoryLib
   DebugLib
   MemEncryptSevLib
+  MemoryAllocationLib
   PcdLib
+  SafeIntLib
   SmmServicesTableLib
   UefiBootServicesTableLib
+  HobLib
+
+[Guids]
+  gSmmBaseHobGuid                ## CONSUMES
 
 [Pcd]
+  gUefiCpuPkgTokenSpaceGuid.PcdCpuMaxLogicalProcessorNumber
+  gUefiOvmfPkgTokenSpaceGuid.PcdCpuHotEjectDataAddress
   gUefiOvmfPkgTokenSpaceGuid.PcdQ35SmramAtDefaultSmbase

@@ -1,6 +1,6 @@
 /** @file
 
-  Copyright (c) 2017-2018, Arm Limited. All rights reserved.
+  Copyright (c) 2017-2021, Arm Limited. All rights reserved.<BR>
 
   SPDX-License-Identifier: BSD-2-Clause-Patent
 
@@ -34,7 +34,7 @@ BaseGetVersion (
   OUT UINT32              *Version
   )
 {
-  return ScmiGetProtocolVersion (SCMI_PROTOCOL_ID_BASE, Version);
+  return ScmiGetProtocolVersion (ScmiProtocolIdBase, Version);
 }
 
 /** Return total number of SCMI protocols supported by the SCP firmware.
@@ -57,7 +57,7 @@ BaseGetTotalProtocols (
   EFI_STATUS  Status;
   UINT32      *ReturnValues;
 
-  Status = ScmiGetProtocolAttributes (SCMI_PROTOCOL_ID_BASE, &ReturnValues);
+  Status = ScmiGetProtocolAttributes (ScmiProtocolIdBase, &ReturnValues);
   if (EFI_ERROR (Status)) {
     return Status;
   }
@@ -69,9 +69,9 @@ BaseGetTotalProtocols (
 
 /** Common function which returns vendor details.
 
-  @param[in] MessageId       SCMI_MESSAGE_ID_BASE_DISCOVER_VENDOR
+  @param[in] MessageId       ScmiMessageIdBaseDiscoverVendor
                              OR
-                             SCMI_MESSAGE_ID_BASE_DISCOVER_SUB_VENDOR
+                             ScmiMessageIdBaseDiscoverSubVendor
 
   @param[out] VendorIdentifier ASCII name of the vendor/subvendor.
 
@@ -91,7 +91,7 @@ BaseDiscoverVendorDetails (
   SCMI_COMMAND  Cmd;
   UINT32        PayloadLength;
 
-  Cmd.ProtocolId = SCMI_PROTOCOL_ID_BASE;
+  Cmd.ProtocolId = ScmiProtocolIdBase;
   Cmd.MessageId  = MessageId;
 
   PayloadLength = 0;
@@ -106,9 +106,9 @@ BaseDiscoverVendorDetails (
   }
 
   AsciiStrCpyS (
-    (CHAR8*)VendorIdentifier,
+    (CHAR8 *)VendorIdentifier,
     SCMI_MAX_STR_LEN,
-    (CONST CHAR8*)ReturnValues
+    (CONST CHAR8 *)ReturnValues
     );
 
   return EFI_SUCCESS;
@@ -133,7 +133,7 @@ BaseDiscoverVendor (
   )
 {
   return BaseDiscoverVendorDetails (
-           SCMI_MESSAGE_ID_BASE_DISCOVER_VENDOR,
+           ScmiMessageIdBaseDiscoverVendor,
            VendorIdentifier
            );
 }
@@ -156,7 +156,7 @@ BaseDiscoverSubVendor (
   )
 {
   return BaseDiscoverVendorDetails (
-           SCMI_MESSAGE_ID_BASE_DISCOVER_SUB_VENDOR,
+           ScmiMessageIdBaseDiscoverSubVendor,
            VendorIdentifier
            );
 }
@@ -183,8 +183,8 @@ BaseDiscoverImplVersion (
   SCMI_COMMAND  Cmd;
   UINT32        PayloadLength;
 
-  Cmd.ProtocolId = SCMI_PROTOCOL_ID_BASE;
-  Cmd.MessageId  = SCMI_MESSAGE_ID_BASE_DISCOVER_IMPLEMENTATION_VERSION;
+  Cmd.ProtocolId = ScmiProtocolIdBase;
+  Cmd.MessageId  = ScmiMessageIdBaseDiscoverImplementationVersion;
 
   PayloadLength = 0;
 
@@ -250,13 +250,12 @@ BaseDiscoverListProtocols (
     return EFI_BUFFER_TOO_SMALL;
   }
 
-  Cmd.ProtocolId = SCMI_PROTOCOL_ID_BASE;
-  Cmd.MessageId  = SCMI_MESSAGE_ID_BASE_DISCOVER_LIST_PROTOCOLS;
+  Cmd.ProtocolId = ScmiProtocolIdBase;
+  Cmd.MessageId  = ScmiMessageIdBaseDiscoverListProtocols;
 
   Skip = 0;
 
   while (Skip < TotalProtocols) {
-
     *MessageParams = Skip;
 
     // Note PayloadLength is a IN/OUT parameter.
@@ -265,7 +264,7 @@ BaseDiscoverListProtocols (
     Status = ScmiCommandExecute (
                &Cmd,
                &PayloadLength,
-               (UINT32**)&DiscoverList
+               (UINT32 **)&DiscoverList
                );
     if (EFI_ERROR (Status)) {
       return Status;
@@ -282,7 +281,7 @@ BaseDiscoverListProtocols (
 }
 
 // Instance of the SCMI Base protocol.
-STATIC CONST SCMI_BASE_PROTOCOL BaseProtocol = {
+STATIC CONST SCMI_BASE_PROTOCOL  BaseProtocol = {
   BaseGetVersion,
   BaseGetTotalProtocols,
   BaseDiscoverVendor,
@@ -300,7 +299,7 @@ STATIC CONST SCMI_BASE_PROTOCOL BaseProtocol = {
 **/
 EFI_STATUS
 ScmiBaseProtocolInit (
-  IN OUT EFI_HANDLE* Handle
+  IN OUT EFI_HANDLE  *Handle
   )
 {
   return gBS->InstallMultipleProtocolInterfaces (

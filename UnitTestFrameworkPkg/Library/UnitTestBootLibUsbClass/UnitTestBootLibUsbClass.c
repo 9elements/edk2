@@ -26,7 +26,7 @@
 EFI_STATUS
 EFIAPI
 SetBootNextDevice (
-   VOID
+  VOID
   )
 {
   EFI_STATUS                    Status;
@@ -47,8 +47,8 @@ SetBootNextDevice (
   Dp               = NULL;
   NewOptionValid   = FALSE;
 
-  UsbDp.Header.Length[0] = (UINT8)(sizeof(USB_CLASS_DEVICE_PATH) & 0xff);
-  UsbDp.Header.Length[1] = (UINT8)(sizeof(USB_CLASS_DEVICE_PATH) >> 8);
+  UsbDp.Header.Length[0] = (UINT8)(sizeof (USB_CLASS_DEVICE_PATH) & 0xff);
+  UsbDp.Header.Length[1] = (UINT8)(sizeof (USB_CLASS_DEVICE_PATH) >> 8);
   UsbDp.Header.Type      = MESSAGING_DEVICE_PATH;
   UsbDp.Header.SubType   = MSG_USB_CLASS_DP;
   UsbDp.VendorId         = 0xFFFF;
@@ -61,25 +61,25 @@ SetBootNextDevice (
 
   DpEnd = AppendDevicePathNode (NULL, NULL);
   if (DpEnd == NULL) {
-    DEBUG ((DEBUG_ERROR, "%a: Unable to create device path.  DpEnd is NULL.\n", __FUNCTION__));
+    DEBUG ((DEBUG_ERROR, "%a: Unable to create device path.  DpEnd is NULL.\n", __func__));
     Status = EFI_OUT_OF_RESOURCES;
     goto CLEANUP;
   }
 
-  //@MRT --- Is this memory leak because we lose the old Dp memory
+  // @MRT --- Is this memory leak because we lose the old Dp memory
   Dp = AppendDevicePathNode (
          DpEnd,
          (EFI_DEVICE_PATH_PROTOCOL *)&UsbDp
          );
   if (Dp == NULL) {
-    DEBUG((DEBUG_ERROR, "%a: Unable to create device path.  Dp is NULL.\n", __FUNCTION__));
+    DEBUG ((DEBUG_ERROR, "%a: Unable to create device path.  Dp is NULL.\n", __func__));
     Status = EFI_OUT_OF_RESOURCES;
     goto CLEANUP;
   }
 
   Status = EfiBootManagerInitializeLoadOption (
              &NewOption,
-             (UINTN) BootNextValue,
+             (UINTN)BootNextValue,
              LoadOptionTypeBoot,
              Attributes,
              L"Generic USB Class Device",
@@ -88,15 +88,15 @@ SetBootNextDevice (
              OptionalDataSize
              );
   if (EFI_ERROR (Status)) {
-    DEBUG ((DEBUG_ERROR, "%a: Error creating load option.  Status = %r\n", __FUNCTION__, Status));
+    DEBUG ((DEBUG_ERROR, "%a: Error creating load option.  Status = %r\n", __func__, Status));
     goto CLEANUP;
   }
 
   NewOptionValid = TRUE;
-  DEBUG ((DEBUG_VERBOSE, "%a: Generic USB Class Device boot option created.\n", __FUNCTION__));
+  DEBUG ((DEBUG_VERBOSE, "%a: Generic USB Class Device boot option created.\n", __func__));
   Status = EfiBootManagerLoadOptionToVariable (&NewOption);
   if (EFI_ERROR (Status)) {
-    DEBUG ((DEBUG_ERROR, "%a: Error Saving boot option NV variable. Status = %r\n", __FUNCTION__, Status));
+    DEBUG ((DEBUG_ERROR, "%a: Error Saving boot option NV variable. Status = %r\n", __func__, Status));
     goto CLEANUP;
   }
 
@@ -107,21 +107,24 @@ SetBootNextDevice (
                   L"BootNext",
                   &gEfiGlobalVariableGuid,
                   (EFI_VARIABLE_BOOTSERVICE_ACCESS | EFI_VARIABLE_RUNTIME_ACCESS | EFI_VARIABLE_NON_VOLATILE),
-                  sizeof(BootNextValue),
+                  sizeof (BootNextValue),
                   &(BootNextValue)
                   );
 
-  DEBUG((DEBUG_VERBOSE, "%a - Set BootNext Status (%r)\n", __FUNCTION__, Status));
+  DEBUG ((DEBUG_VERBOSE, "%a - Set BootNext Status (%r)\n", __func__, Status));
 
 CLEANUP:
   if (Dp != NULL) {
     FreePool (Dp);
   }
+
   if (DpEnd != NULL) {
     FreePool (DpEnd);
   }
+
   if (NewOptionValid) {
     EfiBootManagerFreeLoadOption (&NewOption);
   }
+
   return Status;
 }

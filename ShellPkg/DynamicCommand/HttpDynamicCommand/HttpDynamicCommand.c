@@ -22,16 +22,16 @@
   @param[in] Shell              The instance of the shell protocol used in
                                 the context of processing this command.
 
-  @return EFI_SUCCESS           the operation was sucessful
+  @return EFI_SUCCESS           the operation was successful
   @return other                 the operation failed.
 **/
 SHELL_STATUS
 EFIAPI
 HttpCommandHandler (
-  IN EFI_SHELL_DYNAMIC_COMMAND_PROTOCOL    *This,
-  IN EFI_SYSTEM_TABLE                      *SystemTable,
-  IN EFI_SHELL_PARAMETERS_PROTOCOL         *ShellParameters,
-  IN EFI_SHELL_PROTOCOL                    *Shell
+  IN EFI_SHELL_DYNAMIC_COMMAND_PROTOCOL  *This,
+  IN EFI_SYSTEM_TABLE                    *SystemTable,
+  IN EFI_SHELL_PARAMETERS_PROTOCOL       *ShellParameters,
+  IN EFI_SHELL_PROTOCOL                  *Shell
   )
 {
   gEfiShellParametersProtocol = ShellParameters;
@@ -53,8 +53,8 @@ HttpCommandHandler (
 CHAR16 *
 EFIAPI
 HttpCommandGetHelp (
-  IN EFI_SHELL_DYNAMIC_COMMAND_PROTOCOL    *This,
-  IN CONST CHAR8                           *Language
+  IN EFI_SHELL_DYNAMIC_COMMAND_PROTOCOL  *This,
+  IN CONST CHAR8                         *Language
   )
 {
   return HiiGetString (
@@ -64,7 +64,7 @@ HttpCommandGetHelp (
            );
 }
 
-EFI_SHELL_DYNAMIC_COMMAND_PROTOCOL mHttpDynamicCommand = {
+EFI_SHELL_DYNAMIC_COMMAND_PROTOCOL  mHttpDynamicCommand = {
   HTTP_APP_NAME,
   HttpCommandHandler,
   HttpCommandGetHelp
@@ -78,18 +78,18 @@ EFI_SHELL_DYNAMIC_COMMAND_PROTOCOL mHttpDynamicCommand = {
   @param ImageHandle            The image handle of the process.
   @param SystemTable            The EFI System Table pointer.
 
-  @retval EFI_SUCCESS           Http command is executed sucessfully.
+  @retval EFI_SUCCESS           Http command is executed successfully.
   @retval EFI_ABORTED           HII package was failed to initialize.
   @retval others                Other errors when executing http command.
 **/
 EFI_STATUS
 EFIAPI
 HttpCommandInitialize (
-  IN EFI_HANDLE               ImageHandle,
-  IN EFI_SYSTEM_TABLE         *SystemTable
+  IN EFI_HANDLE        ImageHandle,
+  IN EFI_SYSTEM_TABLE  *SystemTable
   )
 {
-  EFI_STATUS                  Status;
+  EFI_STATUS  Status;
 
   mHttpHiiHandle = InitializeHiiPackage (ImageHandle);
   if (mHttpHiiHandle == NULL) {
@@ -117,10 +117,10 @@ HttpCommandInitialize (
 EFI_STATUS
 EFIAPI
 HttpUnload (
-  IN EFI_HANDLE               ImageHandle
-)
+  IN EFI_HANDLE  ImageHandle
+  )
 {
-  EFI_STATUS                  Status;
+  EFI_STATUS  Status;
 
   Status = gBS->UninstallProtocolInterface (
                   ImageHandle,

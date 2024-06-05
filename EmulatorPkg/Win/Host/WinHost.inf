@@ -2,7 +2,7 @@
 # Entry Point of Win Emulator
 #
 # Main executable file of Win Emulator that loads Sec core after initialization finished.
-# Copyright (c) 2008 - 2019, Intel Corporation. All rights reserved.<BR>
+# Copyright (c) 2008 - 2022, Intel Corporation. All rights reserved.<BR>
 # Portions copyright (c) 2008 - 2011, Apple Inc. All rights reserved.<BR>
 # (C) Copyright 2020 Hewlett Packard Enterprise Development LP<BR>
 #
@@ -58,6 +58,7 @@
 
 [Ppis]
   gEmuThunkPpiGuid
+  gEfiPeiReset2PpiGuid
 
 [Protocols]
   gEmuIoThunkProtocolGuid
@@ -73,7 +74,7 @@
 
 [Pcd]
   gEfiMdeModulePkgTokenSpaceGuid.PcdInitValueInTempStack
-
+  gEmulatorPkgTokenSpaceGuid.PcdPersistentMemorySize
   gEmulatorPkgTokenSpaceGuid.PcdEmuBootMode
   gEmulatorPkgTokenSpaceGuid.PcdEmuFirmwareVolume
   gEmulatorPkgTokenSpaceGuid.PcdEmuMemorySize
@@ -86,7 +87,7 @@
 
 [BuildOptions]
   MSFT:*_*_*_DLINK_FLAGS            == /out:"$(BIN_DIR)\$(BASE_NAME).exe" /base:0x10000000 /pdb:"$(BIN_DIR)\$(BASE_NAME).pdb"
-  MSFT:*_*_*_CC_FLAGS               == /nologo /W4 /WX /Gy /c /D UNICODE /Od /Oy- /FIAutoGen.h /EHs-c- /GF /Gs8192 /Zi /Gm /D _CRT_SECURE_NO_WARNINGS /D _CRT_SECURE_NO_DEPRECATE
+  MSFT:*_*_*_CC_FLAGS                = /nologo /W4 /WX /Gy /c /D UNICODE /Od /Oy- /FIAutoGen.h /EHs-c- /GF /D _CRT_SECURE_NO_WARNINGS /D _CRT_SECURE_NO_DEPRECATE
   MSFT:*_*_*_PP_FLAGS               == /nologo /E /TC /FIAutoGen.h
 
   MSFT:*_VS2015_IA32_DLINK_FLAGS     = /LIBPATH:"%VS2015_PREFIX%Lib" /LIBPATH:"%VS2015_PREFIX%VC\Lib" /LIBPATH:"%UniversalCRTSdkDir%lib\%UCRTVersion%\ucrt\x86" /LIBPATH:"%WindowsSdkDir%lib\%WindowsSDKLibVersion%\um\x86" /NOLOGO /SUBSYSTEM:CONSOLE /NODEFAULTLIB /IGNORE:4086 /MAP /OPT:REF /DEBUG /MACHINE:I386 /LTCG Kernel32.lib MSVCRTD.lib Gdi32.lib User32.lib Winmm.lib Advapi32.lib vcruntimed.lib ucrtd.lib

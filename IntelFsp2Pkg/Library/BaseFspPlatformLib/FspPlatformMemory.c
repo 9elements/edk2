@@ -6,6 +6,7 @@
 **/
 
 #include <PiPei.h>
+#include <Register/Intel/Msr.h>
 #include <Library/BaseLib.h>
 #include <Library/BaseMemoryLib.h>
 #include <Library/MemoryAllocationLib.h>
@@ -25,10 +26,10 @@
 EFI_HOB_RESOURCE_DESCRIPTOR *
 EFIAPI
 FspGetResourceDescriptorByOwner (
-  IN EFI_GUID   *OwnerGuid
+  IN EFI_GUID  *OwnerGuid
   )
 {
-  EFI_PEI_HOB_POINTERS    Hob;
+  EFI_PEI_HOB_POINTERS  Hob;
 
   //
   // Get the HOB list for processing
@@ -41,10 +42,12 @@ FspGetResourceDescriptorByOwner (
   while (!END_OF_HOB_LIST (Hob)) {
     if (Hob.Header->HobType == EFI_HOB_TYPE_RESOURCE_DESCRIPTOR) {
       if ((Hob.ResourceDescriptor->ResourceType == EFI_RESOURCE_MEMORY_RESERVED) && \
-          (CompareGuid (&Hob.ResourceDescriptor->Owner, OwnerGuid))) {
-        return  Hob.ResourceDescriptor;
+          (CompareGuid (&Hob.ResourceDescriptor->Owner, OwnerGuid)))
+      {
+        return Hob.ResourceDescriptor;
       }
     }
+
     Hob.Raw = GET_NEXT_HOB (Hob);
   }
 
@@ -60,14 +63,14 @@ FspGetResourceDescriptorByOwner (
 VOID
 EFIAPI
 FspGetSystemMemorySize (
-  IN OUT UINT64              *LowMemoryLength,
-  IN OUT UINT64              *HighMemoryLength
+  IN OUT UINT64  *LowMemoryLength,
+  IN OUT UINT64  *HighMemoryLength
   )
 {
-  EFI_STATUS                  Status;
-  EFI_BOOT_MODE               BootMode;
-  EFI_RESOURCE_ATTRIBUTE_TYPE ResourceAttribute;
-  EFI_PEI_HOB_POINTERS        Hob;
+  EFI_STATUS                   Status;
+  EFI_BOOT_MODE                BootMode;
+  EFI_RESOURCE_ATTRIBUTE_TYPE  ResourceAttribute;
+  EFI_PEI_HOB_POINTERS         Hob;
 
   ResourceAttribute = (
                        EFI_RESOURCE_ATTRIBUTE_PRESENT |
@@ -99,18 +102,58 @@ FspGetSystemMemorySize (
     if (Hob.Header->HobType == EFI_HOB_TYPE_RESOURCE_DESCRIPTOR) {
       if ((Hob.ResourceDescriptor->ResourceType == EFI_RESOURCE_SYSTEM_MEMORY) ||
           ((Hob.ResourceDescriptor->ResourceType == EFI_RESOURCE_MEMORY_RESERVED) &&
-           (Hob.ResourceDescriptor->ResourceAttribute == ResourceAttribute))) {
+           (Hob.ResourceDescriptor->ResourceAttribute == ResourceAttribute)))
+      {
         //
         // Need memory above 1MB to be collected here
         //
-        if (Hob.ResourceDescriptor->PhysicalStart >= BASE_1MB &&
-            Hob.ResourceDescriptor->PhysicalStart < (EFI_PHYSICAL_ADDRESS) BASE_4GB) {
-          *LowMemoryLength += (UINT64) (Hob.ResourceDescriptor->ResourceLength);
-        } else if (Hob.ResourceDescriptor->PhysicalStart >= (EFI_PHYSICAL_ADDRESS) BASE_4GB) {
-          *HighMemoryLength += (UINT64) (Hob.ResourceDescriptor->ResourceLength);
+        if ((Hob.ResourceDescriptor->PhysicalStart >= BASE_1MB) &&
+            (Hob.ResourceDescriptor->PhysicalStart < (EFI_PHYSICAL_ADDRESS)BASE_4GB))
+        {
+          *LowMemoryLength += (UINT64)(Hob.ResourceDescriptor->ResourceLength);
+        } else if (Hob.ResourceDescriptor->PhysicalStart >= (EFI_PHYSICAL_ADDRESS)BASE_4GB) {
+          *HighMemoryLength += (UINT64)(Hob.ResourceDescriptor->ResourceLength);
         }
       }
     }
+
     Hob.Raw = GET_NEXT_HOB (Hob);
   }
+}
+
+/**
+  Calculate TemporaryRam Size using Base address.
+
+  @param[in]  TemporaryRamBase         the address of target memory
+  @param[out] TemporaryRamSize         the size of target memory
+**/
+VOID
+EFIAPI
+ReadTemporaryRamSize (
+  IN  UINT32  TemporaryRamBase,
+  OUT UINT32  *TemporaryRamSize
+  )
+{
+  MSR_IA32_MTRRCAP_REGISTER  Msr;
+  UINT32                     MsrNum;
+  UINT32                     MsrNumEnd;
+
+  if (TemporaryRamBase == 0) {
+    return;
+  }
+
+  *TemporaryRamSize = 0;
+  Msr.Uint64        = AsmReadMsr64 (MSR_IA32_MTRRCAP);
+  MsrNumEnd         = MSR_IA32_MTRR_PHYSBASE0 + (2 * (Msr.Bits.VCNT));
+
+  for (MsrNum = MSR_IA32_MTRR_PHYSBASE0; MsrNum < MsrNumEnd; MsrNum += 2) {
+    if ((AsmReadMsr64 (MsrNum+1) & BIT11) != 0 ) {
+      if (TemporaryRamBase == (AsmReadMsr64 (MsrNum) & 0xFFFFF000)) {
+        *TemporaryRamSize = (~(AsmReadMsr64 (MsrNum + 1) & 0xFFFFF000) + 1);
+        break;
+      }
+    }
+  }
+
+  return;
 }

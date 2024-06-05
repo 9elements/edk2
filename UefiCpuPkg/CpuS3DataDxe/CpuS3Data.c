@@ -9,7 +9,7 @@ number of CPUs reported by the MP Services Protocol, so this module does not
 support hot plug CPUs.  This module can be copied into a CPU specific package
 and customized if these additional features are required.
 
-Copyright (c) 2013 - 2017, Intel Corporation. All rights reserved.<BR>
+Copyright (c) 2013 - 2024, Intel Corporation. All rights reserved.<BR>
 Copyright (c) 2015, Red Hat, Inc.
 
 SPDX-License-Identifier: BSD-2-Clause-Patent
@@ -26,6 +26,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include <Library/DebugLib.h>
 #include <Library/MtrrLib.h>
 #include <Library/MemoryAllocationLib.h>
+#include <Library/LockBoxLib.h>
 
 #include <Protocol/MpService.h>
 #include <Guid/EventGroup.h>
@@ -34,10 +35,10 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 // Data structure used to allocate ACPI_CPU_DATA and its supporting structures
 //
 typedef struct {
-  ACPI_CPU_DATA             AcpiCpuData;
-  MTRR_SETTINGS             MtrrTable;
-  IA32_DESCRIPTOR           GdtrProfile;
-  IA32_DESCRIPTOR           IdtrProfile;
+  ACPI_CPU_DATA      AcpiCpuData;
+  MTRR_SETTINGS      MtrrTable;
+  IA32_DESCRIPTOR    GdtrProfile;
+  IA32_DESCRIPTOR    IdtrProfile;
 } ACPI_CPU_DATA_EX;
 
 /**
@@ -57,12 +58,12 @@ AllocateAcpiNvsMemory (
   EFI_STATUS            Status;
   VOID                  *Buffer;
 
-  Status  = gBS->AllocatePages (
-                   AllocateAnyPages,
-                   EfiACPIMemoryNVS,
-                   EFI_SIZE_TO_PAGES (Size),
-                   &Address
-                   );
+  Status = gBS->AllocatePages (
+                  AllocateAnyPages,
+                  EfiACPIMemoryNVS,
+                  EFI_SIZE_TO_PAGES (Size),
+                  &Address
+                  );
   if (EFI_ERROR (Status)) {
     return NULL;
   }
@@ -86,7 +87,7 @@ AllocateZeroPages (
   IN UINTN  Size
   )
 {
-  VOID                  *Buffer;
+  VOID  *Buffer;
 
   Buffer = AllocatePages (EFI_SIZE_TO_PAGES (Size));
   if (Buffer != NULL) {
@@ -95,6 +96,7 @@ AllocateZeroPages (
 
   return Buffer;
 }
+
 /**
   Callback function executed when the EndOfDxe event group is signaled.
 
@@ -110,24 +112,34 @@ CpuS3DataOnEndOfDxe (
   OUT VOID       *Context
   )
 {
-  EFI_STATUS         Status;
-  ACPI_CPU_DATA_EX   *AcpiCpuDataEx;
+  EFI_STATUS        Status;
+  ACPI_CPU_DATA_EX  *AcpiCpuDataEx;
 
-  AcpiCpuDataEx = (ACPI_CPU_DATA_EX *) Context;
+  AcpiCpuDataEx = (ACPI_CPU_DATA_EX *)Context;
   //
   // Allocate a 4KB reserved page below 1MB
   //
   AcpiCpuDataEx->AcpiCpuData.StartupVector = BASE_1MB - 1;
-  Status = gBS->AllocatePages (
-                  AllocateMaxAddress,
-                  EfiReservedMemoryType,
-                  1,
-                  &AcpiCpuDataEx->AcpiCpuData.StartupVector
-                  );
+  Status                                   = gBS->AllocatePages (
+                                                    AllocateMaxAddress,
+                                                    EfiReservedMemoryType,
+                                                    1,
+                                                    &AcpiCpuDataEx->AcpiCpuData.StartupVector
+                                                    );
   ASSERT_EFI_ERROR (Status);
 
-  DEBUG ((EFI_D_VERBOSE, "%a\n", __FUNCTION__));
+  DEBUG ((DEBUG_VERBOSE, "%a\n", __func__));
   MtrrGetAllMtrrs (&AcpiCpuDataEx->MtrrTable);
+
+  //
+  // Save MTRR in lockbox
+  //
+  Status = SaveLockBox (
+             &gEdkiiS3MtrrSettingGuid,
+             &AcpiCpuDataEx->MtrrTable,
+             sizeof (MTRR_SETTINGS)
+             );
+  ASSERT_EFI_ERROR (Status);
 
   //
   // Close event, so it will not be invoked again.
@@ -158,19 +170,19 @@ CpuS3DataInitialize (
   IN EFI_SYSTEM_TABLE  *SystemTable
   )
 {
-  EFI_STATUS                 Status;
-  ACPI_CPU_DATA_EX           *AcpiCpuDataEx;
-  ACPI_CPU_DATA              *AcpiCpuData;
-  EFI_MP_SERVICES_PROTOCOL   *MpServices;
-  UINTN                      NumberOfCpus;
-  UINTN                      NumberOfEnabledProcessors;
-  VOID                       *Stack;
-  UINTN                      GdtSize;
-  UINTN                      IdtSize;
-  VOID                       *Gdt;
-  VOID                       *Idt;
-  EFI_EVENT                  Event;
-  ACPI_CPU_DATA              *OldAcpiCpuData;
+  EFI_STATUS                Status;
+  ACPI_CPU_DATA_EX          *AcpiCpuDataEx;
+  ACPI_CPU_DATA             *AcpiCpuData;
+  EFI_MP_SERVICES_PROTOCOL  *MpServices;
+  UINTN                     NumberOfCpus;
+  UINTN                     NumberOfEnabledProcessors;
+  VOID                      *Stack;
+  UINTN                     GdtSize;
+  UINTN                     IdtSize;
+  VOID                      *Gdt;
+  VOID                      *Idt;
+  EFI_EVENT                 Event;
+  ACPI_CPU_DATA             *OldAcpiCpuData;
 
   if (!PcdGetBool (PcdAcpiS3Enable)) {
     return EFI_UNSUPPORTED;
@@ -179,7 +191,7 @@ CpuS3DataInitialize (
   //
   // Set PcdCpuS3DataAddress to the base address of the ACPI_CPU_DATA structure
   //
-  OldAcpiCpuData = (ACPI_CPU_DATA *) (UINTN) PcdGet64 (PcdCpuS3DataAddress);
+  OldAcpiCpuData = (ACPI_CPU_DATA *)(UINTN)PcdGet64 (PcdCpuS3DataAddress);
 
   AcpiCpuDataEx = AllocateZeroPages (sizeof (ACPI_CPU_DATA_EX));
   ASSERT (AcpiCpuDataEx != NULL);
@@ -212,9 +224,9 @@ CpuS3DataInitialize (
   AcpiCpuData->StackSize                 = PcdGet32 (PcdCpuApStackSize);
   AcpiCpuData->ApMachineCheckHandlerBase = 0;
   AcpiCpuData->ApMachineCheckHandlerSize = 0;
-  AcpiCpuData->GdtrProfile  = (EFI_PHYSICAL_ADDRESS)(UINTN)&AcpiCpuDataEx->GdtrProfile;
-  AcpiCpuData->IdtrProfile  = (EFI_PHYSICAL_ADDRESS)(UINTN)&AcpiCpuDataEx->IdtrProfile;
-  AcpiCpuData->MtrrTable    = (EFI_PHYSICAL_ADDRESS)(UINTN)&AcpiCpuDataEx->MtrrTable;
+  AcpiCpuData->GdtrProfile               = (EFI_PHYSICAL_ADDRESS)(UINTN)&AcpiCpuDataEx->GdtrProfile;
+  AcpiCpuData->IdtrProfile               = (EFI_PHYSICAL_ADDRESS)(UINTN)&AcpiCpuDataEx->IdtrProfile;
+  AcpiCpuData->MtrrTable                 = (EFI_PHYSICAL_ADDRESS)(UINTN)&AcpiCpuDataEx->MtrrTable;
 
   //
   // Allocate stack space for all CPUs.
@@ -238,7 +250,7 @@ CpuS3DataInitialize (
   //
   GdtSize = AcpiCpuDataEx->GdtrProfile.Limit + 1;
   IdtSize = AcpiCpuDataEx->IdtrProfile.Limit + 1;
-  Gdt = AllocateZeroPages (GdtSize + IdtSize);
+  Gdt     = AllocateZeroPages (GdtSize + IdtSize);
   ASSERT (Gdt != NULL);
   Idt = (VOID *)((UINTN)Gdt + GdtSize);
   CopyMem (Gdt, (VOID *)AcpiCpuDataEx->GdtrProfile.Base, GdtSize);
@@ -247,10 +259,7 @@ CpuS3DataInitialize (
   AcpiCpuDataEx->IdtrProfile.Base = (UINTN)Idt;
 
   if (OldAcpiCpuData != NULL) {
-    AcpiCpuData->RegisterTable           = OldAcpiCpuData->RegisterTable;
-    AcpiCpuData->PreSmmInitRegisterTable = OldAcpiCpuData->PreSmmInitRegisterTable;
-    AcpiCpuData->ApLocation              = OldAcpiCpuData->ApLocation;
-    CopyMem (&AcpiCpuData->CpuStatus, &OldAcpiCpuData->CpuStatus, sizeof (CPU_STATUS_INFORMATION));
+    CopyMem (&AcpiCpuData->CpuFeatureInitData, &OldAcpiCpuData->CpuFeatureInitData, sizeof (CPU_FEATURE_INIT_DATA));
   }
 
   //

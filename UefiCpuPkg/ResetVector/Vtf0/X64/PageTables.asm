@@ -1,8 +1,10 @@
 ;------------------------------------------------------------------------------
 ; @file
-; Emits Page Tables for 1:1 mapping of the addresses 0 - 0x100000000 (4GB)
+; Emits Page Tables for 1:1 mapping.
+; If using 1G page table, map addresses 0 - 0x8000000000 (512GB),
+; else, map addresses 0 - 0x100000000 (4GB)
 ;
-; Copyright (c) 2008 - 2014, Intel Corporation. All rights reserved.<BR>
+; Copyright (c) 2021 - 2023, Intel Corporation. All rights reserved.<BR>
 ; SPDX-License-Identifier: BSD-2-Clause-Patent
 ;
 ;------------------------------------------------------------------------------
@@ -11,62 +13,81 @@ BITS    64
 
 %define ALIGN_TOP_TO_4K_FOR_PAGING
 
-%define PAGE_PRESENT            0x01
-%define PAGE_READ_WRITE         0x02
-%define PAGE_USER_SUPERVISOR    0x04
-%define PAGE_WRITE_THROUGH      0x08
-%define PAGE_CACHE_DISABLE     0x010
-%define PAGE_ACCESSED          0x020
-%define PAGE_DIRTY             0x040
-%define PAGE_PAT               0x080
-%define PAGE_GLOBAL           0x0100
-%define PAGE_2M_MBO            0x080
-%define PAGE_2M_PAT          0x01000
+;
+; Page table non-leaf entry attribute
+;
+%define PAGE_NLE_ATTR (PAGE_ACCESSED + \
+                        PAGE_READ_WRITE + \
+                        PAGE_PRESENT)
 
-%define PAGE_2M_PDE_ATTR (PAGE_2M_MBO + \
-                          PAGE_ACCESSED + \
-                          PAGE_DIRTY + \
-                          PAGE_READ_WRITE + \
-                          PAGE_PRESENT)
+;
+; Page table big leaf entry attribute:
+; PDPTE 1GB entry or PDE 2MB entry
+;
+%define PAGE_BLE_ATTR (PAGE_ACCESSED + \
+                        PAGE_READ_WRITE + \
+                        PAGE_DIRTY + \
+                        PAGE_PRESENT + \
+                        PAGE_SIZE)
 
-%define PAGE_PDP_ATTR (PAGE_ACCESSED + \
-                       PAGE_READ_WRITE + \
-                       PAGE_PRESENT)
+;
+; Page table non-leaf entry
+;
+%define PAGE_NLE(address) (ADDR_OF(address) + \
+                    PAGE_NLE_ATTR)
 
-%define PGTBLS_OFFSET(x) ((x) - TopLevelPageDirectory)
-%define PGTBLS_ADDR(x) (ADDR_OF(TopLevelPageDirectory) + (x))
+%define PAGE_PDPTE_1GB(x) ((x << 30) + PAGE_BLE_ATTR)
+%define PAGE_PDE_2MB(x) ((x << 21) + PAGE_BLE_ATTR)
 
-%define PDP(offset) (ADDR_OF(TopLevelPageDirectory) + (offset) + \
-                     PAGE_PDP_ATTR)
-%define PTE_2MB(x) ((x << 21) + PAGE_2M_PDE_ATTR)
+ALIGN 16
 
-TopLevelPageDirectory:
-
+%ifdef PAGE_TABLE_1G
+Pdp:
     ;
-    ; Top level Page Directory Pointers (1 * 512GB entry)
+    ; Page-directory pointer table (512 * 1GB entries => 512GB)
     ;
-    DQ      PDP(0x1000)
+    %assign i 0
+    %rep      512
+        DQ    PAGE_PDPTE_1GB(i)
+        %assign i i+1
+    %endrep
+%else
 
-
+Pd:
     ;
-    ; Next level Page Directory Pointers (4 * 1GB entries => 4GB)
+    ; Page-Directory (2048 * 2MB entries => 4GB)
+    ; Four pages below, each is pointed by one entry in Pdp.
     ;
-    TIMES 0x1000-PGTBLS_OFFSET($) DB 0
-
-    DQ      PDP(0x2000)
-    DQ      PDP(0x3000)
-    DQ      PDP(0x4000)
-    DQ      PDP(0x5000)
-
+    %assign i 0
+    %rep    0x800
+        DQ      PAGE_PDE_2MB(i)
+        %assign i i+1
+    %endrep
+Pdp:
     ;
-    ; Page Table Entries (2048 * 2MB entries => 4GB)
+    ; Page-directory pointer table (4 * 1GB entries => 4GB)
     ;
-    TIMES 0x2000-PGTBLS_OFFSET($) DB 0
+    DQ      PAGE_NLE(Pd)
+    DQ      PAGE_NLE(Pd + 0x1000)
+    DQ      PAGE_NLE(Pd + 0x2000)
+    DQ      PAGE_NLE(Pd + 0x3000)
+    TIMES   0x1000 - ($ - Pdp) DB 0
 
-%assign i 0
-%rep    0x800
-    DQ      PTE_2MB(i)
-    %assign i i+1
-%endrep
+%endif
 
+Pml4:
+    ;
+    ; PML4 (1 * 512GB entry)
+    ;
+    DQ      PAGE_NLE(Pdp)
+    TIMES   0x1000 - ($ - Pml4) DB 0
+
+%ifdef USE_5_LEVEL_PAGE_TABLE
+Pml5:
+    ;
+    ; Pml5 table (only first entry is present, pointing to Pml4)
+    ;
+    DQ      PAGE_NLE(Pml4)
+    TIMES   0x1000 - ($ - Pml5) DB 0
+%endif
 EndOfPageTables:

@@ -28,11 +28,11 @@
 STATIC
 UINT64
 ConvertTo64Bit (
-  IN UINT32 Low,
-  IN UINT32 High
+  IN UINT32  Low,
+  IN UINT32  High
   )
 {
-   return (Low | ((UINT64)High << 32));
+  return (Low | ((UINT64)High << 32));
 }
 
 /** Return version of the clock management protocol supported by SCP firmware.
@@ -52,7 +52,7 @@ ClockGetVersion (
   OUT UINT32               *Version
   )
 {
-  return ScmiGetProtocolVersion (SCMI_PROTOCOL_ID_CLOCK, Version);
+  return ScmiGetProtocolVersion (ScmiProtocolIdClock, Version);
 }
 
 /** Return total number of clock devices supported by the clock management
@@ -74,9 +74,9 @@ ClockGetTotalClocks (
   )
 {
   EFI_STATUS  Status;
-  UINT32     *ReturnValues;
+  UINT32      *ReturnValues;
 
-  Status = ScmiGetProtocolAttributes (SCMI_PROTOCOL_ID_CLOCK, &ReturnValues);
+  Status = ScmiGetProtocolAttributes (ScmiProtocolIdClock, &ReturnValues);
   if (EFI_ERROR (Status)) {
     return Status;
   }
@@ -108,12 +108,12 @@ ClockGetClockAttributes (
   OUT CHAR8                *ClockAsciiName
   )
 {
-  EFI_STATUS          Status;
+  EFI_STATUS  Status;
 
-  UINT32              *MessageParams;
-  CLOCK_ATTRIBUTES    *ClockAttributes;
-  SCMI_COMMAND        Cmd;
-  UINT32              PayloadLength;
+  UINT32            *MessageParams;
+  CLOCK_ATTRIBUTES  *ClockAttributes;
+  SCMI_COMMAND      Cmd;
+  UINT32            PayloadLength;
 
   Status = ScmiCommandGetPayload (&MessageParams);
   if (EFI_ERROR (Status)) {
@@ -122,26 +122,27 @@ ClockGetClockAttributes (
 
   *MessageParams = ClockId;
 
-  Cmd.ProtocolId = SCMI_PROTOCOL_ID_CLOCK;
-  Cmd.MessageId  = SCMI_MESSAGE_ID_CLOCK_ATTRIBUTES;
+  Cmd.ProtocolId = ScmiProtocolIdClock;
+  Cmd.MessageId  = ScmiMessageIdClockAttributes;
 
   PayloadLength = sizeof (ClockId);
 
   Status = ScmiCommandExecute (
              &Cmd,
              &PayloadLength,
-             (UINT32**)&ClockAttributes
+             (UINT32 **)&ClockAttributes
              );
   if (EFI_ERROR (Status)) {
     return Status;
   }
-   // TRUE if bit 0 of ClockAttributes->Attributes is set.
+
+  // TRUE if bit 0 of ClockAttributes->Attributes is set.
   *Enabled = CLOCK_ENABLED (ClockAttributes->Attributes);
 
   AsciiStrCpyS (
     ClockAsciiName,
     SCMI_MAX_STR_LEN,
-    (CONST CHAR8*)ClockAttributes->ClockName
+    (CONST CHAR8 *)ClockAttributes->ClockName
     );
 
   return EFI_SUCCESS;
@@ -152,10 +153,10 @@ ClockGetClockAttributes (
   @param[in] This        A pointer to SCMI_CLOCK_PROTOCOL Instance.
   @param[in] ClockId     Identifier for the clock device.
 
-  @param[out] Format      SCMI_CLOCK_RATE_FORMAT_DISCRETE: Clock device
+  @param[out] Format      ScmiClockRateFormatDiscrete: Clock device
                           supports range of clock rates which are non-linear.
 
-                          SCMI_CLOCK_RATE_FORMAT_LINEAR: Clock device supports
+                          ScmiClockRateFormatLinear: Clock device supports
                           range of linear clock rates from Min to Max in steps.
 
   @param[out] TotalRates  Total number of rates.
@@ -174,52 +175,51 @@ STATIC
 EFI_STATUS
 ClockDescribeRates (
   IN     SCMI_CLOCK_PROTOCOL     *This,
-  IN     UINT32                   ClockId,
+  IN     UINT32                  ClockId,
   OUT    SCMI_CLOCK_RATE_FORMAT  *Format,
   OUT    UINT32                  *TotalRates,
   IN OUT UINT32                  *RateArraySize,
   OUT    SCMI_CLOCK_RATE         *RateArray
   )
 {
-  EFI_STATUS             Status;
+  EFI_STATUS  Status;
 
-  UINT32                 PayloadLength;
-  SCMI_COMMAND           Cmd;
-  UINT32                 *MessageParams;
-  CLOCK_DESCRIBE_RATES   *DescribeRates;
-  CLOCK_RATE_DWORD       *Rate;
+  UINT32                PayloadLength;
+  SCMI_COMMAND          Cmd;
+  UINT32                *MessageParams;
+  CLOCK_DESCRIBE_RATES  *DescribeRates;
+  CLOCK_RATE_DWORD      *Rate;
 
-  UINT32                 RequiredArraySize;
-  UINT32                 RateIndex;
-  UINT32                 RateNo;
-  UINT32                 RateOffset;
+  UINT32  RequiredArraySize;
+  UINT32  RateIndex;
+  UINT32  RateNo;
+  UINT32  RateOffset;
 
-  *TotalRates = 0;
+  *TotalRates       = 0;
   RequiredArraySize = 0;
-  RateIndex = 0;
+  RateIndex         = 0;
 
   Status = ScmiCommandGetPayload (&MessageParams);
   if (EFI_ERROR (Status)) {
     return Status;
   }
 
-  Cmd.ProtocolId = SCMI_PROTOCOL_ID_CLOCK;
-  Cmd.MessageId  = SCMI_MESSAGE_ID_CLOCK_DESCRIBE_RATES;
+  Cmd.ProtocolId = ScmiProtocolIdClock;
+  Cmd.MessageId  = ScmiMessageIdClockDescribeRates;
 
-  *MessageParams++  = ClockId;
+  *MessageParams++ = ClockId;
 
   do {
-
     *MessageParams = RateIndex;
 
     // Set Payload length, note PayloadLength is a IN/OUT parameter.
-    PayloadLength  = sizeof (ClockId) + sizeof (RateIndex);
+    PayloadLength = sizeof (ClockId) + sizeof (RateIndex);
 
     // Execute and wait for response on a SCMI channel.
     Status = ScmiCommandExecute (
                &Cmd,
                &PayloadLength,
-               (UINT32**)&DescribeRates
+               (UINT32 **)&DescribeRates
                );
     if (EFI_ERROR (Status)) {
       return Status;
@@ -236,12 +236,7 @@ ClockDescribeRates (
       *TotalRates = NUM_RATES (DescribeRates->NumRatesFlags)
                     + NUM_REMAIN_RATES (DescribeRates->NumRatesFlags);
 
-      if (*Format == SCMI_CLOCK_RATE_FORMAT_DISCRETE) {
-         RequiredArraySize = (*TotalRates) * sizeof (UINT64);
-      } else {
-         // We need to return triplet of 64 bit value for each rate
-         RequiredArraySize = (*TotalRates) * 3 * sizeof (UINT64);
-      }
+      RequiredArraySize = (*TotalRates) * sizeof (UINT64);
 
       if (RequiredArraySize > (*RateArraySize)) {
         *RateArraySize = RequiredArraySize;
@@ -251,27 +246,29 @@ ClockDescribeRates (
 
     RateOffset = 0;
 
-    if (*Format == SCMI_CLOCK_RATE_FORMAT_DISCRETE) {
+    if (*Format == ScmiClockRateFormatDiscrete) {
       for (RateNo = 0; RateNo < NUM_RATES (DescribeRates->NumRatesFlags); RateNo++) {
         Rate = &DescribeRates->Rates[RateOffset++];
         // Non-linear discrete rates.
-        RateArray[RateIndex++].Rate = ConvertTo64Bit (Rate->Low, Rate->High);
+        RateArray[RateIndex++].DiscreteRate.Rate =
+          ConvertTo64Bit (Rate->Low, Rate->High);
       }
     } else {
-      for (RateNo = 0; RateNo < NUM_RATES (DescribeRates->NumRatesFlags); RateNo++) {
-        // Linear clock rates from minimum to maximum in steps
-        // Minimum clock rate.
-        Rate = &DescribeRates->Rates[RateOffset++];
-        RateArray[RateIndex].Min = ConvertTo64Bit (Rate->Low, Rate->High);
+      // Linear clock rates from minimum to maximum in steps
+      // Minimum clock rate.
+      Rate                                    = &DescribeRates->Rates[RateOffset++];
+      RateArray[RateIndex].ContinuousRate.Min =
+        ConvertTo64Bit (Rate->Low, Rate->High);
 
-        Rate = &DescribeRates->Rates[RateOffset++];
-        // Maximum clock rate.
-        RateArray[RateIndex].Max = ConvertTo64Bit (Rate->Low, Rate->High);
+      Rate = &DescribeRates->Rates[RateOffset++];
+      // Maximum clock rate.
+      RateArray[RateIndex].ContinuousRate.Max =
+        ConvertTo64Bit (Rate->Low, Rate->High);
 
-        Rate = &DescribeRates->Rates[RateOffset++];
-        // Step.
-        RateArray[RateIndex++].Step = ConvertTo64Bit (Rate->Low, Rate->High);
-      }
+      Rate = &DescribeRates->Rates[RateOffset++];
+      // Step.
+      RateArray[RateIndex++].ContinuousRate.Step =
+        ConvertTo64Bit (Rate->Low, Rate->High);
     }
   } while (NUM_REMAIN_RATES (DescribeRates->NumRatesFlags) != 0);
 
@@ -300,13 +297,13 @@ ClockRateGet (
   OUT UINT64               *Rate
   )
 {
-  EFI_STATUS     Status;
+  EFI_STATUS  Status;
 
   UINT32            *MessageParams;
   CLOCK_RATE_DWORD  *ClockRate;
   SCMI_COMMAND      Cmd;
 
-  UINT32         PayloadLength;
+  UINT32  PayloadLength;
 
   Status = ScmiCommandGetPayload (&MessageParams);
   if (EFI_ERROR (Status)) {
@@ -314,10 +311,10 @@ ClockRateGet (
   }
 
   // Fill arguments for clock protocol command.
-  *MessageParams  = ClockId;
+  *MessageParams = ClockId;
 
-  Cmd.ProtocolId  = SCMI_PROTOCOL_ID_CLOCK;
-  Cmd.MessageId   = SCMI_MESSAGE_ID_CLOCK_RATE_GET;
+  Cmd.ProtocolId = ScmiProtocolIdClock;
+  Cmd.MessageId  = ScmiMessageIdClockRateGet;
 
   PayloadLength = sizeof (ClockId);
 
@@ -325,7 +322,7 @@ ClockRateGet (
   Status = ScmiCommandExecute (
              &Cmd,
              &PayloadLength,
-             (UINT32**)&ClockRate
+             (UINT32 **)&ClockRate
              );
   if (EFI_ERROR (Status)) {
     return Status;
@@ -354,24 +351,24 @@ ClockRateSet (
   IN UINT64               Rate
   )
 {
-  EFI_STATUS                  Status;
-  CLOCK_RATE_SET_ATTRIBUTES   *ClockRateSetAttributes;
-  SCMI_COMMAND                Cmd;
-  UINT32                      PayloadLength;
+  EFI_STATUS                 Status;
+  CLOCK_RATE_SET_ATTRIBUTES  *ClockRateSetAttributes;
+  SCMI_COMMAND               Cmd;
+  UINT32                     PayloadLength;
 
-  Status = ScmiCommandGetPayload ((UINT32**)&ClockRateSetAttributes);
+  Status = ScmiCommandGetPayload ((UINT32 **)&ClockRateSetAttributes);
   if (EFI_ERROR (Status)) {
     return Status;
   }
 
   // Fill arguments for clock protocol command.
-  ClockRateSetAttributes->ClockId    = ClockId;
-  ClockRateSetAttributes->Flags      = CLOCK_SET_DEFAULT_FLAGS;
-  ClockRateSetAttributes->Rate.Low   = (UINT32)Rate;
-  ClockRateSetAttributes->Rate.High  = (UINT32)(Rate >> 32);
+  ClockRateSetAttributes->ClockId   = ClockId;
+  ClockRateSetAttributes->Flags     = CLOCK_SET_DEFAULT_FLAGS;
+  ClockRateSetAttributes->Rate.Low  = (UINT32)Rate;
+  ClockRateSetAttributes->Rate.High = (UINT32)(Rate >> 32);
 
-  Cmd.ProtocolId = SCMI_PROTOCOL_ID_CLOCK;
-  Cmd.MessageId  = SCMI_MESSAGE_ID_CLOCK_RATE_SET;
+  Cmd.ProtocolId = ScmiProtocolIdClock;
+  Cmd.MessageId  = ScmiMessageIdClockRateSet;
 
   PayloadLength = sizeof (CLOCK_RATE_SET_ATTRIBUTES);
 
@@ -398,17 +395,17 @@ ClockRateSet (
 STATIC
 EFI_STATUS
 ClockEnable (
-  IN SCMI_CLOCK2_PROTOCOL *This,
-  IN UINT32               ClockId,
-  IN BOOLEAN              Enable
+  IN SCMI_CLOCK2_PROTOCOL  *This,
+  IN UINT32                ClockId,
+  IN BOOLEAN               Enable
   )
 {
-  EFI_STATUS                  Status;
-  CLOCK_CONFIG_SET_ATTRIBUTES *ClockConfigSetAttributes;
-  SCMI_COMMAND                Cmd;
-  UINT32                      PayloadLength;
+  EFI_STATUS                   Status;
+  CLOCK_CONFIG_SET_ATTRIBUTES  *ClockConfigSetAttributes;
+  SCMI_COMMAND                 Cmd;
+  UINT32                       PayloadLength;
 
-  Status = ScmiCommandGetPayload ((UINT32**)&ClockConfigSetAttributes);
+  Status = ScmiCommandGetPayload ((UINT32 **)&ClockConfigSetAttributes);
   if (EFI_ERROR (Status)) {
     return Status;
   }
@@ -417,8 +414,8 @@ ClockEnable (
   ClockConfigSetAttributes->ClockId    = ClockId;
   ClockConfigSetAttributes->Attributes = Enable ? BIT0 : 0;
 
-  Cmd.ProtocolId = SCMI_PROTOCOL_ID_CLOCK;
-  Cmd.MessageId  = SCMI_MESSAGE_ID_CLOCK_CONFIG_SET;
+  Cmd.ProtocolId = ScmiProtocolIdClock;
+  Cmd.MessageId  = ScmiMessageIdClockConfigSet;
 
   PayloadLength = sizeof (CLOCK_CONFIG_SET_ATTRIBUTES);
 
@@ -433,17 +430,17 @@ ClockEnable (
 }
 
 // Instance of the SCMI clock management protocol.
-STATIC CONST SCMI_CLOCK_PROTOCOL ScmiClockProtocol = {
+STATIC CONST SCMI_CLOCK_PROTOCOL  ScmiClockProtocol = {
   ClockGetVersion,
   ClockGetTotalClocks,
   ClockGetClockAttributes,
   ClockDescribeRates,
   ClockRateGet,
   ClockRateSet
- };
+};
 
 // Instance of the SCMI clock management protocol.
-STATIC CONST SCMI_CLOCK2_PROTOCOL ScmiClock2Protocol = {
+STATIC CONST SCMI_CLOCK2_PROTOCOL  ScmiClock2Protocol = {
   (SCMI_CLOCK2_GET_VERSION)ClockGetVersion,
   (SCMI_CLOCK2_GET_TOTAL_CLOCKS)ClockGetTotalClocks,
   (SCMI_CLOCK2_GET_CLOCK_ATTRIBUTES)ClockGetClockAttributes,
@@ -452,7 +449,7 @@ STATIC CONST SCMI_CLOCK2_PROTOCOL ScmiClock2Protocol = {
   (SCMI_CLOCK2_RATE_SET)ClockRateSet,
   SCMI_CLOCK2_PROTOCOL_VERSION,
   ClockEnable
- };
+};
 
 /** Initialize clock management protocol and install protocol on a given handle.
 
@@ -462,7 +459,7 @@ STATIC CONST SCMI_CLOCK2_PROTOCOL ScmiClock2Protocol = {
 **/
 EFI_STATUS
 ScmiClockProtocolInit (
-  IN EFI_HANDLE* Handle
+  IN EFI_HANDLE  *Handle
   )
 {
   return gBS->InstallMultipleProtocolInterfaces (

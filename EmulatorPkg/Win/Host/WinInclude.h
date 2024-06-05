@@ -10,7 +10,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 
 //
 // Win32 include files do not compile clean with /W4, so we use the warning
-// pragma to suppress the warnings for Win32 only. This way our code can stil
+// pragma to suppress the warnings for Win32 only. This way our code can still
 // compile at /W4 (highest warning level) with /WX (warnings cause build
 // errors).
 //
@@ -19,13 +19,14 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #pragma warning(disable : 4028)
 #pragma warning(disable : 4133)
 
-#define GUID  _WINNT_DUP_GUID_____
-#define _LIST_ENTRY  _WINNT_DUP_LIST_ENTRY_FORWARD
-#define LIST_ENTRY   _WINNT_DUP_LIST_ENTRY
+#define GUID              _WINNT_DUP_GUID_____
+#define _LIST_ENTRY       _WINNT_DUP_LIST_ENTRY_FORWARD
+#define LIST_ENTRY        _WINNT_DUP_LIST_ENTRY
+#define RUNTIME_FUNCTION  _WINNT_DUP_RUNTIME_FUNCTION
 #if defined (MDE_CPU_IA32) && (_MSC_VER < 1800)
-#define InterlockedIncrement _WINNT_DUP_InterlockedIncrement
-#define InterlockedDecrement _WINNT_DUP_InterlockedDecrement
-#define InterlockedCompareExchange64 _WINNT_DUP_InterlockedCompareExchange64
+#define InterlockedIncrement          _WINNT_DUP_InterlockedIncrement
+#define InterlockedDecrement          _WINNT_DUP_InterlockedDecrement
+#define InterlockedCompareExchange64  _WINNT_DUP_InterlockedCompareExchange64
 #endif
 #undef UNALIGNED
 #undef CONST
@@ -36,7 +37,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 //                   It should be removed after the root cause why
 //                   size_t is undefined when go into the line below is found.
 #if defined (MDE_CPU_IA32)
-typedef UINT32 size_t ;
+typedef UINT32 size_t;
 #endif
 
 #include "windows.h"
@@ -45,13 +46,14 @@ typedef UINT32 size_t ;
 #undef GUID
 #undef _LIST_ENTRY
 #undef LIST_ENTRY
+#undef RUNTIME_FUNCTION
 #undef InterlockedIncrement
 #undef InterlockedDecrement
 #undef InterlockedCompareExchange64
 #undef InterlockedCompareExchangePointer
 #undef CreateEventEx
 
-#define VOID void
+#define VOID  void
 
 //
 // Prevent collisions with Windows API name macros that deal with Unicode/Not issues
@@ -65,6 +67,5 @@ typedef UINT32 size_t ;
 //
 #pragma warning(default : 4115)
 #pragma warning(default : 4201)
-
 
 #endif

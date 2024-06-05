@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2011 - 2014 ARM LTD. All rights reserved.<BR>
+// Copyright (c) 2011 - 2021, Arm Limited. All rights reserved.<BR>
 // Portion of Copyright (c) 2014 NVIDIA Corporation. All rights reserved.<BR>
 // Copyright (c) 2016 HP Development Company, L.P.
 //
@@ -94,7 +94,6 @@
 
 GCC_ASM_EXPORT(ExceptionHandlersEnd)
 GCC_ASM_EXPORT(CommonCExceptionHandler)
-GCC_ASM_EXPORT(RegisterEl0Stack)
 
 .text
 
@@ -200,19 +199,19 @@ ASM_PFX(SErrorSP0):
 //
 // Current EL with SPx: 0x200 - 0x380
 //
-VECTOR_ENTRY(ExceptionHandlersStart, ARM_VECTOR_CUR_SPx_SYNC)
+VECTOR_ENTRY(ExceptionHandlersStart, ARM_VECTOR_CUR_SPX_SYNC)
 ASM_PFX(SynchronousExceptionSPx):
   ExceptionEntry  EXCEPT_AARCH64_SYNCHRONOUS_EXCEPTIONS, SP0
 
-VECTOR_ENTRY(ExceptionHandlersStart, ARM_VECTOR_CUR_SPx_IRQ)
+VECTOR_ENTRY(ExceptionHandlersStart, ARM_VECTOR_CUR_SPX_IRQ)
 ASM_PFX(IrqSPx):
   ExceptionEntry  EXCEPT_AARCH64_IRQ
 
-VECTOR_ENTRY(ExceptionHandlersStart, ARM_VECTOR_CUR_SPx_FIQ)
+VECTOR_ENTRY(ExceptionHandlersStart, ARM_VECTOR_CUR_SPX_FIQ)
 ASM_PFX(FiqSPx):
   ExceptionEntry  EXCEPT_AARCH64_FIQ
 
-VECTOR_ENTRY(ExceptionHandlersStart, ARM_VECTOR_CUR_SPx_SERR)
+VECTOR_ENTRY(ExceptionHandlersStart, ARM_VECTOR_CUR_SPX_SERR)
 ASM_PFX(SErrorSPx):
   ExceptionEntry  EXCEPT_AARCH64_SERROR
 
@@ -387,6 +386,6 @@ ASM_PFX(CommonExceptionEntry):
 
   eret
 
-ASM_PFX(RegisterEl0Stack):
+ASM_FUNC(RegisterEl0Stack)
   msr     sp_el0, x0
   ret

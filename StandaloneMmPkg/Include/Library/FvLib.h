@@ -50,10 +50,11 @@ FfsFindNextFile (
   @retval  EFI_SUCCESS
 **/
 EFI_STATUS
+EFIAPI
 FfsFindSection (
-  IN EFI_SECTION_TYPE              SectionType,
-  IN EFI_FFS_FILE_HEADER           *FfsFileHeader,
-  IN OUT EFI_COMMON_SECTION_HEADER **SectionHeader
+  IN EFI_SECTION_TYPE               SectionType,
+  IN EFI_FFS_FILE_HEADER            *FfsFileHeader,
+  IN OUT EFI_COMMON_SECTION_HEADER  **SectionHeader
   );
 
 /**
@@ -72,10 +73,10 @@ FfsFindSection (
 EFI_STATUS
 EFIAPI
 FindFfsSectionInSections (
-  IN  VOID                             *Sections,
-  IN  UINTN                            SizeOfSections,
-  IN  EFI_SECTION_TYPE                 SectionType,
-  OUT EFI_COMMON_SECTION_HEADER        **FoundSection
+  IN  VOID                       *Sections,
+  IN  UINTN                      SizeOfSections,
+  IN  EFI_SECTION_TYPE           SectionType,
+  OUT EFI_COMMON_SECTION_HEADER  **FoundSection
   );
 
 /**
@@ -94,10 +95,10 @@ FindFfsSectionInSections (
 EFI_STATUS
 EFIAPI
 FfsFindSectionData (
-  IN EFI_SECTION_TYPE              SectionType,
-  IN EFI_FFS_FILE_HEADER           *FfsFileHeader,
-  OUT VOID                         **SectionData,
-  OUT UINTN                        *SectionDataSize
+  IN EFI_SECTION_TYPE     SectionType,
+  IN EFI_FFS_FILE_HEADER  *FfsFileHeader,
+  OUT VOID                **SectionData,
+  OUT UINTN               *SectionDataSize
   );
 
 #endif

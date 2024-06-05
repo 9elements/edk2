@@ -2,65 +2,62 @@
 
   Copyright (c) 2008 - 2009, Apple Inc. All rights reserved.<BR>
   Copyright (c) 2011 - 2016, ARM Ltd. All rights reserved.<BR>
-  Copyright (c) 2020, NUVIA Inc. All rights reserved.<BR>
+  Copyright (c) 2020 - 2021, NUVIA Inc. All rights reserved.<BR>
 
   SPDX-License-Identifier: BSD-2-Clause-Patent
 
 **/
 
-#ifndef __ARM_LIB__
-#define __ARM_LIB__
+#ifndef ARM_LIB_H_
+#define ARM_LIB_H_
 
 #include <Uefi/UefiBaseType.h>
 
 #ifdef MDE_CPU_ARM
   #include <Chipset/ArmV7.h>
-#elif defined(MDE_CPU_AARCH64)
+#elif defined (MDE_CPU_AARCH64)
   #include <Chipset/AArch64.h>
 #else
- #error "Unknown chipset."
+  #error "Unknown chipset."
 #endif
 
-#define EFI_MEMORY_CACHETYPE_MASK   (EFI_MEMORY_UC | EFI_MEMORY_WC | \
+#define EFI_MEMORY_CACHETYPE_MASK  (EFI_MEMORY_UC | EFI_MEMORY_WC |  \
                                      EFI_MEMORY_WT | EFI_MEMORY_WB | \
                                      EFI_MEMORY_UCE)
 
-/**
- * The UEFI firmware must not use the ARM_MEMORY_REGION_ATTRIBUTE_NONSECURE_* attributes.
- *
- * The Non Secure memory attribute (ARM_MEMORY_REGION_ATTRIBUTE_NONSECURE_*) should only
- * be used in Secure World to distinguished Secure to Non-Secure memory.
- */
 typedef enum {
   ARM_MEMORY_REGION_ATTRIBUTE_UNCACHED_UNBUFFERED = 0,
-  ARM_MEMORY_REGION_ATTRIBUTE_NONSECURE_UNCACHED_UNBUFFERED,
   ARM_MEMORY_REGION_ATTRIBUTE_WRITE_BACK,
-  ARM_MEMORY_REGION_ATTRIBUTE_NONSECURE_WRITE_BACK,
 
   // On some platforms, memory mapped flash region is designed as not supporting
   // shareable attribute, so WRITE_BACK_NONSHAREABLE is added for such special
   // need.
   // Do NOT use below two attributes if you are not sure.
   ARM_MEMORY_REGION_ATTRIBUTE_WRITE_BACK_NONSHAREABLE,
-  ARM_MEMORY_REGION_ATTRIBUTE_NONSECURE_WRITE_BACK_NONSHAREABLE,
+
+  // Special region types for memory that must be mapped with read-only or
+  // non-execute permissions from the very start, e.g., to support the use
+  // of the WXN virtual memory control.
+  ARM_MEMORY_REGION_ATTRIBUTE_WRITE_BACK_RO,
+  ARM_MEMORY_REGION_ATTRIBUTE_WRITE_BACK_XP,
 
   ARM_MEMORY_REGION_ATTRIBUTE_WRITE_THROUGH,
-  ARM_MEMORY_REGION_ATTRIBUTE_NONSECURE_WRITE_THROUGH,
   ARM_MEMORY_REGION_ATTRIBUTE_DEVICE,
-  ARM_MEMORY_REGION_ATTRIBUTE_NONSECURE_DEVICE
 } ARM_MEMORY_REGION_ATTRIBUTES;
 
-#define IS_ARM_MEMORY_REGION_ATTRIBUTES_SECURE(attr) ((UINT32)(attr) & 1)
-
 typedef struct {
-  EFI_PHYSICAL_ADDRESS          PhysicalBase;
-  EFI_VIRTUAL_ADDRESS           VirtualBase;
-  UINT64                        Length;
-  ARM_MEMORY_REGION_ATTRIBUTES  Attributes;
+  EFI_PHYSICAL_ADDRESS            PhysicalBase;
+  EFI_VIRTUAL_ADDRESS             VirtualBase;
+  UINT64                          Length;
+  ARM_MEMORY_REGION_ATTRIBUTES    Attributes;
 } ARM_MEMORY_REGION_DESCRIPTOR;
 
-typedef VOID (*CACHE_OPERATION)(VOID);
-typedef VOID (*LINE_OPERATION)(UINTN);
+typedef VOID (*CACHE_OPERATION)(
+  VOID
+  );
+typedef VOID (*LINE_OPERATION)(
+  UINTN
+  );
 
 //
 // ARM Processor Mode
@@ -80,34 +77,72 @@ typedef enum {
 //
 // ARM Cpu IDs
 //
-#define ARM_CPU_IMPLEMENTER_MASK          (0xFFU << 24)
-#define ARM_CPU_IMPLEMENTER_ARMLTD        (0x41U << 24)
-#define ARM_CPU_IMPLEMENTER_DEC           (0x44U << 24)
-#define ARM_CPU_IMPLEMENTER_MOT           (0x4DU << 24)
-#define ARM_CPU_IMPLEMENTER_QUALCOMM      (0x51U << 24)
-#define ARM_CPU_IMPLEMENTER_MARVELL       (0x56U << 24)
+#define ARM_CPU_IMPLEMENTER_MASK      (0xFFU << 24)
+#define ARM_CPU_IMPLEMENTER_ARMLTD    (0x41U << 24)
+#define ARM_CPU_IMPLEMENTER_DEC       (0x44U << 24)
+#define ARM_CPU_IMPLEMENTER_MOT       (0x4DU << 24)
+#define ARM_CPU_IMPLEMENTER_QUALCOMM  (0x51U << 24)
+#define ARM_CPU_IMPLEMENTER_MARVELL   (0x56U << 24)
 
-#define ARM_CPU_PRIMARY_PART_MASK         (0xFFF << 4)
-#define ARM_CPU_PRIMARY_PART_CORTEXA5     (0xC05 << 4)
-#define ARM_CPU_PRIMARY_PART_CORTEXA7     (0xC07 << 4)
-#define ARM_CPU_PRIMARY_PART_CORTEXA8     (0xC08 << 4)
-#define ARM_CPU_PRIMARY_PART_CORTEXA9     (0xC09 << 4)
-#define ARM_CPU_PRIMARY_PART_CORTEXA15    (0xC0F << 4)
+#define ARM_CPU_PRIMARY_PART_MASK       (0xFFF << 4)
+#define ARM_CPU_PRIMARY_PART_CORTEXA5   (0xC05 << 4)
+#define ARM_CPU_PRIMARY_PART_CORTEXA7   (0xC07 << 4)
+#define ARM_CPU_PRIMARY_PART_CORTEXA8   (0xC08 << 4)
+#define ARM_CPU_PRIMARY_PART_CORTEXA9   (0xC09 << 4)
+#define ARM_CPU_PRIMARY_PART_CORTEXA15  (0xC0F << 4)
 
 //
 // ARM MP Core IDs
 //
-#define ARM_CORE_AFF0         0xFF
-#define ARM_CORE_AFF1         (0xFF << 8)
-#define ARM_CORE_AFF2         (0xFF << 16)
-#define ARM_CORE_AFF3         (0xFFULL << 32)
+#define ARM_CORE_AFF0  0xFF
+#define ARM_CORE_AFF1  (0xFF << 8)
+#define ARM_CORE_AFF2  (0xFF << 16)
+#define ARM_CORE_AFF3  (0xFFULL << 32)
 
-#define ARM_CORE_MASK         ARM_CORE_AFF0
-#define ARM_CLUSTER_MASK      ARM_CORE_AFF1
-#define GET_CORE_ID(MpId)     ((MpId) & ARM_CORE_MASK)
-#define GET_CLUSTER_ID(MpId)  (((MpId) & ARM_CLUSTER_MASK) >> 8)
-#define GET_MPID(ClusterId, CoreId)   (((ClusterId) << 8) | (CoreId))
-#define PRIMARY_CORE_ID       (PcdGet32(PcdArmPrimaryCore) & ARM_CORE_MASK)
+#define ARM_CORE_MASK     ARM_CORE_AFF0
+#define ARM_CLUSTER_MASK  ARM_CORE_AFF1
+#define GET_CORE_ID(MpId)              ((MpId) & ARM_CORE_MASK)
+#define GET_CLUSTER_ID(MpId)           (((MpId) & ARM_CLUSTER_MASK) >> 8)
+#define GET_MPID(ClusterId, CoreId)    (((ClusterId) << 8) | (CoreId))
+#define GET_MPIDR_AFF0(MpId)           ((MpId) & ARM_CORE_AFF0)
+#define GET_MPIDR_AFF1(MpId)           (((MpId) & ARM_CORE_AFF1) >> 8)
+#define GET_MPIDR_AFF2(MpId)           (((MpId) & ARM_CORE_AFF2) >> 16)
+#define GET_MPIDR_AFF3(MpId)           (((MpId) & ARM_CORE_AFF3) >> 32)
+#define GET_MPIDR_AFFINITY_BITS(MpId)  ((MpId) & 0xFF00FFFFFF)
+#define PRIMARY_CORE_ID  (PcdGet32(PcdArmPrimaryCore) & ARM_CORE_MASK)
+#define MPIDR_MT_BIT     BIT24
+
+/** Reads the CCSIDR register for the specified cache.
+
+  @param CSSELR The CSSELR cache selection register value.
+
+  @return The contents of the CCSIDR_EL1 register for the specified cache, when in AARCH64 mode.
+          Returns the contents of the CCSIDR register in AARCH32 mode.
+**/
+UINTN
+ReadCCSIDR (
+  IN UINT32  CSSELR
+  );
+
+/** Reads the CCSIDR2 for the specified cache.
+
+  @param CSSELR The CSSELR cache selection register value
+
+  @return The contents of the CCSIDR2 register for the specified cache.
+**/
+UINT32
+ReadCCSIDR2 (
+  IN UINT32  CSSELR
+  );
+
+/** Reads the Cache Level ID (CLIDR) register.
+
+  @return The contents of the CLIDR_EL1 register.
+**/
+UINT32
+ReadCLIDR (
+  VOID
+  );
 
 UINTN
 EFIAPI
@@ -151,7 +186,6 @@ ArmInvalidateDataCache (
   VOID
   );
 
-
 VOID
 EFIAPI
 ArmCleanInvalidateDataCache (
@@ -173,31 +207,31 @@ ArmInvalidateInstructionCache (
 VOID
 EFIAPI
 ArmInvalidateDataCacheEntryByMVA (
-  IN  UINTN   Address
+  IN  UINTN  Address
   );
 
 VOID
 EFIAPI
 ArmCleanDataCacheEntryToPoUByMVA (
-  IN  UINTN   Address
+  IN  UINTN  Address
   );
 
 VOID
 EFIAPI
 ArmInvalidateInstructionCacheEntryToPoUByMVA (
-  IN  UINTN   Address
+  IN  UINTN  Address
   );
 
 VOID
 EFIAPI
 ArmCleanDataCacheEntryByMVA (
-IN  UINTN   Address
-);
+  IN  UINTN  Address
+  );
 
 VOID
 EFIAPI
 ArmCleanInvalidateDataCacheEntryByMVA (
-  IN  UINTN   Address
+  IN  UINTN  Address
   );
 
 VOID
@@ -320,8 +354,8 @@ ArmInvalidateTlb (
 VOID
 EFIAPI
 ArmUpdateTranslationTableEntry (
-  IN  VOID     *TranslationTableEntry,
-  IN  VOID     *Mva
+  IN  VOID  *TranslationTableEntry,
+  IN  VOID  *Mva
   );
 
 VOID
@@ -339,7 +373,7 @@ ArmSetTTBR0 (
 VOID
 EFIAPI
 ArmSetTTBCR (
-  IN  UINT32 Bits
+  IN  UINT32  Bits
   );
 
 VOID *
@@ -399,7 +433,7 @@ ArmInstructionSynchronizationBarrier (
 VOID
 EFIAPI
 ArmWriteVBar (
-  IN  UINTN   VectorBase
+  IN  UINTN  VectorBase
   );
 
 UINTN
@@ -411,7 +445,7 @@ ArmReadVBar (
 VOID
 EFIAPI
 ArmWriteAuxCr (
-  IN  UINT32    Bit
+  IN  UINT32  Bit
   );
 
 UINT32
@@ -423,13 +457,13 @@ ArmReadAuxCr (
 VOID
 EFIAPI
 ArmSetAuxCrBit (
-  IN  UINT32    Bits
+  IN  UINT32  Bits
   );
 
 VOID
 EFIAPI
 ArmUnsetAuxCrBit (
-  IN  UINT32    Bits
+  IN  UINT32  Bits
   );
 
 VOID
@@ -472,7 +506,7 @@ ArmReadCpacr (
 VOID
 EFIAPI
 ArmWriteCpacr (
-  IN  UINT32   Access
+  IN  UINT32  Access
   );
 
 VOID
@@ -502,7 +536,7 @@ ArmReadScr (
 VOID
 EFIAPI
 ArmWriteScr (
-  IN  UINT32   Value
+  IN  UINT32  Value
   );
 
 UINT32
@@ -514,7 +548,7 @@ ArmReadMVBar (
 VOID
 EFIAPI
 ArmWriteMVBar (
-  IN  UINT32   VectorMonitorBase
+  IN  UINT32  VectorMonitorBase
   );
 
 UINT32
@@ -526,7 +560,7 @@ ArmReadSctlr (
 VOID
 EFIAPI
 ArmWriteSctlr (
-  IN  UINT32   Value
+  IN  UINT32  Value
   );
 
 UINTN
@@ -538,9 +572,8 @@ ArmReadHVBar (
 VOID
 EFIAPI
 ArmWriteHVBar (
-  IN  UINTN   HypModeVectorBase
+  IN  UINTN  HypModeVectorBase
   );
-
 
 //
 // Helper functions for accessing CPU ACTLR
@@ -555,28 +588,28 @@ ArmReadCpuActlr (
 VOID
 EFIAPI
 ArmWriteCpuActlr (
-  IN  UINTN Val
+  IN  UINTN  Val
   );
 
 VOID
 EFIAPI
 ArmSetCpuActlrBit (
-  IN  UINTN    Bits
+  IN  UINTN  Bits
   );
 
 VOID
 EFIAPI
 ArmUnsetCpuActlrBit (
-  IN  UINTN    Bits
+  IN  UINTN  Bits
   );
 
 //
 // Accessors for the architected generic timer registers
 //
 
-#define ARM_ARCH_TIMER_ENABLE           (1 << 0)
-#define ARM_ARCH_TIMER_IMASK            (1 << 1)
-#define ARM_ARCH_TIMER_ISTATUS          (1 << 2)
+#define ARM_ARCH_TIMER_ENABLE   (1 << 0)
+#define ARM_ARCH_TIMER_IMASK    (1 << 1)
+#define ARM_ARCH_TIMER_ISTATUS  (1 << 2)
 
 UINTN
 EFIAPI
@@ -587,7 +620,7 @@ ArmReadCntFrq (
 VOID
 EFIAPI
 ArmWriteCntFrq (
-  UINTN   FreqInHz
+  UINTN  FreqInHz
   );
 
 UINT64
@@ -605,7 +638,7 @@ ArmReadCntkCtl (
 VOID
 EFIAPI
 ArmWriteCntkCtl (
-  UINTN   Val
+  UINTN  Val
   );
 
 UINTN
@@ -617,7 +650,7 @@ ArmReadCntpTval (
 VOID
 EFIAPI
 ArmWriteCntpTval (
-  UINTN   Val
+  UINTN  Val
   );
 
 UINTN
@@ -629,7 +662,7 @@ ArmReadCntpCtl (
 VOID
 EFIAPI
 ArmWriteCntpCtl (
-  UINTN   Val
+  UINTN  Val
   );
 
 UINTN
@@ -641,7 +674,7 @@ ArmReadCntvTval (
 VOID
 EFIAPI
 ArmWriteCntvTval (
-  UINTN   Val
+  UINTN  Val
   );
 
 UINTN
@@ -653,7 +686,7 @@ ArmReadCntvCtl (
 VOID
 EFIAPI
 ArmWriteCntvCtl (
-  UINTN   Val
+  UINTN  Val
   );
 
 UINT64
@@ -671,7 +704,7 @@ ArmReadCntpCval (
 VOID
 EFIAPI
 ArmWriteCntpCval (
-  UINT64   Val
+  UINT64  Val
   );
 
 UINT64
@@ -683,7 +716,7 @@ ArmReadCntvCval (
 VOID
 EFIAPI
 ArmWriteCntvCval (
-  UINT64   Val
+  UINT64  Val
   );
 
 UINT64
@@ -695,7 +728,7 @@ ArmReadCntvOff (
 VOID
 EFIAPI
 ArmWriteCntvOff (
-  UINT64   Val
+  UINT64  Val
   );
 
 UINTN
@@ -703,7 +736,6 @@ EFIAPI
 ArmGetPhysicalAddressBits (
   VOID
   );
-
 
 ///
 ///  ID Register Helper functions
@@ -721,10 +753,65 @@ ArmHasGicSystemRegisters (
   VOID
   );
 
+/** Checks if CCIDX is implemented.
+
+   @retval TRUE  CCIDX is implemented.
+   @retval FALSE CCIDX is not implemented.
+**/
+BOOLEAN
+EFIAPI
+ArmHasCcidx (
+  VOID
+  );
+
+#ifdef MDE_CPU_AARCH64
+///
+/// AArch64-only ID Register Helper functions
+///
+
+/**
+  Checks whether the CPU implements the Virtualization Host Extensions.
+
+  @retval TRUE  FEAT_VHE is implemented.
+  @retval FALSE FEAT_VHE is not mplemented.
+**/
+BOOLEAN
+EFIAPI
+ArmHasVhe (
+  VOID
+  );
+
+/**
+  Checks whether the CPU implements the Trace Buffer Extension.
+
+  @retval TRUE  FEAT_TRBE is implemented.
+  @retval FALSE FEAT_TRBE is not mplemented.
+**/
+BOOLEAN
+EFIAPI
+ArmHasTrbe (
+  VOID
+  );
+
+/**
+  Checks whether the CPU implements the Embedded Trace Extension.
+
+  @retval TRUE  FEAT_ETE is implemented.
+  @retval FALSE FEAT_ETE is not mplemented.
+**/
+BOOLEAN
+EFIAPI
+ArmHasEte (
+  VOID
+  );
+
+#endif // MDE_CPU_AARCH64
+
 #ifdef MDE_CPU_ARM
 ///
 /// AArch32-only ID Register Helper functions
 ///
+
 /**
   Check whether the CPU supports the Security extensions
 
@@ -736,6 +823,7 @@ EFIAPI
 ArmHasSecurityExtensions (
   VOID
   );
+
 #endif // MDE_CPU_ARM
 
-#endif // __ARM_LIB__
+#endif // ARM_LIB_H_

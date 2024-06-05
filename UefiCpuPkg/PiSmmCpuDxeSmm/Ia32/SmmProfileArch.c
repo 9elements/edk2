@@ -18,9 +18,9 @@ InitSmmS3Cr3 (
   VOID
   )
 {
-  mSmmS3ResumeState->SmmS3Cr3 = Gen4GPageTable (TRUE);
+  mSmmS3ResumeState->SmmS3Cr3 = GenSmmPageTable (PagingPae, mPhysicalAddressBits);
 
-  return ;
+  return;
 }
 
 /**
@@ -49,11 +49,11 @@ InitPagesForPFHandler (
 **/
 VOID
 RestorePageTableAbove4G (
-  UINT64        *PageTable,
-  UINT64        PFAddress,
-  UINTN         CpuIndex,
-  UINTN         ErrorCode,
-  BOOLEAN       *IsValidPFAddress
+  UINT64   *PageTable,
+  UINT64   PFAddress,
+  UINTN    CpuIndex,
+  UINTN    ErrorCode,
+  BOOLEAN  *IsValidPFAddress
   )
 {
 }
@@ -67,7 +67,7 @@ RestorePageTableAbove4G (
 **/
 VOID
 ClearTrapFlag (
-  IN OUT EFI_SYSTEM_CONTEXT   SystemContext
+  IN OUT EFI_SYSTEM_CONTEXT  SystemContext
   )
 {
   SystemContext.SystemContextIa32->Eflags &= (UINTN) ~BIT8;

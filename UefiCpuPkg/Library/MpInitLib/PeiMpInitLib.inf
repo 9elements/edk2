@@ -1,7 +1,8 @@
 ## @file
 #  MP Initialize Library instance for PEI driver.
 #
-#  Copyright (c) 2016 - 2020, Intel Corporation. All rights reserved.<BR>
+#  Copyright (c) 2016 - 2024, Intel Corporation. All rights reserved.<BR>
+#  Copyright (c) 2024, Loongson Technology Corporation Limited. All rights reserved.<BR>
 #  SPDX-License-Identifier: BSD-2-Clause-Patent
 #
 ##
@@ -18,42 +19,58 @@
 #
 # The following information is for reference only and not required by the build tools.
 #
-#  VALID_ARCHITECTURES           = IA32 X64
+#  VALID_ARCHITECTURES           = IA32 X64 LOONGARCH64
 #
 
 [Sources.IA32]
-  Ia32/MpEqu.inc
+  Ia32/AmdSev.c
   Ia32/MpFuncs.nasm
+  Ia32/CreatePageTable.c
 
 [Sources.X64]
-  X64/MpEqu.inc
+  X64/AmdSev.c
   X64/MpFuncs.nasm
+  X64/CreatePageTable.c
 
-[Sources.common]
-  PeiMpLib.c
+[Sources.IA32, Sources.X64]
+  AmdSev.c
+  Microcode.c
+  MpEqu.inc
   MpLib.c
   MpLib.h
-  Microcode.c
+  MpHandOff.h
+  PeiMpLib.c
+
+[Sources.LoongArch64]
+  LoongArch64/PeiMpLib.c
+  LoongArch64/MpLib.c
+  LoongArch64/MpLib.h
 
 [Packages]
   MdePkg/MdePkg.dec
-  UefiCpuPkg/UefiCpuPkg.dec
   MdeModulePkg/MdeModulePkg.dec
+  UefiCpuPkg/UefiCpuPkg.dec
 
 [LibraryClasses]
   BaseLib
-  LocalApicLib
-  MemoryAllocationLib
-  HobLib
-  MtrrLib
   CpuLib
-  UefiCpuLib
-  SynchronizationLib
-  PeiServicesLib
+  HobLib
+  MemoryAllocationLib
   PcdLib
-  VmgExitLib
+  PeiServicesLib
+  SynchronizationLib
+
+[LibraryClasses.IA32, LibraryClasses.X64]
+  AmdSvsmLib
+  CcExitLib
+  LocalApicLib
+  MicrocodeLib
+  MtrrLib
+  CpuPageTableLib
 
 [Pcd]
+  gEfiMdeModulePkgTokenSpaceGuid.PcdGhcbBase                       ## CONSUMES
+  gEfiMdePkgTokenSpaceGuid.PcdConfidentialComputingGuestAttr       ## CONSUMES
   gUefiCpuPkgTokenSpaceGuid.PcdCpuMaxLogicalProcessorNumber        ## CONSUMES
   gUefiCpuPkgTokenSpaceGuid.PcdCpuBootLogicalProcessorNumber       ## CONSUMES
   gUefiCpuPkgTokenSpaceGuid.PcdCpuApInitTimeOutInMicroSeconds      ## SOMETIMES_CONSUMES
@@ -62,9 +79,9 @@
   gUefiCpuPkgTokenSpaceGuid.PcdCpuMicrocodePatchRegionSize         ## CONSUMES
   gUefiCpuPkgTokenSpaceGuid.PcdCpuApLoopMode                       ## CONSUMES
   gUefiCpuPkgTokenSpaceGuid.PcdCpuApTargetCstate                   ## SOMETIMES_CONSUMES
-  gUefiCpuPkgTokenSpaceGuid.PcdSevEsIsEnabled                      ## CONSUMES
   gUefiCpuPkgTokenSpaceGuid.PcdSevEsWorkAreaBase                   ## SOMETIMES_CONSUMES
-  gEfiMdeModulePkgTokenSpaceGuid.PcdGhcbBase                       ## CONSUMES
+  gUefiCpuPkgTokenSpaceGuid.PcdGhcbHypervisorFeatures              ## CONSUMES
+  gUefiCpuPkgTokenSpaceGuid.PcdFirstTimeWakeUpAPsBySipi            ## CONSUMES
 
 [Ppis]
   gEdkiiPeiShadowMicrocodePpiGuid        ## SOMETIMES_CONSUMES
@@ -72,3 +89,8 @@
 [Guids]
   gEdkiiS3SmmInitDoneGuid
   gEdkiiMicrocodePatchHobGuid
+  gGhcbApicIdsGuid                       ## SOMETIMES_CONSUMES
+  gEdkiiEndOfS3ResumeGuid
+
+[Guids.LoongArch64]
+  gProcessorResourceHobGuid              ## SOMETIMES_CONSUMES  ## HOB

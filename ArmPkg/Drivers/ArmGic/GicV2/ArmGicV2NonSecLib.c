@@ -1,6 +1,6 @@
 /** @file
 *
-*  Copyright (c) 2011-2014, ARM Limited. All rights reserved.
+*  Copyright (c) 2011-2023, Arm Limited. All rights reserved.
 *
 *  SPDX-License-Identifier: BSD-2-Clause-Patent
 *
@@ -10,11 +10,10 @@
 #include <Library/IoLib.h>
 #include <Library/ArmGicLib.h>
 
-
 VOID
 EFIAPI
 ArmGicV2EnableInterruptInterface (
-  IN  INTN          GicInterruptInterfaceBase
+  IN  UINTN  GicInterruptInterfaceBase
   )
 {
   /*
@@ -27,7 +26,7 @@ ArmGicV2EnableInterruptInterface (
 VOID
 EFIAPI
 ArmGicV2DisableInterruptInterface (
-  IN  INTN          GicInterruptInterfaceBase
+  IN  UINTN  GicInterruptInterfaceBase
   )
 {
   // Disable Gic Interface

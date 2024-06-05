@@ -14,14 +14,12 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 //
 // Macros to check and set alignment
 //
-#define ASSERT_ALIGNED(addr, size)  ASSERT (!((UINT32) (addr) & (size - 1)))
-#define IS_ALIGNED(addr, size)      !((UINT32) (addr) & (size - 1))
+#define ASSERT_ALIGNED(addr, size)  ASSERT (ADDRESS_IS_ALIGNED (addr, size))
 
 //
 // Debug macro
 //
-#define EBCMSG(s) gST->ConOut->OutputString (gST->ConOut, s)
-
+#define EBCMSG(s)  gST->ConOut->OutputString (gST->ConOut, s)
 
 /**
   Execute an EBC image from an entry point or from a published protocol.
@@ -34,10 +32,8 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 **/
 EFI_STATUS
 EbcExecute (
-  IN VM_CONTEXT *VmPtr
+  IN VM_CONTEXT  *VmPtr
   );
-
-
 
 /**
   Returns the version of the EBC virtual machine.
@@ -75,9 +71,9 @@ GetVmVersion (
 **/
 EFI_STATUS
 VmWriteMemN (
-  IN VM_CONTEXT   *VmPtr,
-  IN UINTN        Addr,
-  IN UINTN        Data
+  IN VM_CONTEXT  *VmPtr,
+  IN UINTN       Addr,
+  IN UINTN       Data
   );
 
 /**
@@ -105,9 +101,9 @@ VmWriteMemN (
 **/
 EFI_STATUS
 VmWriteMem64 (
-  IN VM_CONTEXT   *VmPtr,
-  IN UINTN        Addr,
-  IN UINT64       Data
+  IN VM_CONTEXT  *VmPtr,
+  IN UINTN       Addr,
+  IN UINT64      Data
   );
 
 /**
@@ -127,9 +123,9 @@ VmWriteMem64 (
 EFI_STATUS
 EFIAPI
 EbcExecuteInstructions (
-  IN EFI_EBC_VM_TEST_PROTOCOL *This,
-  IN VM_CONTEXT               *VmPtr,
-  IN OUT UINTN                *InstructionCount
+  IN EFI_EBC_VM_TEST_PROTOCOL  *This,
+  IN VM_CONTEXT                *VmPtr,
+  IN OUT UINTN                 *InstructionCount
   );
 
 #endif // ifndef _EBC_EXECUTE_H_

@@ -1,19 +1,19 @@
 /** @file
   CPU PEI Module installs CPU Multiple Processor PPI.
 
-  Copyright (c) 2015 - 2021, Intel Corporation. All rights reserved.<BR>
+  Copyright (c) 2015 - 2022, Intel Corporation. All rights reserved.<BR>
   SPDX-License-Identifier: BSD-2-Clause-Patent
 
 **/
 
 #include "CpuMpPei.h"
 
-extern EDKII_PEI_MP_SERVICES2_PPI            mMpServices2Ppi;
+extern EDKII_PEI_MP_SERVICES2_PPI  mMpServices2Ppi;
 
 //
 // CPU MP PPI to be installed
 //
-EFI_PEI_MP_SERVICES_PPI                mMpServicesPpi = {
+EFI_PEI_MP_SERVICES_PPI  mMpServicesPpi = {
   PeiGetNumberOfProcessors,
   PeiGetProcessorInfo,
   PeiStartupAllAPs,
@@ -23,7 +23,7 @@ EFI_PEI_MP_SERVICES_PPI                mMpServicesPpi = {
   PeiWhoAmI,
 };
 
-EFI_PEI_PPI_DESCRIPTOR           mPeiCpuMpPpiList[] = {
+EFI_PEI_PPI_DESCRIPTOR  mPeiCpuMpPpiList[] = {
   {
     EFI_PEI_PPI_DESCRIPTOR_PPI,
     &gEdkiiPeiMpServices2PpiGuid,
@@ -73,10 +73,10 @@ EFI_PEI_PPI_DESCRIPTOR           mPeiCpuMpPpiList[] = {
 EFI_STATUS
 EFIAPI
 PeiGetNumberOfProcessors (
-  IN  CONST EFI_PEI_SERVICES    **PeiServices,
-  IN  EFI_PEI_MP_SERVICES_PPI   *This,
-  OUT UINTN                     *NumberOfProcessors,
-  OUT UINTN                     *NumberOfEnabledProcessors
+  IN  CONST EFI_PEI_SERVICES   **PeiServices,
+  IN  EFI_PEI_MP_SERVICES_PPI  *This,
+  OUT UINTN                    *NumberOfProcessors,
+  OUT UINTN                    *NumberOfEnabledProcessors
   )
 {
   if ((NumberOfProcessors == NULL) || (NumberOfEnabledProcessors == NULL)) {
@@ -193,12 +193,12 @@ PeiGetProcessorInfo (
 EFI_STATUS
 EFIAPI
 PeiStartupAllAPs (
-  IN  CONST EFI_PEI_SERVICES    **PeiServices,
-  IN  EFI_PEI_MP_SERVICES_PPI   *This,
-  IN  EFI_AP_PROCEDURE          Procedure,
-  IN  BOOLEAN                   SingleThread,
-  IN  UINTN                     TimeoutInMicroSeconds,
-  IN  VOID                      *ProcedureArgument      OPTIONAL
+  IN  CONST EFI_PEI_SERVICES   **PeiServices,
+  IN  EFI_PEI_MP_SERVICES_PPI  *This,
+  IN  EFI_AP_PROCEDURE         Procedure,
+  IN  BOOLEAN                  SingleThread,
+  IN  UINTN                    TimeoutInMicroSeconds,
+  IN  VOID                     *ProcedureArgument      OPTIONAL
   )
 {
   return MpInitLibStartupAllAPs (
@@ -260,12 +260,12 @@ PeiStartupAllAPs (
 EFI_STATUS
 EFIAPI
 PeiStartupThisAP (
-  IN  CONST EFI_PEI_SERVICES    **PeiServices,
-  IN  EFI_PEI_MP_SERVICES_PPI   *This,
-  IN  EFI_AP_PROCEDURE          Procedure,
-  IN  UINTN                     ProcessorNumber,
-  IN  UINTN                     TimeoutInMicroseconds,
-  IN  VOID                      *ProcedureArgument      OPTIONAL
+  IN  CONST EFI_PEI_SERVICES   **PeiServices,
+  IN  EFI_PEI_MP_SERVICES_PPI  *This,
+  IN  EFI_AP_PROCEDURE         Procedure,
+  IN  UINTN                    ProcessorNumber,
+  IN  UINTN                    TimeoutInMicroseconds,
+  IN  VOID                     *ProcedureArgument      OPTIONAL
   )
 {
   return MpInitLibStartupThisAP (
@@ -366,11 +366,11 @@ PeiSwitchBSP (
 EFI_STATUS
 EFIAPI
 PeiEnableDisableAP (
-  IN  CONST EFI_PEI_SERVICES    **PeiServices,
-  IN  EFI_PEI_MP_SERVICES_PPI   *This,
-  IN  UINTN                     ProcessorNumber,
-  IN  BOOLEAN                   EnableAP,
-  IN  UINT32                    *HealthFlag OPTIONAL
+  IN  CONST EFI_PEI_SERVICES   **PeiServices,
+  IN  EFI_PEI_MP_SERVICES_PPI  *This,
+  IN  UINTN                    ProcessorNumber,
+  IN  BOOLEAN                  EnableAP,
+  IN  UINT32                   *HealthFlag OPTIONAL
   )
 {
   return MpInitLibEnableDisableAP (ProcessorNumber, EnableAP, HealthFlag);
@@ -411,65 +411,19 @@ PeiWhoAmI (
   return MpInitLibWhoAmI (ProcessorNumber);
 }
 
-/**
-  Get GDT register value.
-
-  This function is mainly for AP purpose because AP may have different GDT
-  table than BSP.
-
-  @param[in,out] Buffer  The pointer to private data buffer.
-
-**/
-VOID
-EFIAPI
-GetGdtr (
-  IN OUT VOID *Buffer
-  )
-{
-  AsmReadGdtr ((IA32_DESCRIPTOR *)Buffer);
-}
-
-/**
-  Migrates the Global Descriptor Table (GDT) to permanent memory.
-
-  @retval   EFI_SUCCESS           The GDT was migrated successfully.
-  @retval   EFI_OUT_OF_RESOURCES  The GDT could not be migrated due to lack of available memory.
-
-**/
-EFI_STATUS
-MigrateGdt (
-  VOID
-  )
-{
-  EFI_STATUS          Status;
-  UINTN               GdtBufferSize;
-  IA32_DESCRIPTOR     Gdtr;
-  VOID                *GdtBuffer;
-
-  AsmReadGdtr ((IA32_DESCRIPTOR *) &Gdtr);
-  GdtBufferSize = sizeof (IA32_SEGMENT_DESCRIPTOR) -1 + Gdtr.Limit + 1;
-
-  Status =  PeiServicesAllocatePool (
-              GdtBufferSize,
-              &GdtBuffer
-              );
-  ASSERT (GdtBuffer != NULL);
-  if (EFI_ERROR (Status)) {
-    return EFI_OUT_OF_RESOURCES;
-  }
-
-  GdtBuffer = ALIGN_POINTER (GdtBuffer, sizeof (IA32_SEGMENT_DESCRIPTOR));
-  CopyMem (GdtBuffer, (VOID *) Gdtr.Base, Gdtr.Limit + 1);
-  Gdtr.Base = (UINTN) GdtBuffer;
-  AsmWriteGdtr (&Gdtr);
-
-  return EFI_SUCCESS;
-}
+//
+// Structure for InitializeSeparateExceptionStacks
+//
+typedef struct {
+  VOID          *Buffer;
+  UINTN         BufferSize;
+  EFI_STATUS    Status;
+} EXCEPTION_STACK_SWITCH_CONTEXT;
 
 /**
   Initializes CPU exceptions handlers for the sake of stack switch requirement.
 
-  This function is a wrapper of InitializeCpuExceptionHandlersEx. It's mainly
+  This function is a wrapper of InitializeSeparateExceptionStacks. It's mainly
   for the sake of AP's init because of EFI_AP_PROCEDURE API requirement.
 
   @param[in,out] Buffer  The pointer to private data buffer.
@@ -478,30 +432,29 @@ MigrateGdt (
 VOID
 EFIAPI
 InitializeExceptionStackSwitchHandlers (
-  IN OUT VOID *Buffer
+  IN OUT VOID  *Buffer
   )
 {
-  CPU_EXCEPTION_INIT_DATA           *EssData;
-  IA32_DESCRIPTOR                   Idtr;
-  EFI_STATUS                        Status;
+  EXCEPTION_STACK_SWITCH_CONTEXT  *SwitchStackData;
+  UINTN                           Index;
 
-  EssData = Buffer;
+  MpInitLibWhoAmI (&Index);
+  SwitchStackData = (EXCEPTION_STACK_SWITCH_CONTEXT *)Buffer;
+
   //
-  // We don't plan to replace IDT table with a new one, but we should not assume
-  // the AP's IDT is the same as BSP's IDT either.
+  // This function may be called twice for each Cpu. Only run InitializeSeparateExceptionStacks
+  // if this is the first call or the first call failed because of size too small.
   //
-  AsmReadIdtr (&Idtr);
-  EssData->Ia32.IdtTable = (VOID *)Idtr.Base;
-  EssData->Ia32.IdtTableSize = Idtr.Limit + 1;
-  Status = InitializeCpuExceptionHandlersEx (NULL, EssData);
-  ASSERT_EFI_ERROR (Status);
+  if ((SwitchStackData[Index].Status == EFI_NOT_STARTED) || (SwitchStackData[Index].Status == EFI_BUFFER_TOO_SMALL)) {
+    SwitchStackData[Index].Status = InitializeSeparateExceptionStacks (SwitchStackData[Index].Buffer, &SwitchStackData[Index].BufferSize);
+  }
 }
 
 /**
   Initializes MP exceptions handlers for the sake of stack switch requirement.
 
   This function will allocate required resources required to setup stack switch
-  and pass them through CPU_EXCEPTION_INIT_DATA to each logic processor.
+  and pass them through SwitchStackData to each logic processor.
 
 **/
 VOID
@@ -509,145 +462,223 @@ InitializeMpExceptionStackSwitchHandlers (
   VOID
   )
 {
-  EFI_STATUS                      Status;
   UINTN                           Index;
-  UINTN                           Bsp;
-  UINTN                           ExceptionNumber;
-  UINTN                           OldGdtSize;
-  UINTN                           NewGdtSize;
-  UINTN                           NewStackSize;
-  IA32_DESCRIPTOR                 Gdtr;
-  CPU_EXCEPTION_INIT_DATA         EssData;
-  UINT8                           *GdtBuffer;
-  UINT8                           *StackTop;
   UINTN                           NumberOfProcessors;
+  EXCEPTION_STACK_SWITCH_CONTEXT  *SwitchStackData;
+  UINTN                           BufferSize;
+  EFI_STATUS                      Status;
+  UINT8                           *Buffer;
 
   if (!PcdGetBool (PcdCpuStackGuard)) {
     return;
   }
 
-  MpInitLibGetNumberOfProcessors(&NumberOfProcessors, NULL);
-  MpInitLibWhoAmI (&Bsp);
+  Status = MpInitLibGetNumberOfProcessors (&NumberOfProcessors, NULL);
+  ASSERT_EFI_ERROR (Status);
 
-  ExceptionNumber = FixedPcdGetSize (PcdCpuStackSwitchExceptionList);
-  NewStackSize = FixedPcdGet32 (PcdCpuKnownGoodStackSize) * ExceptionNumber;
-
-  StackTop = AllocatePages (EFI_SIZE_TO_PAGES (NewStackSize * NumberOfProcessors));
-  ASSERT(StackTop != NULL);
-  if (StackTop == NULL) {
-    return;
+  if (EFI_ERROR (Status)) {
+    NumberOfProcessors = 1;
   }
-  StackTop += NewStackSize  * NumberOfProcessors;
 
-  //
-  // The default exception handlers must have been initialized. Let's just skip
-  // it in this method.
-  //
-  EssData.Ia32.Revision = CPU_EXCEPTION_INIT_DATA_REV;
-  EssData.Ia32.InitDefaultHandlers = FALSE;
-
-  EssData.Ia32.StackSwitchExceptions = FixedPcdGetPtr(PcdCpuStackSwitchExceptionList);
-  EssData.Ia32.StackSwitchExceptionNumber = ExceptionNumber;
-  EssData.Ia32.KnownGoodStackSize = FixedPcdGet32(PcdCpuKnownGoodStackSize);
-
-  //
-  // Initialize Gdtr to suppress incorrect compiler/analyzer warnings.
-  //
-  Gdtr.Base = 0;
-  Gdtr.Limit = 0;
+  SwitchStackData = AllocatePages (EFI_SIZE_TO_PAGES (NumberOfProcessors * sizeof (EXCEPTION_STACK_SWITCH_CONTEXT)));
+  ASSERT (SwitchStackData != NULL);
+  ZeroMem (SwitchStackData, NumberOfProcessors * sizeof (EXCEPTION_STACK_SWITCH_CONTEXT));
   for (Index = 0; Index < NumberOfProcessors; ++Index) {
     //
-    // To support stack switch, we need to re-construct GDT but not IDT.
+    // Because the procedure may runs multiple times, use the status EFI_NOT_STARTED
+    // to indicate the procedure haven't been run yet.
     //
-    if (Index == Bsp) {
-      GetGdtr(&Gdtr);
+    SwitchStackData[Index].Status = EFI_NOT_STARTED;
+  }
+
+  Status = MpInitLibStartupAllCPUs (
+             InitializeExceptionStackSwitchHandlers,
+             0,
+             SwitchStackData
+             );
+  ASSERT_EFI_ERROR (Status);
+
+  BufferSize = 0;
+  for (Index = 0; Index < NumberOfProcessors; ++Index) {
+    if (SwitchStackData[Index].Status == EFI_BUFFER_TOO_SMALL) {
+      ASSERT (SwitchStackData[Index].BufferSize != 0);
+      BufferSize += SwitchStackData[Index].BufferSize;
     } else {
-      //
-      // AP might have different size of GDT from BSP.
-      //
-      MpInitLibStartupThisAP (GetGdtr, Index, NULL, 0, (VOID *)&Gdtr, NULL);
+      ASSERT (SwitchStackData[Index].Status == EFI_SUCCESS);
+      ASSERT (SwitchStackData[Index].BufferSize == 0);
+    }
+  }
+
+  if (BufferSize != 0) {
+    Buffer = AllocatePages (EFI_SIZE_TO_PAGES (BufferSize));
+    ASSERT (Buffer != NULL);
+    BufferSize = 0;
+    for (Index = 0; Index < NumberOfProcessors; ++Index) {
+      if (SwitchStackData[Index].Status == EFI_BUFFER_TOO_SMALL) {
+        SwitchStackData[Index].Buffer = (VOID *)(&Buffer[BufferSize]);
+        BufferSize                   += SwitchStackData[Index].BufferSize;
+        DEBUG ((
+          DEBUG_INFO,
+          "Buffer[cpu%lu] for InitializeExceptionStackSwitchHandlers: 0x%lX with size 0x%lX\n",
+          (UINT64)(UINTN)Index,
+          (UINT64)(UINTN)SwitchStackData[Index].Buffer,
+          (UINT64)(UINTN)SwitchStackData[Index].BufferSize
+          ));
+      }
     }
 
-    //
-    // X64 needs only one TSS of current task working for all exceptions
-    // because of its IST feature. IA32 needs one TSS for each exception
-    // in addition to current task. Since AP is not supposed to allocate
-    // memory, we have to do it in BSP. To simplify the code, we allocate
-    // memory for IA32 case to cover both IA32 and X64 exception stack
-    // switch.
-    //
-    // Layout of memory to allocate for each processor:
-    //    --------------------------------
-    //    |            Alignment         |  (just in case)
-    //    --------------------------------
-    //    |                              |
-    //    |        Original GDT          |
-    //    |                              |
-    //    --------------------------------
-    //    |    Current task descriptor   |
-    //    --------------------------------
-    //    |                              |
-    //    |  Exception task descriptors  |  X ExceptionNumber
-    //    |                              |
-    //    --------------------------------
-    //    |  Current task-state segment  |
-    //    --------------------------------
-    //    |                              |
-    //    | Exception task-state segment |  X ExceptionNumber
-    //    |                              |
-    //    --------------------------------
-    //
-    OldGdtSize = Gdtr.Limit + 1;
-    EssData.Ia32.ExceptionTssDescSize = sizeof (IA32_TSS_DESCRIPTOR) *
-                                        (ExceptionNumber + 1);
-    EssData.Ia32.ExceptionTssSize = sizeof (IA32_TASK_STATE_SEGMENT) *
-                                    (ExceptionNumber + 1);
-    NewGdtSize = sizeof (IA32_TSS_DESCRIPTOR) +
-                 OldGdtSize +
-                 EssData.Ia32.ExceptionTssDescSize +
-                 EssData.Ia32.ExceptionTssSize;
-
-    Status = PeiServicesAllocatePool (
-               NewGdtSize,
-               (VOID **)&GdtBuffer
+    Status = MpInitLibStartupAllCPUs (
+               InitializeExceptionStackSwitchHandlers,
+               0,
+               SwitchStackData
                );
-    ASSERT (GdtBuffer != NULL);
-    if (EFI_ERROR (Status)) {
+    ASSERT_EFI_ERROR (Status);
+    for (Index = 0; Index < NumberOfProcessors; ++Index) {
+      ASSERT (SwitchStackData[Index].Status == EFI_SUCCESS);
+    }
+  }
+
+  FreePages (SwitchStackData, EFI_SIZE_TO_PAGES (NumberOfProcessors * sizeof (EXCEPTION_STACK_SWITCH_CONTEXT)));
+}
+
+/**
+  Get CPU core type.
+
+  @param[in, out] Buffer  Argument of the procedure.
+**/
+VOID
+EFIAPI
+GetProcessorCoreType (
+  IN OUT VOID  *Buffer
+  )
+{
+  EFI_STATUS                               Status;
+  UINT8                                    *CoreTypes;
+  CPUID_NATIVE_MODEL_ID_AND_CORE_TYPE_EAX  NativeModelIdAndCoreTypeEax;
+  UINTN                                    ProcessorIndex;
+
+  Status = MpInitLibWhoAmI (&ProcessorIndex);
+  ASSERT_EFI_ERROR (Status);
+
+  CoreTypes = (UINT8 *)Buffer;
+  AsmCpuidEx (CPUID_HYBRID_INFORMATION, CPUID_HYBRID_INFORMATION_MAIN_LEAF, &NativeModelIdAndCoreTypeEax.Uint32, NULL, NULL, NULL);
+  CoreTypes[ProcessorIndex] = (UINT8)NativeModelIdAndCoreTypeEax.Bits.CoreType;
+}
+
+/**
+  Create gMpInformation2HobGuid.
+**/
+VOID
+BuildMpInformationHob (
+  VOID
+  )
+{
+  EFI_STATUS                Status;
+  UINTN                     ProcessorIndex;
+  UINTN                     NumberOfProcessors;
+  UINTN                     NumberOfEnabledProcessors;
+  UINTN                     NumberOfProcessorsInHob;
+  UINTN                     MaxProcessorsPerHob;
+  MP_INFORMATION2_HOB_DATA  *MpInformation2HobData;
+  MP_INFORMATION2_ENTRY     *MpInformation2Entry;
+  UINTN                     Index;
+  UINT8                     *CoreTypes;
+  UINT32                    CpuidMaxInput;
+  UINTN                     CoreTypePages;
+
+  ProcessorIndex        = 0;
+  MpInformation2HobData = NULL;
+  MpInformation2Entry   = NULL;
+  CoreTypes             = NULL;
+  CoreTypePages         = 0;
+
+  Status = MpInitLibGetNumberOfProcessors (&NumberOfProcessors, &NumberOfEnabledProcessors);
+  ASSERT_EFI_ERROR (Status);
+
+  //
+  // Get Processors CoreType
+  //
+  AsmCpuid (CPUID_SIGNATURE, &CpuidMaxInput, NULL, NULL, NULL);
+  if (CpuidMaxInput >= CPUID_HYBRID_INFORMATION) {
+    CoreTypePages = EFI_SIZE_TO_PAGES (sizeof (UINT8) * NumberOfProcessors);
+    CoreTypes     = AllocatePages (CoreTypePages);
+    ASSERT (CoreTypes != NULL);
+
+    Status = MpInitLibStartupAllCPUs (
+               GetProcessorCoreType,
+               0,
+               (VOID *)CoreTypes
+               );
+    ASSERT_EFI_ERROR (Status);
+  }
+
+  MaxProcessorsPerHob     = ((MAX_UINT16 & ~7) - sizeof (EFI_HOB_GUID_TYPE) - sizeof (MP_INFORMATION2_HOB_DATA)) / sizeof (MP_INFORMATION2_ENTRY);
+  NumberOfProcessorsInHob = MaxProcessorsPerHob;
+
+  //
+  // Create MP_INFORMATION2_HOB. when the max HobLength 0xFFF8 is not enough, there
+  // will be a MP_INFORMATION2_HOB series in the HOB list.
+  // In the HOB list, there is a gMpInformation2HobGuid with 0 value NumberOfProcessors
+  // fields to indicate it's the last MP_INFORMATION2_HOB.
+  //
+  while (NumberOfProcessorsInHob != 0) {
+    NumberOfProcessorsInHob = MIN (NumberOfProcessors - ProcessorIndex, MaxProcessorsPerHob);
+    MpInformation2HobData   = BuildGuidHob (
+                                &gMpInformation2HobGuid,
+                                sizeof (MP_INFORMATION2_HOB_DATA) + sizeof (MP_INFORMATION2_ENTRY) * NumberOfProcessorsInHob
+                                );
+    ASSERT (MpInformation2HobData != NULL);
+
+    MpInformation2HobData->Version            = MP_INFORMATION2_HOB_REVISION;
+    MpInformation2HobData->ProcessorIndex     = ProcessorIndex;
+    MpInformation2HobData->NumberOfProcessors = (UINT16)NumberOfProcessorsInHob;
+    MpInformation2HobData->EntrySize          = sizeof (MP_INFORMATION2_ENTRY);
+
+    DEBUG ((DEBUG_INFO, "Creating MpInformation2 HOB...\n"));
+
+    for (Index = 0; Index < NumberOfProcessorsInHob; Index++) {
+      MpInformation2Entry = &MpInformation2HobData->Entry[Index];
+      Status              = MpInitLibGetProcessorInfo (
+                              (Index + ProcessorIndex) | CPU_V2_EXTENDED_TOPOLOGY,
+                              &MpInformation2Entry->ProcessorInfo,
+                              NULL
+                              );
       ASSERT_EFI_ERROR (Status);
-      return;
+
+      MpInformation2Entry->CoreType = (CoreTypes != NULL) ? CoreTypes[Index + ProcessorIndex] : 0;
+
+      DEBUG ((
+        DEBUG_INFO,
+        "  Processor[%04d]: ProcessorId = 0x%lx, StatusFlag = 0x%x, CoreType = 0x%x\n",
+        Index + ProcessorIndex,
+        MpInformation2Entry->ProcessorInfo.ProcessorId,
+        MpInformation2Entry->ProcessorInfo.StatusFlag,
+        MpInformation2Entry->CoreType
+        ));
+      DEBUG ((
+        DEBUG_INFO,
+        "    Location = Package:%d Core:%d Thread:%d\n",
+        MpInformation2Entry->ProcessorInfo.Location.Package,
+        MpInformation2Entry->ProcessorInfo.Location.Core,
+        MpInformation2Entry->ProcessorInfo.Location.Thread
+        ));
+      DEBUG ((
+        DEBUG_INFO,
+        "    Location2 = Package:%d Die:%d Tile:%d Module:%d Core:%d Thread:%d\n",
+        MpInformation2Entry->ProcessorInfo.ExtendedInformation.Location2.Package,
+        MpInformation2Entry->ProcessorInfo.ExtendedInformation.Location2.Die,
+        MpInformation2Entry->ProcessorInfo.ExtendedInformation.Location2.Tile,
+        MpInformation2Entry->ProcessorInfo.ExtendedInformation.Location2.Module,
+        MpInformation2Entry->ProcessorInfo.ExtendedInformation.Location2.Core,
+        MpInformation2Entry->ProcessorInfo.ExtendedInformation.Location2.Thread
+        ));
     }
 
-    //
-    // Make sure GDT table alignment
-    //
-    EssData.Ia32.GdtTable = ALIGN_POINTER(GdtBuffer, sizeof (IA32_TSS_DESCRIPTOR));
-    NewGdtSize -= ((UINT8 *)EssData.Ia32.GdtTable - GdtBuffer);
-    EssData.Ia32.GdtTableSize = NewGdtSize;
+    ProcessorIndex += NumberOfProcessorsInHob;
+  }
 
-    EssData.Ia32.ExceptionTssDesc = ((UINT8 *)EssData.Ia32.GdtTable + OldGdtSize);
-    EssData.Ia32.ExceptionTss = ((UINT8 *)EssData.Ia32.GdtTable + OldGdtSize +
-                                 EssData.Ia32.ExceptionTssDescSize);
-
-    EssData.Ia32.KnownGoodStackTop = (UINTN)StackTop;
-    DEBUG ((DEBUG_INFO,
-            "Exception stack top[cpu%lu]: 0x%lX\n",
-            (UINT64)(UINTN)Index,
-            (UINT64)(UINTN)StackTop));
-
-    if (Index == Bsp) {
-      InitializeExceptionStackSwitchHandlers (&EssData);
-    } else {
-      MpInitLibStartupThisAP (
-        InitializeExceptionStackSwitchHandlers,
-        Index,
-        NULL,
-        0,
-        (VOID *)&EssData,
-        NULL
-        );
-    }
-
-    StackTop  -= NewStackSize;
+  if (CoreTypes != NULL) {
+    FreePages (CoreTypes, CoreTypePages);
   }
 }
 
@@ -662,23 +693,23 @@ InitializeMpExceptionStackSwitchHandlers (
 **/
 EFI_STATUS
 InitializeCpuMpWorker (
-  IN CONST EFI_PEI_SERVICES     **PeiServices
+  IN CONST EFI_PEI_SERVICES  **PeiServices
   )
 {
-  EFI_STATUS                      Status;
-  EFI_VECTOR_HANDOFF_INFO         *VectorInfo;
-  EFI_PEI_VECTOR_HANDOFF_INFO_PPI *VectorHandoffInfoPpi;
+  EFI_STATUS                       Status;
+  EFI_VECTOR_HANDOFF_INFO          *VectorInfo;
+  EFI_PEI_VECTOR_HANDOFF_INFO_PPI  *VectorHandoffInfoPpi;
 
   //
   // Get Vector Hand-off Info PPI
   //
   VectorInfo = NULL;
-  Status = PeiServicesLocatePpi (
-             &gEfiVectorHandoffInfoPpiGuid,
-             0,
-             NULL,
-             (VOID **)&VectorHandoffInfoPpi
-             );
+  Status     = PeiServicesLocatePpi (
+                 &gEfiVectorHandoffInfoPpiGuid,
+                 0,
+                 NULL,
+                 (VOID **)&VectorHandoffInfoPpi
+                 );
   if (Status == EFI_SUCCESS) {
     VectorInfo = VectorHandoffInfoPpi->Info;
   }
@@ -709,8 +740,13 @@ InitializeCpuMpWorker (
   //
   // Install CPU MP PPI
   //
-  Status = PeiServicesInstallPpi(mPeiCpuMpPpiList);
+  Status = PeiServicesInstallPpi (mPeiCpuMpPpiList);
   ASSERT_EFI_ERROR (Status);
+
+  //
+  // Create gMpInformation2HobGuid
+  //
+  BuildMpInformationHob ();
 
   return Status;
 }
@@ -734,7 +770,7 @@ CpuMpPeimInit (
   IN CONST EFI_PEI_SERVICES     **PeiServices
   )
 {
-  EFI_STATUS           Status;
+  EFI_STATUS  Status;
 
   //
   // For the sake of special initialization needing to be done right after

@@ -1,7 +1,7 @@
 /** @file
   CPU DXE Module to produce CPU ARCH Protocol.
 
-  Copyright (c) 2008 - 2018, Intel Corporation. All rights reserved.<BR>
+  Copyright (c) 2008 - 2023, Intel Corporation. All rights reserved.<BR>
   SPDX-License-Identifier: BSD-2-Clause-Patent
 
 **/
@@ -10,75 +10,16 @@
 #include "CpuMp.h"
 #include "CpuPageTable.h"
 
+#define CPU_INTERRUPT_NUM  256
+
 //
 // Global Variables
 //
-BOOLEAN                   InterruptState = FALSE;
-EFI_HANDLE                mCpuHandle = NULL;
-BOOLEAN                   mIsFlushingGCD;
-BOOLEAN                   mIsAllocatingPageTable = FALSE;
-UINT64                    mValidMtrrAddressMask;
-UINT64                    mValidMtrrBitsMask;
-UINT64                    mTimerPeriod = 0;
-
-FIXED_MTRR    mFixedMtrrTable[] = {
-  {
-    MSR_IA32_MTRR_FIX64K_00000,
-    0,
-    0x10000
-  },
-  {
-    MSR_IA32_MTRR_FIX16K_80000,
-    0x80000,
-    0x4000
-  },
-  {
-    MSR_IA32_MTRR_FIX16K_A0000,
-    0xA0000,
-    0x4000
-  },
-  {
-    MSR_IA32_MTRR_FIX4K_C0000,
-    0xC0000,
-    0x1000
-  },
-  {
-    MSR_IA32_MTRR_FIX4K_C8000,
-    0xC8000,
-    0x1000
-  },
-  {
-    MSR_IA32_MTRR_FIX4K_D0000,
-    0xD0000,
-    0x1000
-  },
-  {
-    MSR_IA32_MTRR_FIX4K_D8000,
-    0xD8000,
-    0x1000
-  },
-  {
-    MSR_IA32_MTRR_FIX4K_E0000,
-    0xE0000,
-    0x1000
-  },
-  {
-    MSR_IA32_MTRR_FIX4K_E8000,
-    0xE8000,
-    0x1000
-  },
-  {
-    MSR_IA32_MTRR_FIX4K_F0000,
-    0xF0000,
-    0x1000
-  },
-  {
-    MSR_IA32_MTRR_FIX4K_F8000,
-    0xF8000,
-    0x1000
-  },
-};
-
+BOOLEAN     InterruptState = FALSE;
+EFI_HANDLE  mCpuHandle     = NULL;
+BOOLEAN     mIsFlushingGCD;
+BOOLEAN     mIsAllocatingPageTable = FALSE;
+UINT64      mTimerPeriod           = 0;
 
 EFI_CPU_ARCH_PROTOCOL  gCpu = {
   CpuFlushCpuDataCache,
@@ -115,10 +56,10 @@ EFI_CPU_ARCH_PROTOCOL  gCpu = {
 EFI_STATUS
 EFIAPI
 CpuFlushCpuDataCache (
-  IN EFI_CPU_ARCH_PROTOCOL     *This,
-  IN EFI_PHYSICAL_ADDRESS      Start,
-  IN UINT64                    Length,
-  IN EFI_CPU_FLUSH_TYPE        FlushType
+  IN EFI_CPU_ARCH_PROTOCOL  *This,
+  IN EFI_PHYSICAL_ADDRESS   Start,
+  IN UINT64                 Length,
+  IN EFI_CPU_FLUSH_TYPE     FlushType
   )
 {
   if (FlushType == EfiCpuFlushTypeWriteBackInvalidate) {
@@ -132,7 +73,6 @@ CpuFlushCpuDataCache (
   }
 }
 
-
 /**
   Enables CPU interrupts.
 
@@ -145,7 +85,7 @@ CpuFlushCpuDataCache (
 EFI_STATUS
 EFIAPI
 CpuEnableInterrupt (
-  IN EFI_CPU_ARCH_PROTOCOL          *This
+  IN EFI_CPU_ARCH_PROTOCOL  *This
   )
 {
   EnableInterrupts ();
@@ -153,7 +93,6 @@ CpuEnableInterrupt (
   InterruptState = TRUE;
   return EFI_SUCCESS;
 }
-
 
 /**
   Disables CPU interrupts.
@@ -167,7 +106,7 @@ CpuEnableInterrupt (
 EFI_STATUS
 EFIAPI
 CpuDisableInterrupt (
-  IN EFI_CPU_ARCH_PROTOCOL     *This
+  IN EFI_CPU_ARCH_PROTOCOL  *This
   )
 {
   DisableInterrupts ();
@@ -175,7 +114,6 @@ CpuDisableInterrupt (
   InterruptState = FALSE;
   return EFI_SUCCESS;
 }
-
 
 /**
   Return the state of interrupts.
@@ -190,8 +128,8 @@ CpuDisableInterrupt (
 EFI_STATUS
 EFIAPI
 CpuGetInterruptState (
-  IN  EFI_CPU_ARCH_PROTOCOL     *This,
-  OUT BOOLEAN                   *State
+  IN  EFI_CPU_ARCH_PROTOCOL  *This,
+  OUT BOOLEAN                *State
   )
 {
   if (State == NULL) {
@@ -201,7 +139,6 @@ CpuGetInterruptState (
   *State = InterruptState;
   return EFI_SUCCESS;
 }
-
 
 /**
   Generates an INIT to the CPU.
@@ -218,13 +155,12 @@ CpuGetInterruptState (
 EFI_STATUS
 EFIAPI
 CpuInit (
-  IN EFI_CPU_ARCH_PROTOCOL      *This,
-  IN EFI_CPU_INIT_TYPE          InitType
+  IN EFI_CPU_ARCH_PROTOCOL  *This,
+  IN EFI_CPU_INIT_TYPE      InitType
   )
 {
   return EFI_UNSUPPORTED;
 }
-
 
 /**
   Registers a function to be called from the CPU interrupt handler.
@@ -249,14 +185,13 @@ CpuInit (
 EFI_STATUS
 EFIAPI
 CpuRegisterInterruptHandler (
-  IN EFI_CPU_ARCH_PROTOCOL         *This,
-  IN EFI_EXCEPTION_TYPE            InterruptType,
-  IN EFI_CPU_INTERRUPT_HANDLER     InterruptHandler
+  IN EFI_CPU_ARCH_PROTOCOL      *This,
+  IN EFI_EXCEPTION_TYPE         InterruptType,
+  IN EFI_CPU_INTERRUPT_HANDLER  InterruptHandler
   )
 {
   return RegisterCpuInterruptHandler (InterruptType, InterruptHandler);
 }
-
 
 /**
   Returns a timer value from one of the CPU's internal timers. There is no
@@ -284,14 +219,14 @@ CpuRegisterInterruptHandler (
 EFI_STATUS
 EFIAPI
 CpuGetTimerValue (
-  IN  EFI_CPU_ARCH_PROTOCOL     *This,
-  IN  UINT32                    TimerIndex,
-  OUT UINT64                    *TimerValue,
-  OUT UINT64                    *TimerPeriod OPTIONAL
+  IN  EFI_CPU_ARCH_PROTOCOL  *This,
+  IN  UINT32                 TimerIndex,
+  OUT UINT64                 *TimerValue,
+  OUT UINT64                 *TimerPeriod OPTIONAL
   )
 {
-  UINT64          BeginValue;
-  UINT64          EndValue;
+  UINT64  BeginValue;
+  UINT64  EndValue;
 
   if (TimerValue == NULL) {
     return EFI_INVALID_PARAMETER;
@@ -310,7 +245,7 @@ CpuGetTimerValue (
       //
       BeginValue = AsmReadTsc ();
       MicroSecondDelay (100);
-      EndValue   = AsmReadTsc ();
+      EndValue = AsmReadTsc ();
       //
       // Calculate the actual frequency
       //
@@ -323,6 +258,7 @@ CpuGetTimerValue (
                        NULL
                        );
     }
+
     *TimerPeriod = mTimerPeriod;
   }
 
@@ -339,7 +275,7 @@ CpuGetTimerValue (
 VOID
 EFIAPI
 SetMtrrsFromBuffer (
-  IN VOID *Buffer
+  IN VOID  *Buffer
   )
 {
   MtrrSetAllMtrrs (Buffer);
@@ -373,10 +309,10 @@ SetMtrrsFromBuffer (
 EFI_STATUS
 EFIAPI
 CpuSetMemoryAttributes (
-  IN EFI_CPU_ARCH_PROTOCOL     *This,
-  IN EFI_PHYSICAL_ADDRESS      BaseAddress,
-  IN UINT64                    Length,
-  IN UINT64                    Attributes
+  IN EFI_CPU_ARCH_PROTOCOL  *This,
+  IN EFI_PHYSICAL_ADDRESS   BaseAddress,
+  IN UINT64                 Length,
+  IN UINT64                 Attributes
   )
 {
   RETURN_STATUS             Status;
@@ -395,7 +331,7 @@ CpuSetMemoryAttributes (
   // to avoid unnecessary computing.
   //
   if (mIsFlushingGCD) {
-    DEBUG((DEBUG_VERBOSE, "  Flushing GCD\n"));
+    DEBUG ((DEBUG_VERBOSE, "  Flushing GCD\n"));
     return EFI_SUCCESS;
   }
 
@@ -410,11 +346,11 @@ CpuSetMemoryAttributes (
   // by page table memory allocation.
   //
   if (mIsAllocatingPageTable) {
-    DEBUG((DEBUG_VERBOSE, "  Allocating page table memory\n"));
+    DEBUG ((DEBUG_VERBOSE, "  Allocating page table memory\n"));
     return EFI_SUCCESS;
   }
 
-  CacheAttributes = Attributes & EFI_CACHE_ATTRIBUTE_MASK;
+  CacheAttributes  = Attributes & EFI_CACHE_ATTRIBUTE_MASK;
   MemoryAttributes = Attributes & EFI_MEMORY_ATTRIBUTE_MASK;
 
   if (Attributes != (CacheAttributes | MemoryAttributes)) {
@@ -427,30 +363,31 @@ CpuSetMemoryAttributes (
     }
 
     switch (CacheAttributes) {
-    case EFI_MEMORY_UC:
-      CacheType = CacheUncacheable;
-      break;
+      case EFI_MEMORY_UC:
+        CacheType = CacheUncacheable;
+        break;
 
-    case EFI_MEMORY_WC:
-      CacheType = CacheWriteCombining;
-      break;
+      case EFI_MEMORY_WC:
+        CacheType = CacheWriteCombining;
+        break;
 
-    case EFI_MEMORY_WT:
-      CacheType = CacheWriteThrough;
-      break;
+      case EFI_MEMORY_WT:
+        CacheType = CacheWriteThrough;
+        break;
 
-    case EFI_MEMORY_WP:
-      CacheType = CacheWriteProtected;
-      break;
+      case EFI_MEMORY_WP:
+        CacheType = CacheWriteProtected;
+        break;
 
-    case EFI_MEMORY_WB:
-      CacheType = CacheWriteBack;
-      break;
+      case EFI_MEMORY_WB:
+        CacheType = CacheWriteBack;
+        break;
 
-    default:
-      return EFI_INVALID_PARAMETER;
+      default:
+        return EFI_INVALID_PARAMETER;
     }
-    CurrentCacheType = MtrrGetMemoryAttribute(BaseAddress);
+
+    CurrentCacheType = MtrrGetMemoryAttribute (BaseAddress);
     if (CurrentCacheType != CacheType) {
       //
       // call MTRR library function
@@ -484,7 +421,8 @@ CpuSetMemoryAttributes (
           ASSERT (MpStatus == EFI_SUCCESS || MpStatus == EFI_NOT_STARTED);
         }
       }
-      if (EFI_ERROR(Status)) {
+
+      if (EFI_ERROR (Status)) {
         return Status;
       }
     }
@@ -497,61 +435,33 @@ CpuSetMemoryAttributes (
 }
 
 /**
-  Initializes the valid bits mask and valid address mask for MTRRs.
-
-  This function initializes the valid bits mask and valid address mask for MTRRs.
-
-**/
-VOID
-InitializeMtrrMask (
-  VOID
-  )
-{
-  UINT32                              RegEax;
-  UINT8                               PhysicalAddressBits;
-
-  AsmCpuid (0x80000000, &RegEax, NULL, NULL, NULL);
-
-  if (RegEax >= 0x80000008) {
-    AsmCpuid (0x80000008, &RegEax, NULL, NULL, NULL);
-
-    PhysicalAddressBits = (UINT8) RegEax;
-  } else {
-    PhysicalAddressBits = 36;
-  }
-
-  mValidMtrrBitsMask    = LShiftU64 (1, PhysicalAddressBits) - 1;
-  mValidMtrrAddressMask = mValidMtrrBitsMask & 0xfffffffffffff000ULL;
-}
-
-/**
   Gets GCD Mem Space type from MTRR Type.
 
   This function gets GCD Mem Space type from MTRR Type.
 
-  @param  MtrrAttributes  MTRR memory type
+  @param  Type  MTRR memory type
 
   @return GCD Mem Space type
 
 **/
 UINT64
 GetMemorySpaceAttributeFromMtrrType (
-  IN UINT8                MtrrAttributes
+  IN MTRR_MEMORY_CACHE_TYPE  Type
   )
 {
-  switch (MtrrAttributes) {
-  case MTRR_CACHE_UNCACHEABLE:
-    return EFI_MEMORY_UC;
-  case MTRR_CACHE_WRITE_COMBINING:
-    return EFI_MEMORY_WC;
-  case MTRR_CACHE_WRITE_THROUGH:
-    return EFI_MEMORY_WT;
-  case MTRR_CACHE_WRITE_PROTECTED:
-    return EFI_MEMORY_WP;
-  case MTRR_CACHE_WRITE_BACK:
-    return EFI_MEMORY_WB;
-  default:
-    return 0;
+  switch (Type) {
+    case CacheUncacheable:
+      return EFI_MEMORY_UC;
+    case CacheWriteCombining:
+      return EFI_MEMORY_WC;
+    case CacheWriteThrough:
+      return EFI_MEMORY_WT;
+    case CacheWriteProtected:
+      return EFI_MEMORY_WP;
+    case CacheWriteBack:
+      return EFI_MEMORY_WB;
+    default:
+      return 0;
   }
 }
 
@@ -575,29 +485,33 @@ GetMemorySpaceAttributeFromMtrrType (
 **/
 EFI_STATUS
 SearchGcdMemorySpaces (
-  IN EFI_GCD_MEMORY_SPACE_DESCRIPTOR     *MemorySpaceMap,
-  IN UINTN                               NumberOfDescriptors,
-  IN EFI_PHYSICAL_ADDRESS                BaseAddress,
-  IN UINT64                              Length,
-  OUT UINTN                              *StartIndex,
-  OUT UINTN                              *EndIndex
+  IN EFI_GCD_MEMORY_SPACE_DESCRIPTOR  *MemorySpaceMap,
+  IN UINTN                            NumberOfDescriptors,
+  IN EFI_PHYSICAL_ADDRESS             BaseAddress,
+  IN UINT64                           Length,
+  OUT UINTN                           *StartIndex,
+  OUT UINTN                           *EndIndex
   )
 {
-  UINTN           Index;
+  UINTN  Index;
 
   *StartIndex = 0;
   *EndIndex   = 0;
   for (Index = 0; Index < NumberOfDescriptors; Index++) {
-    if (BaseAddress >= MemorySpaceMap[Index].BaseAddress &&
-        BaseAddress < MemorySpaceMap[Index].BaseAddress + MemorySpaceMap[Index].Length) {
+    if ((BaseAddress >= MemorySpaceMap[Index].BaseAddress) &&
+        (BaseAddress < MemorySpaceMap[Index].BaseAddress + MemorySpaceMap[Index].Length))
+    {
       *StartIndex = Index;
     }
-    if (BaseAddress + Length - 1 >= MemorySpaceMap[Index].BaseAddress &&
-        BaseAddress + Length - 1 < MemorySpaceMap[Index].BaseAddress + MemorySpaceMap[Index].Length) {
+
+    if ((BaseAddress + Length - 1 >= MemorySpaceMap[Index].BaseAddress) &&
+        (BaseAddress + Length - 1 < MemorySpaceMap[Index].BaseAddress + MemorySpaceMap[Index].Length))
+    {
       *EndIndex = Index;
       return EFI_SUCCESS;
     }
   }
+
   return EFI_NOT_FOUND;
 }
 
@@ -619,11 +533,11 @@ SearchGcdMemorySpaces (
 **/
 EFI_STATUS
 SetGcdMemorySpaceAttributes (
-  IN EFI_GCD_MEMORY_SPACE_DESCRIPTOR     *MemorySpaceMap,
-  IN UINTN                               NumberOfDescriptors,
-  IN EFI_PHYSICAL_ADDRESS                BaseAddress,
-  IN UINT64                              Length,
-  IN UINT64                              Attributes
+  IN EFI_GCD_MEMORY_SPACE_DESCRIPTOR  *MemorySpaceMap,
+  IN UINTN                            NumberOfDescriptors,
+  IN EFI_PHYSICAL_ADDRESS             BaseAddress,
+  IN UINT64                           Length,
+  IN UINT64                           Attributes
   )
 {
   EFI_STATUS            Status;
@@ -655,6 +569,7 @@ SetGcdMemorySpaceAttributes (
     if (MemorySpaceMap[Index].GcdMemoryType == EfiGcdMemoryTypeNonExistent) {
       continue;
     }
+
     //
     // Calculate the start and end address of the overlapping range
     //
@@ -663,11 +578,13 @@ SetGcdMemorySpaceAttributes (
     } else {
       RegionStart = MemorySpaceMap[Index].BaseAddress;
     }
+
     if (BaseAddress + Length - 1 < MemorySpaceMap[Index].BaseAddress + MemorySpaceMap[Index].Length) {
       RegionLength = BaseAddress + Length - RegionStart;
     } else {
       RegionLength = MemorySpaceMap[Index].BaseAddress + MemorySpaceMap[Index].Length - RegionStart;
     }
+
     //
     // Set memory attributes according to MTRR attribute and the original attribute of descriptor
     //
@@ -681,7 +598,6 @@ SetGcdMemorySpaceAttributes (
   return EFI_SUCCESS;
 }
 
-
 /**
   Refreshes the GCD Memory Space attributes according to MTRRs.
 
@@ -693,41 +609,15 @@ RefreshMemoryAttributesFromMtrr (
   VOID
   )
 {
-  EFI_STATUS                          Status;
-  UINTN                               Index;
-  UINTN                               SubIndex;
-  UINT64                              RegValue;
-  EFI_PHYSICAL_ADDRESS                BaseAddress;
-  UINT64                              Length;
-  UINT64                              Attributes;
-  UINT64                              CurrentAttributes;
-  UINT8                               MtrrType;
-  UINTN                               NumberOfDescriptors;
-  EFI_GCD_MEMORY_SPACE_DESCRIPTOR     *MemorySpaceMap;
-  UINT64                              DefaultAttributes;
-  VARIABLE_MTRR                       VariableMtrr[MTRR_NUMBER_OF_VARIABLE_MTRR];
-  MTRR_FIXED_SETTINGS                 MtrrFixedSettings;
-  UINT32                              FirmwareVariableMtrrCount;
-  UINT8                               DefaultMemoryType;
-
-  FirmwareVariableMtrrCount = GetFirmwareVariableMtrrCount ();
-  ASSERT (FirmwareVariableMtrrCount <= MTRR_NUMBER_OF_VARIABLE_MTRR);
+  EFI_STATUS                       Status;
+  RETURN_STATUS                    ReturnStatus;
+  UINTN                            Index;
+  UINTN                            NumberOfDescriptors;
+  EFI_GCD_MEMORY_SPACE_DESCRIPTOR  *MemorySpaceMap;
+  MTRR_MEMORY_RANGE                *Ranges;
+  UINTN                            RangeCount;
 
   MemorySpaceMap = NULL;
-
-  //
-  // Initialize the valid bits mask and valid address mask for MTRRs
-  //
-  InitializeMtrrMask ();
-
-  //
-  // Get the memory attribute of variable MTRRs
-  //
-  MtrrGetMemoryAttributeInVariableMtrr (
-    mValidMtrrBitsMask,
-    mValidMtrrAddressMask,
-    VariableMtrr
-    );
 
   //
   // Get the memory space map from GCD
@@ -738,124 +628,23 @@ RefreshMemoryAttributesFromMtrr (
                   );
   ASSERT_EFI_ERROR (Status);
 
-  DefaultMemoryType = (UINT8) MtrrGetDefaultMemoryType ();
-  DefaultAttributes = GetMemorySpaceAttributeFromMtrrType (DefaultMemoryType);
+  RangeCount   = 0;
+  ReturnStatus = MtrrGetMemoryAttributesInMtrrSettings (NULL, NULL, &RangeCount);
+  ASSERT (ReturnStatus == RETURN_BUFFER_TOO_SMALL);
+  Ranges = AllocatePool (sizeof (*Ranges) * RangeCount);
+  ASSERT (Ranges != NULL);
+  ReturnStatus = MtrrGetMemoryAttributesInMtrrSettings (NULL, Ranges, &RangeCount);
+  ASSERT_RETURN_ERROR (ReturnStatus);
 
-  //
-  // Set default attributes to all spaces.
-  //
-  for (Index = 0; Index < NumberOfDescriptors; Index++) {
-    if (MemorySpaceMap[Index].GcdMemoryType == EfiGcdMemoryTypeNonExistent) {
-      continue;
-    }
-    gDS->SetMemorySpaceAttributes (
-           MemorySpaceMap[Index].BaseAddress,
-           MemorySpaceMap[Index].Length,
-           (MemorySpaceMap[Index].Attributes & ~EFI_CACHE_ATTRIBUTE_MASK) |
-           (MemorySpaceMap[Index].Capabilities & DefaultAttributes)
-           );
+  for (Index = 0; Index < RangeCount; Index++) {
+    SetGcdMemorySpaceAttributes (
+      MemorySpaceMap,
+      NumberOfDescriptors,
+      Ranges[Index].BaseAddress,
+      Ranges[Index].Length,
+      GetMemorySpaceAttributeFromMtrrType (Ranges[Index].Type)
+      );
   }
-
-  //
-  // Go for variable MTRRs with WB attribute
-  //
-  for (Index = 0; Index < FirmwareVariableMtrrCount; Index++) {
-    if (VariableMtrr[Index].Valid &&
-        VariableMtrr[Index].Type == MTRR_CACHE_WRITE_BACK) {
-      SetGcdMemorySpaceAttributes (
-        MemorySpaceMap,
-        NumberOfDescriptors,
-        VariableMtrr[Index].BaseAddress,
-        VariableMtrr[Index].Length,
-        EFI_MEMORY_WB
-        );
-    }
-  }
-
-  //
-  // Go for variable MTRRs with the attribute except for WB and UC attributes
-  //
-  for (Index = 0; Index < FirmwareVariableMtrrCount; Index++) {
-    if (VariableMtrr[Index].Valid &&
-        VariableMtrr[Index].Type != MTRR_CACHE_WRITE_BACK &&
-        VariableMtrr[Index].Type != MTRR_CACHE_UNCACHEABLE) {
-      Attributes = GetMemorySpaceAttributeFromMtrrType ((UINT8) VariableMtrr[Index].Type);
-      SetGcdMemorySpaceAttributes (
-        MemorySpaceMap,
-        NumberOfDescriptors,
-        VariableMtrr[Index].BaseAddress,
-        VariableMtrr[Index].Length,
-        Attributes
-        );
-    }
-  }
-
-  //
-  // Go for variable MTRRs with UC attribute
-  //
-  for (Index = 0; Index < FirmwareVariableMtrrCount; Index++) {
-    if (VariableMtrr[Index].Valid &&
-        VariableMtrr[Index].Type == MTRR_CACHE_UNCACHEABLE) {
-      SetGcdMemorySpaceAttributes (
-        MemorySpaceMap,
-        NumberOfDescriptors,
-        VariableMtrr[Index].BaseAddress,
-        VariableMtrr[Index].Length,
-        EFI_MEMORY_UC
-        );
-    }
-  }
-
-  //
-  // Go for fixed MTRRs
-  //
-  Attributes  = 0;
-  BaseAddress = 0;
-  Length      = 0;
-  MtrrGetFixedMtrr (&MtrrFixedSettings);
-  for (Index = 0; Index < MTRR_NUMBER_OF_FIXED_MTRR; Index++) {
-    RegValue = MtrrFixedSettings.Mtrr[Index];
-    //
-    // Check for continuous fixed MTRR sections
-    //
-    for (SubIndex = 0; SubIndex < 8; SubIndex++) {
-      MtrrType = (UINT8) RShiftU64 (RegValue, SubIndex * 8);
-      CurrentAttributes = GetMemorySpaceAttributeFromMtrrType (MtrrType);
-      if (Length == 0) {
-        //
-        // A new MTRR attribute begins
-        //
-        Attributes = CurrentAttributes;
-      } else {
-        //
-        // If fixed MTRR attribute changed, then set memory attribute for previous attribute
-        //
-        if (CurrentAttributes != Attributes) {
-          SetGcdMemorySpaceAttributes (
-            MemorySpaceMap,
-            NumberOfDescriptors,
-            BaseAddress,
-            Length,
-            Attributes
-            );
-          BaseAddress = mFixedMtrrTable[Index].BaseAddress + mFixedMtrrTable[Index].Length * SubIndex;
-          Length = 0;
-          Attributes = CurrentAttributes;
-        }
-      }
-      Length += mFixedMtrrTable[Index].Length;
-    }
-  }
-  //
-  // Handle the last fixed MTRR region
-  //
-  SetGcdMemorySpaceAttributes (
-    MemorySpaceMap,
-    NumberOfDescriptors,
-    BaseAddress,
-    Length,
-    Attributes
-    );
 
   //
   // Free memory space map allocated by GCD service GetMemorySpaceMap ()
@@ -916,19 +705,40 @@ InitInterruptDescriptorTable (
   VOID
   )
 {
-  EFI_STATUS                     Status;
-  EFI_VECTOR_HANDOFF_INFO        *VectorInfoList;
-  EFI_VECTOR_HANDOFF_INFO        *VectorInfo;
+  EFI_STATUS                Status;
+  EFI_VECTOR_HANDOFF_INFO   *VectorInfoList;
+  EFI_VECTOR_HANDOFF_INFO   *VectorInfo;
+  IA32_IDT_GATE_DESCRIPTOR  *IdtTable;
+  IA32_DESCRIPTOR           IdtDescriptor;
+  UINTN                     IdtEntryCount;
 
   VectorInfo = NULL;
-  Status = EfiGetSystemConfigurationTable (&gEfiVectorHandoffTableGuid, (VOID **) &VectorInfoList);
-  if (Status == EFI_SUCCESS && VectorInfoList != NULL) {
+  Status     = EfiGetSystemConfigurationTable (&gEfiVectorHandoffTableGuid, (VOID **)&VectorInfoList);
+  if ((Status == EFI_SUCCESS) && (VectorInfoList != NULL)) {
     VectorInfo = VectorInfoList;
   }
-  Status = InitializeCpuInterruptHandlers (VectorInfo);
+
+  AsmReadIdtr (&IdtDescriptor);
+  IdtEntryCount = (IdtDescriptor.Limit + 1) / sizeof (IA32_IDT_GATE_DESCRIPTOR);
+  if (IdtEntryCount < CPU_INTERRUPT_NUM) {
+    //
+    // Increase Interrupt Descriptor Table and Copy the old IDT table in
+    //
+    IdtTable = AllocateZeroPool (sizeof (IA32_IDT_GATE_DESCRIPTOR) * CPU_INTERRUPT_NUM);
+    ASSERT (IdtTable != NULL);
+    CopyMem (IdtTable, (VOID *)IdtDescriptor.Base, sizeof (IA32_IDT_GATE_DESCRIPTOR) * IdtEntryCount);
+
+    //
+    // Load Interrupt Descriptor Table
+    //
+    IdtDescriptor.Base  = (UINTN)IdtTable;
+    IdtDescriptor.Limit = (UINT16)(sizeof (IA32_IDT_GATE_DESCRIPTOR) * CPU_INTERRUPT_NUM - 1);
+    AsmWriteIdtr (&IdtDescriptor);
+  }
+
+  Status = InitializeCpuExceptionHandlers (VectorInfo);
   ASSERT_EFI_ERROR (Status);
 }
-
 
 /**
   Callback function for idle events.
@@ -941,8 +751,8 @@ InitInterruptDescriptorTable (
 VOID
 EFIAPI
 IdleLoopEventCallback (
-  IN EFI_EVENT                Event,
-  IN VOID                     *Context
+  IN EFI_EVENT  Event,
+  IN VOID       *Context
   )
 {
   CpuSleep ();
@@ -989,24 +799,27 @@ IdleLoopEventCallback (
 **/
 EFI_STATUS
 IntersectMemoryDescriptor (
-  IN  UINT64                                Base,
-  IN  UINT64                                Length,
-  IN  UINT64                                Capabilities,
-  IN  CONST EFI_GCD_MEMORY_SPACE_DESCRIPTOR *Descriptor
+  IN  UINT64                                 Base,
+  IN  UINT64                                 Length,
+  IN  UINT64                                 Capabilities,
+  IN  CONST EFI_GCD_MEMORY_SPACE_DESCRIPTOR  *Descriptor
   )
 {
-  UINT64                                    IntersectionBase;
-  UINT64                                    IntersectionEnd;
-  EFI_STATUS                                Status;
+  UINT64      IntersectionBase;
+  UINT64      IntersectionEnd;
+  EFI_STATUS  Status;
 
-  if (Descriptor->GcdMemoryType == EfiGcdMemoryTypeMemoryMappedIo &&
-      (Descriptor->Capabilities & Capabilities) == Capabilities) {
+  if ((Descriptor->GcdMemoryType == EfiGcdMemoryTypeMemoryMappedIo) &&
+      ((Descriptor->Capabilities & Capabilities) == Capabilities))
+  {
     return EFI_SUCCESS;
   }
 
   IntersectionBase = MAX (Base, Descriptor->BaseAddress);
-  IntersectionEnd = MIN (Base + Length,
-                      Descriptor->BaseAddress + Descriptor->Length);
+  IntersectionEnd  = MIN (
+                       Base + Length,
+                       Descriptor->BaseAddress + Descriptor->Length
+                       );
   if (IntersectionBase >= IntersectionEnd) {
     //
     // The descriptor and the aperture don't overlap.
@@ -1015,21 +828,39 @@ IntersectMemoryDescriptor (
   }
 
   if (Descriptor->GcdMemoryType == EfiGcdMemoryTypeNonExistent) {
-    Status = gDS->AddMemorySpace (EfiGcdMemoryTypeMemoryMappedIo,
-                    IntersectionBase, IntersectionEnd - IntersectionBase,
-                    Capabilities);
+    Status = gDS->AddMemorySpace (
+                    EfiGcdMemoryTypeMemoryMappedIo,
+                    IntersectionBase,
+                    IntersectionEnd - IntersectionBase,
+                    Capabilities
+                    );
 
-    DEBUG ((EFI_ERROR (Status) ? DEBUG_ERROR : DEBUG_VERBOSE,
-      "%a: %a: add [%Lx, %Lx): %r\n", gEfiCallerBaseName, __FUNCTION__,
-      IntersectionBase, IntersectionEnd, Status));
+    DEBUG ((
+      EFI_ERROR (Status) ? DEBUG_ERROR : DEBUG_VERBOSE,
+      "%a: %a: add [%Lx, %Lx): %r\n",
+      gEfiCallerBaseName,
+      __func__,
+      IntersectionBase,
+      IntersectionEnd,
+      Status
+      ));
     return Status;
   }
 
-  DEBUG ((DEBUG_ERROR, "%a: %a: desc [%Lx, %Lx) type %u cap %Lx conflicts "
-    "with aperture [%Lx, %Lx) cap %Lx\n", gEfiCallerBaseName, __FUNCTION__,
-    Descriptor->BaseAddress, Descriptor->BaseAddress + Descriptor->Length,
-    (UINT32)Descriptor->GcdMemoryType, Descriptor->Capabilities,
-    Base, Base + Length, Capabilities));
+  DEBUG ((
+    DEBUG_ERROR,
+    "%a: %a: desc [%Lx, %Lx) type %u cap %Lx conflicts "
+    "with aperture [%Lx, %Lx) cap %Lx\n",
+    gEfiCallerBaseName,
+    __func__,
+    Descriptor->BaseAddress,
+    Descriptor->BaseAddress + Descriptor->Length,
+    (UINT32)Descriptor->GcdMemoryType,
+    Descriptor->Capabilities,
+    Base,
+    Base + Length,
+    Capabilities
+    ));
   return EFI_INVALID_PARAMETER;
 }
 
@@ -1046,50 +877,61 @@ IntersectMemoryDescriptor (
 **/
 EFI_STATUS
 AddMemoryMappedIoSpace (
-  IN  UINT64                            Base,
-  IN  UINT64                            Length,
-  IN  UINT64                            Capabilities
+  IN  UINT64  Base,
+  IN  UINT64  Length,
+  IN  UINT64  Capabilities
   )
 {
-  EFI_STATUS                            Status;
-  UINTN                                 Index;
-  UINTN                                 NumberOfDescriptors;
-  EFI_GCD_MEMORY_SPACE_DESCRIPTOR       *MemorySpaceMap;
+  EFI_STATUS                       Status;
+  UINTN                            Index;
+  UINTN                            NumberOfDescriptors;
+  EFI_GCD_MEMORY_SPACE_DESCRIPTOR  *MemorySpaceMap;
 
   Status = gDS->GetMemorySpaceMap (&NumberOfDescriptors, &MemorySpaceMap);
   if (EFI_ERROR (Status)) {
-    DEBUG ((DEBUG_ERROR, "%a: %a: GetMemorySpaceMap(): %r\n",
-      gEfiCallerBaseName, __FUNCTION__, Status));
+    DEBUG ((
+      DEBUG_ERROR,
+      "%a: %a: GetMemorySpaceMap(): %r\n",
+      gEfiCallerBaseName,
+      __func__,
+      Status
+      ));
     return Status;
   }
 
   for (Index = 0; Index < NumberOfDescriptors; Index++) {
-    Status = IntersectMemoryDescriptor (Base, Length, Capabilities,
-               &MemorySpaceMap[Index]);
+    Status = IntersectMemoryDescriptor (
+               Base,
+               Length,
+               Capabilities,
+               &MemorySpaceMap[Index]
+               );
     if (EFI_ERROR (Status)) {
       goto FreeMemorySpaceMap;
     }
   }
 
-  DEBUG_CODE (
-    //
-    // Make sure there are adjacent descriptors covering [Base, Base + Length).
-    // It is possible that they have not been merged; merging can be prevented
-    // by allocation and different capabilities.
-    //
-    UINT64                          CheckBase;
-    EFI_STATUS                      CheckStatus;
-    EFI_GCD_MEMORY_SPACE_DESCRIPTOR Descriptor;
+  DEBUG_CODE_BEGIN ();
+  //
+  // Make sure there are adjacent descriptors covering [Base, Base + Length).
+  // It is possible that they have not been merged; merging can be prevented
+  // by allocation and different capabilities.
+  //
+  UINT64                           CheckBase;
+  EFI_STATUS                       CheckStatus;
+  EFI_GCD_MEMORY_SPACE_DESCRIPTOR  Descriptor;
 
-    for (CheckBase = Base;
-         CheckBase < Base + Length;
-         CheckBase = Descriptor.BaseAddress + Descriptor.Length) {
-      CheckStatus = gDS->GetMemorySpaceDescriptor (CheckBase, &Descriptor);
-      ASSERT_EFI_ERROR (CheckStatus);
-      ASSERT (Descriptor.GcdMemoryType == EfiGcdMemoryTypeMemoryMappedIo);
-      ASSERT ((Descriptor.Capabilities & Capabilities) == Capabilities);
-    }
-    );
+  for (CheckBase = Base;
+       CheckBase < Base + Length;
+       CheckBase = Descriptor.BaseAddress + Descriptor.Length)
+  {
+    CheckStatus = gDS->GetMemorySpaceDescriptor (CheckBase, &Descriptor);
+    ASSERT_EFI_ERROR (CheckStatus);
+    ASSERT (Descriptor.GcdMemoryType == EfiGcdMemoryTypeMemoryMappedIo);
+    ASSERT ((Descriptor.Capabilities & Capabilities) == Capabilities);
+  }
+
+  DEBUG_CODE_END ();
 
 FreeMemorySpaceMap:
   FreePool (MemorySpaceMap);
@@ -1105,14 +947,14 @@ FreeMemorySpaceMap:
 **/
 VOID
 AddLocalApicMemorySpace (
-  IN EFI_HANDLE               ImageHandle
+  IN EFI_HANDLE  ImageHandle
   )
 {
-  EFI_STATUS              Status;
-  EFI_PHYSICAL_ADDRESS    BaseAddress;
+  EFI_STATUS            Status;
+  EFI_PHYSICAL_ADDRESS  BaseAddress;
 
-  BaseAddress = (EFI_PHYSICAL_ADDRESS) GetLocalApicBaseAddress();
-  Status = AddMemoryMappedIoSpace (BaseAddress, SIZE_4KB, EFI_MEMORY_UC);
+  BaseAddress = (EFI_PHYSICAL_ADDRESS)GetLocalApicBaseAddress ();
+  Status      = AddMemoryMappedIoSpace (BaseAddress, SIZE_4KB, EFI_MEMORY_UC);
   ASSERT_EFI_ERROR (Status);
 
   //
@@ -1130,8 +972,13 @@ AddLocalApicMemorySpace (
                   NULL
                   );
   if (EFI_ERROR (Status)) {
-    DEBUG ((DEBUG_INFO, "%a: %a: AllocateMemorySpace() Status - %r\n",
-                         gEfiCallerBaseName, __FUNCTION__, Status));
+    DEBUG ((
+      DEBUG_INFO,
+      "%a: %a: AllocateMemorySpace() Status - %r\n",
+      gEfiCallerBaseName,
+      __func__,
+      Status
+      ));
   }
 }
 
@@ -1149,14 +996,14 @@ AddLocalApicMemorySpace (
 EFI_STATUS
 EFIAPI
 InitializeCpu (
-  IN EFI_HANDLE                            ImageHandle,
-  IN EFI_SYSTEM_TABLE                      *SystemTable
+  IN EFI_HANDLE        ImageHandle,
+  IN EFI_SYSTEM_TABLE  *SystemTable
   )
 {
   EFI_STATUS  Status;
   EFI_EVENT   IdleLoopEvent;
 
-  InitializePageTableLib();
+  InitializePageTableLib ();
 
   InitializeFloatingPointUnits ();
 
@@ -1180,7 +1027,8 @@ InitializeCpu (
   //
   Status = gBS->InstallMultipleProtocolInterfaces (
                   &mCpuHandle,
-                  &gEfiCpuArchProtocolGuid, &gCpu,
+                  &gEfiCpuArchProtocolGuid,
+                  &gCpu,
                   NULL
                   );
   ASSERT_EFI_ERROR (Status);
@@ -1212,4 +1060,3 @@ InitializeCpu (
 
   return Status;
 }
-

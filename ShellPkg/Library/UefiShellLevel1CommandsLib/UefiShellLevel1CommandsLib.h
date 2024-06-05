@@ -33,7 +33,7 @@
 #include <Library/HiiLib.h>
 #include <Library/FileHandleLib.h>
 
-extern        EFI_HII_HANDLE                    gShellLevel1HiiHandle;
+extern        EFI_HII_HANDLE  gShellLevel1HiiHandle;
 
 /**
   Function for 'stall' command.
@@ -139,7 +139,6 @@ ShellCommandRunShift (
   IN EFI_SYSTEM_TABLE  *SystemTable
   );
 
-
 /**
   Function for 'else' command.
 
@@ -184,20 +183,19 @@ LIST_ENTRY *
   @param[in] MovePast          TRUE makes function return 1 past the found
                                location.
   @param[in] FindOnly          TRUE to not change the ScriptFile.
-  @param[in] WrapAroundScript  TRUE to wrap end-to-begining or vise versa in
+  @param[in] WrapAroundScript  TRUE to wrap end-to-beginning or vise versa in
                                searching.
 **/
 BOOLEAN
 MoveToTag (
-  IN CONST LIST_MANIP_FUNC      Function,
-  IN CONST CHAR16               *DecrementerTag,
-  IN CONST CHAR16               *IncrementerTag,
-  IN CONST CHAR16               *Label OPTIONAL,
-  IN OUT SCRIPT_FILE            *ScriptFile,
-  IN CONST BOOLEAN              MovePast,
-  IN CONST BOOLEAN              FindOnly,
-  IN CONST BOOLEAN              WrapAroundScript
+  IN CONST LIST_MANIP_FUNC  Function,
+  IN CONST CHAR16           *DecrementerTag,
+  IN CONST CHAR16           *IncrementerTag,
+  IN CONST CHAR16           *Label OPTIONAL,
+  IN OUT SCRIPT_FILE        *ScriptFile,
+  IN CONST BOOLEAN          MovePast,
+  IN CONST BOOLEAN          FindOnly,
+  IN CONST BOOLEAN          WrapAroundScript
   );
 
 #endif
-

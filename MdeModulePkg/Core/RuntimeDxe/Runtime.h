@@ -24,10 +24,10 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include <Library/CacheMaintenanceLib.h>
 #include <Library/PeCoffLib.h>
 
-
 //
 // Function Prototypes
 //
+
 /**
   Calculate CRC32 for target data.
 
@@ -59,7 +59,12 @@ RuntimeDriverCalculateCrc32 (
   @retval  EFI_SUCCESS              The pointer pointed to by Address was modified.
   @retval  EFI_NOT_FOUND            The pointer pointed to by Address was not found to be part
                                     of the current memory map. This is normally fatal.
-  @retval  EFI_INVALID_PARAMETER    One of the parameters has an invalid value.
+  @retval  EFI_INVALID_PARAMETER    1) Address is NULL.
+                                    2) *Address is NULL and DebugDisposition does
+                                    not have the EFI_OPTIONAL_PTR bit set.
+  @retval  EFI_UNSUPPORTED          This call is not supported by this platform at the time the call is made.
+                                    The platform should describe this runtime service as unsupported at runtime
+                                    via an EFI_RT_PROPERTIES_TABLE configuration table.
 
 **/
 EFI_STATUS
@@ -86,6 +91,9 @@ RuntimeDriverConvertPointer (
                                   map that requires a mapping.
   @retval  EFI_NOT_FOUND          A virtual address was supplied for an address that is not found
                                   in the memory map.
+  @retval  EFI_UNSUPPORTED        This call is not supported by this platform at the time the call is made.
+                                  The platform should describe this runtime service as unsupported at runtime
+                                  via an EFI_RT_PROPERTIES_TABLE configuration table.
 
 **/
 EFI_STATUS
@@ -112,8 +120,8 @@ RuntimeDriverSetVirtualAddressMap (
 EFI_STATUS
 EFIAPI
 RuntimeDriverInitialize (
-  IN EFI_HANDLE                            ImageHandle,
-  IN EFI_SYSTEM_TABLE                      *SystemTable
+  IN EFI_HANDLE        ImageHandle,
+  IN EFI_SYSTEM_TABLE  *SystemTable
   );
 
 #endif

@@ -1,7 +1,7 @@
 ## @file
 #  Library provides the helper functions for SEV guest
 #
-# Copyright (c) 2017 - 2020, Advanced Micro Devices. All rights reserved.<BR>
+# Copyright (c) 2017 - 2024, Advanced Micro Devices. All rights reserved.<BR>
 #
 #  SPDX-License-Identifier: BSD-2-Clause-Patent
 #
@@ -34,8 +34,10 @@
   PeiDxeMemEncryptSevLibInternal.c
 
 [Sources.X64]
+  X64/DxeSnpSystemRamValidate.c
   X64/MemEncryptSevLib.c
   X64/PeiDxeVirtualMemory.c
+  X64/SnpPageStateChangeInternal.c
   X64/VirtualMemory.c
   X64/VirtualMemory.h
 
@@ -49,9 +51,12 @@
   DebugLib
   MemoryAllocationLib
   PcdLib
+  CcExitLib
+  AmdSvsmLib
 
 [FeaturePcd]
   gUefiOvmfPkgTokenSpaceGuid.PcdSmmSmramRequire
 
 [Pcd]
   gEfiMdeModulePkgTokenSpaceGuid.PcdPteMemoryEncryptionAddressOrMask
+  gEfiMdePkgTokenSpaceGuid.PcdConfidentialComputingGuestAttr

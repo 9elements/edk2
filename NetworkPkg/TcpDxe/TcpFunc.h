@@ -2,7 +2,7 @@
   Declaration of external functions shared in TCP driver.
 
   Copyright (c) 2009 - 2014, Intel Corporation. All rights reserved.<BR>
-
+  Copyright (c) Microsoft Corporation
   SPDX-License-Identifier: BSD-2-Clause-Patent
 
 **/
@@ -24,7 +24,7 @@
 typedef
 VOID
 (*TCP_TIMER_HANDLER) (
-  IN OUT TCP_CB *Tcb
+  IN OUT TCP_CB  *Tcb
   );
 
 //
@@ -36,10 +36,13 @@ VOID
 
   @param[in, out]  Tcb               Pointer to the TCP_CB of this TCP instance.
 
+  @retval EFI_SUCCESS             The operation completed successfully
+  @retval others                  The underlying functions failed and could not complete the operation
+
 **/
-VOID
+EFI_STATUS
 TcpInitTcbLocal (
-  IN OUT TCP_CB *Tcb
+  IN OUT TCP_CB  *Tcb
   );
 
 /**
@@ -52,9 +55,9 @@ TcpInitTcbLocal (
 **/
 VOID
 TcpInitTcbPeer (
-  IN OUT TCP_CB     *Tcb,
-  IN     TCP_SEG    *Seg,
-  IN     TCP_OPTION *Opt
+  IN OUT TCP_CB      *Tcb,
+  IN     TCP_SEG     *Seg,
+  IN     TCP_OPTION  *Opt
   );
 
 /**
@@ -112,7 +115,7 @@ TcpLocateTcb (
 **/
 INTN
 TcpInsertTcb (
-  IN TCP_CB *Tcb
+  IN TCP_CB  *Tcb
   );
 
 /**
@@ -125,18 +128,7 @@ TcpInsertTcb (
 **/
 TCP_CB *
 TcpCloneTcb (
-  IN TCP_CB *Tcb
-  );
-
-/**
-  Compute an ISS to be used by a new connection.
-
-  @return The result ISS.
-
-**/
-TCP_SEQNO
-TcpGetIss (
-  VOID
+  IN TCP_CB  *Tcb
   );
 
 /**
@@ -161,8 +153,8 @@ TcpGetRcvMss (
 **/
 VOID
 TcpSetState (
-  IN TCP_CB *Tcb,
-  IN UINT8  State
+  IN TCP_CB  *Tcb,
+  IN UINT8   State
   );
 
 /**
@@ -176,8 +168,8 @@ TcpSetState (
 **/
 UINT16
 TcpChecksum (
-  IN NET_BUF *Nbuf,
-  IN UINT16  HeadSum
+  IN NET_BUF  *Nbuf,
+  IN UINT16   HeadSum
   );
 
 /**
@@ -192,8 +184,8 @@ TcpChecksum (
 **/
 TCP_SEG *
 TcpFormatNetbuf (
-  IN     TCP_CB  *Tcb,
-  IN OUT NET_BUF *Nbuf
+  IN     TCP_CB   *Tcb,
+  IN OUT NET_BUF  *Nbuf
   );
 
 /**
@@ -202,8 +194,11 @@ TcpFormatNetbuf (
   @param[in, out]  Tcb          Pointer to the TCP_CB that wants to initiate a
                                 connection.
 
+  @retval EFI_SUCCESS             The operation completed successfully
+  @retval others                  The underlying functions failed and could not complete the operation
+
 **/
-VOID
+EFI_STATUS
 TcpOnAppConnect (
   IN OUT TCP_CB  *Tcb
   );
@@ -217,7 +212,7 @@ TcpOnAppConnect (
 **/
 VOID
 TcpOnAppConsume (
-  IN TCP_CB *Tcb
+  IN TCP_CB  *Tcb
   );
 
 /**
@@ -229,7 +224,7 @@ TcpOnAppConsume (
 **/
 VOID
 TcpOnAppClose (
-  IN OUT TCP_CB *Tcb
+  IN OUT TCP_CB  *Tcb
   );
 
 /**
@@ -244,7 +239,7 @@ TcpOnAppClose (
 **/
 INTN
 TcpOnAppSend (
-  IN OUT TCP_CB *Tcb
+  IN OUT TCP_CB  *Tcb
   );
 
 /**
@@ -256,7 +251,7 @@ TcpOnAppSend (
 **/
 VOID
 TcpOnAppAbort (
-  IN TCP_CB *Tcb
+  IN TCP_CB  *Tcb
   );
 
 /**
@@ -267,7 +262,7 @@ TcpOnAppAbort (
 **/
 VOID
 TcpResetConnection (
-  IN TCP_CB *Tcb
+  IN TCP_CB  *Tcb
   );
 
 /**
@@ -281,9 +276,8 @@ TcpResetConnection (
 **/
 EFI_STATUS
 TcpInstallDevicePath (
-  IN SOCKET *Sock
+  IN SOCKET  *Sock
   );
-
 
 //
 // Functions in TcpOutput.c
@@ -299,7 +293,7 @@ TcpInstallDevicePath (
 **/
 UINT32
 TcpRcvWinOld (
-  IN TCP_CB *Tcb
+  IN TCP_CB  *Tcb
   );
 
 /**
@@ -312,7 +306,7 @@ TcpRcvWinOld (
 **/
 UINT32
 TcpRcvWinNow (
-  IN TCP_CB *Tcb
+  IN TCP_CB  *Tcb
   );
 
 /**
@@ -325,7 +319,7 @@ TcpRcvWinNow (
 **/
 TCP_SEQNO
 TcpGetMaxSndNxt (
-  IN TCP_CB *Tcb
+  IN TCP_CB  *Tcb
   );
 
 /**
@@ -340,8 +334,8 @@ TcpGetMaxSndNxt (
 **/
 UINT32
 TcpDataToSend (
-  IN TCP_CB *Tcb,
-  IN INTN   Force
+  IN TCP_CB  *Tcb,
+  IN INTN    Force
   );
 
 /**
@@ -356,8 +350,8 @@ TcpDataToSend (
 **/
 INTN
 TcpRetransmit (
-  IN TCP_CB    *Tcb,
-  IN TCP_SEQNO Seq
+  IN TCP_CB     *Tcb,
+  IN TCP_SEQNO  Seq
   );
 
 /**
@@ -372,8 +366,8 @@ TcpRetransmit (
 **/
 INTN
 TcpToSendData (
-  IN OUT TCP_CB *Tcb,
-  IN     INTN   Force
+  IN OUT TCP_CB  *Tcb,
+  IN     INTN    Force
   );
 
 /**
@@ -384,7 +378,7 @@ TcpToSendData (
 **/
 VOID
 TcpToSendAck (
-  IN OUT TCP_CB *Tcb
+  IN OUT TCP_CB  *Tcb
   );
 
 /**
@@ -395,7 +389,7 @@ TcpToSendAck (
 **/
 VOID
 TcpSendAck (
-  IN OUT TCP_CB *Tcb
+  IN OUT TCP_CB  *Tcb
   );
 
 /**
@@ -409,7 +403,7 @@ TcpSendAck (
 **/
 INTN
 TcpSendZeroProbe (
-  IN OUT TCP_CB *Tcb
+  IN OUT TCP_CB  *Tcb
   );
 
 /**
@@ -448,7 +442,7 @@ TcpSendReset (
 **/
 INTN
 TcpVerifySegment (
-  IN NET_BUF *Nbuf
+  IN NET_BUF  *Nbuf
   );
 
 //
@@ -511,7 +505,7 @@ TcpInput (
 **/
 VOID
 TcpClose (
-  IN OUT TCP_CB *Tcb
+  IN OUT TCP_CB  *Tcb
   );
 
 /**
@@ -524,8 +518,8 @@ TcpClose (
 VOID
 EFIAPI
 TcpTicking (
-  IN EFI_EVENT Event,
-  IN VOID      *Context
+  IN EFI_EVENT  Event,
+  IN VOID       *Context
   );
 
 /**
@@ -538,9 +532,9 @@ TcpTicking (
 **/
 VOID
 TcpSetTimer (
-  IN OUT TCP_CB *Tcb,
-  IN     UINT16 Timer,
-  IN     UINT32 TimeOut
+  IN OUT TCP_CB  *Tcb,
+  IN     UINT16  Timer,
+  IN     UINT32  TimeOut
   );
 
 /**
@@ -552,8 +546,8 @@ TcpSetTimer (
 **/
 VOID
 TcpClearTimer (
-  IN OUT TCP_CB *Tcb,
-  IN     UINT16 Timer
+  IN OUT TCP_CB  *Tcb,
+  IN     UINT16  Timer
   );
 
 /**
@@ -564,7 +558,7 @@ TcpClearTimer (
 **/
 VOID
 TcpClearAllTimer (
-  IN OUT TCP_CB *Tcb
+  IN OUT TCP_CB  *Tcb
   );
 
 /**
@@ -575,7 +569,7 @@ TcpClearAllTimer (
 **/
 VOID
 TcpSetProbeTimer (
-  IN OUT TCP_CB *Tcb
+  IN OUT TCP_CB  *Tcb
   );
 
 /**
@@ -586,7 +580,7 @@ TcpSetProbeTimer (
 **/
 VOID
 TcpSetKeepaliveTimer (
-  IN OUT TCP_CB *Tcb
+  IN OUT TCP_CB  *Tcb
   );
 
 //
@@ -609,11 +603,11 @@ TcpSetKeepaliveTimer (
 VOID
 EFIAPI
 TcpRxCallback (
-  IN EFI_STATUS                       Status,
-  IN UINT8                            IcmpErr,
-  IN EFI_NET_SESSION_DATA             *NetSession,
-  IN NET_BUF                          *Pkt,
-  IN VOID                             *Context    OPTIONAL
+  IN EFI_STATUS            Status,
+  IN UINT8                 IcmpErr,
+  IN EFI_NET_SESSION_DATA  *NetSession,
+  IN NET_BUF               *Pkt,
+  IN VOID                  *Context    OPTIONAL
   );
 
 /**
@@ -685,9 +679,9 @@ Tcp6RefreshNeighbor (
 **/
 EFI_STATUS
 TcpDispatcher (
-  IN SOCKET                  *Sock,
-  IN UINT8                   Request,
-  IN VOID                    *Data    OPTIONAL
+  IN SOCKET  *Sock,
+  IN UINT8   Request,
+  IN VOID    *Data    OPTIONAL
   );
 
 #endif

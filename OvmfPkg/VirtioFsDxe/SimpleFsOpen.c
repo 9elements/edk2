@@ -38,13 +38,13 @@
 STATIC
 EFI_STATUS
 OpenRootDirectory (
-  IN OUT VIRTIO_FS         *VirtioFs,
-     OUT EFI_FILE_PROTOCOL **NewHandle,
-  IN     BOOLEAN           OpenForWriting
+  IN OUT VIRTIO_FS       *VirtioFs,
+  OUT EFI_FILE_PROTOCOL  **NewHandle,
+  IN     BOOLEAN         OpenForWriting
   )
 {
-  EFI_STATUS     Status;
-  VIRTIO_FS_FILE *NewVirtioFsFile;
+  EFI_STATUS      Status;
+  VIRTIO_FS_FILE  *NewVirtioFsFile;
 
   //
   // VirtioFsOpenVolume() opens the root directory for read-only access. If the
@@ -54,18 +54,23 @@ OpenRootDirectory (
   // permission first.
   //
   if (OpenForWriting) {
-    VIRTIO_FS_FUSE_ATTRIBUTES_RESPONSE FuseAttr;
-    EFI_FILE_INFO                      FileInfo;
+    VIRTIO_FS_FUSE_ATTRIBUTES_RESPONSE  FuseAttr;
+    EFI_FILE_INFO                       FileInfo;
 
-    Status = VirtioFsFuseGetAttr (VirtioFs, VIRTIO_FS_FUSE_ROOT_DIR_NODE_ID,
-               &FuseAttr);
+    Status = VirtioFsFuseGetAttr (
+               VirtioFs,
+               VIRTIO_FS_FUSE_ROOT_DIR_NODE_ID,
+               &FuseAttr
+               );
     if (EFI_ERROR (Status)) {
       return Status;
     }
+
     Status = VirtioFsFuseAttrToEfiFileInfo (&FuseAttr, &FileInfo);
     if (EFI_ERROR (Status)) {
       return Status;
     }
+
     if ((FileInfo.Attribute & EFI_FILE_READ_ONLY) != 0) {
       return EFI_ACCESS_DENIED;
     }
@@ -76,7 +81,7 @@ OpenRootDirectory (
     return Status;
   }
 
-  NewVirtioFsFile = VIRTIO_FS_FILE_FROM_SIMPLE_FILE (*NewHandle);
+  NewVirtioFsFile                   = VIRTIO_FS_FILE_FROM_SIMPLE_FILE (*NewHandle);
   NewVirtioFsFile->IsOpenForWriting = OpenForWriting;
   return EFI_SUCCESS;
 }
@@ -132,33 +137,39 @@ OpenRootDirectory (
 STATIC
 EFI_STATUS
 OpenExistentFileOrDirectory (
-  IN OUT VIRTIO_FS *VirtioFs,
-  IN     UINT64    DirNodeId,
-  IN     CHAR8     *Name,
-  IN     BOOLEAN   OpenForWriting,
-     OUT UINT64    *NodeId,
-     OUT UINT64    *FuseHandle,
-     OUT BOOLEAN   *NodeIsDirectory
+  IN OUT VIRTIO_FS  *VirtioFs,
+  IN     UINT64     DirNodeId,
+  IN     CHAR8      *Name,
+  IN     BOOLEAN    OpenForWriting,
+  OUT UINT64        *NodeId,
+  OUT UINT64        *FuseHandle,
+  OUT BOOLEAN       *NodeIsDirectory
   )
 {
-  EFI_STATUS                         Status;
-  UINT64                             ResolvedNodeId;
-  VIRTIO_FS_FUSE_ATTRIBUTES_RESPONSE FuseAttr;
-  EFI_FILE_INFO                      FileInfo;
-  BOOLEAN                            IsDirectory;
-  UINT64                             NewFuseHandle;
+  EFI_STATUS                          Status;
+  UINT64                              ResolvedNodeId;
+  VIRTIO_FS_FUSE_ATTRIBUTES_RESPONSE  FuseAttr;
+  EFI_FILE_INFO                       FileInfo;
+  BOOLEAN                             IsDirectory;
+  UINT64                              NewFuseHandle;
 
-  Status = VirtioFsFuseLookup (VirtioFs, DirNodeId, Name, &ResolvedNodeId,
-             &FuseAttr);
+  Status = VirtioFsFuseLookup (
+             VirtioFs,
+             DirNodeId,
+             Name,
+             &ResolvedNodeId,
+             &FuseAttr
+             );
   if (EFI_ERROR (Status)) {
     return Status;
   }
+
   Status = VirtioFsFuseAttrToEfiFileInfo (&FuseAttr, &FileInfo);
   if (EFI_ERROR (Status)) {
     goto ForgetResolvedNodeId;
   }
 
-  if (OpenForWriting && (FileInfo.Attribute & EFI_FILE_READ_ONLY) != 0) {
+  if (OpenForWriting && ((FileInfo.Attribute & EFI_FILE_READ_ONLY) != 0)) {
     Status = EFI_ACCESS_DENIED;
     goto ForgetResolvedNodeId;
   }
@@ -173,9 +184,14 @@ OpenExistentFileOrDirectory (
     //
     Status = VirtioFsFuseOpenDir (VirtioFs, ResolvedNodeId, &NewFuseHandle);
   } else {
-    Status = VirtioFsFuseOpen (VirtioFs, ResolvedNodeId, OpenForWriting,
-               &NewFuseHandle);
+    Status = VirtioFsFuseOpen (
+               VirtioFs,
+               ResolvedNodeId,
+               OpenForWriting,
+               &NewFuseHandle
+               );
   }
+
   if (EFI_ERROR (Status)) {
     goto ForgetResolvedNodeId;
   }
@@ -216,16 +232,16 @@ ForgetResolvedNodeId:
 STATIC
 EFI_STATUS
 CreateDirectory (
-  IN OUT VIRTIO_FS *VirtioFs,
-  IN     UINT64    DirNodeId,
-  IN     CHAR8     *Name,
-     OUT UINT64    *NodeId,
-     OUT UINT64    *FuseHandle
+  IN OUT VIRTIO_FS  *VirtioFs,
+  IN     UINT64     DirNodeId,
+  IN     CHAR8      *Name,
+  OUT UINT64        *NodeId,
+  OUT UINT64        *FuseHandle
   )
 {
-  EFI_STATUS Status;
-  UINT64     NewChildDirNodeId;
-  UINT64     NewFuseHandle;
+  EFI_STATUS  Status;
+  UINT64      NewChildDirNodeId;
+  UINT64      NewFuseHandle;
 
   Status = VirtioFsFuseMkDir (VirtioFs, DirNodeId, Name, &NewChildDirNodeId);
   if (EFI_ERROR (Status)) {
@@ -273,41 +289,46 @@ RemoveNewChildDir:
 STATIC
 EFI_STATUS
 CreateRegularFile (
-  IN OUT VIRTIO_FS *VirtioFs,
-  IN     UINT64    DirNodeId,
-  IN     CHAR8     *Name,
-     OUT UINT64    *NodeId,
-     OUT UINT64    *FuseHandle
+  IN OUT VIRTIO_FS  *VirtioFs,
+  IN     UINT64     DirNodeId,
+  IN     CHAR8      *Name,
+  OUT UINT64        *NodeId,
+  OUT UINT64        *FuseHandle
   )
 {
-  return VirtioFsFuseOpenOrCreate (VirtioFs, DirNodeId, Name, NodeId,
-           FuseHandle);
+  return VirtioFsFuseOpenOrCreate (
+           VirtioFs,
+           DirNodeId,
+           Name,
+           NodeId,
+           FuseHandle
+           );
 }
 
 EFI_STATUS
 EFIAPI
 VirtioFsSimpleFileOpen (
-  IN     EFI_FILE_PROTOCOL *This,
-     OUT EFI_FILE_PROTOCOL **NewHandle,
-  IN     CHAR16            *FileName,
-  IN     UINT64            OpenMode,
-  IN     UINT64            Attributes
+  IN     EFI_FILE_PROTOCOL  *This,
+  OUT EFI_FILE_PROTOCOL     **NewHandle,
+  IN     CHAR16             *FileName,
+  IN     UINT64             OpenMode,
+  IN     UINT64             Attributes
   )
 {
-  VIRTIO_FS_FILE *VirtioFsFile;
-  VIRTIO_FS      *VirtioFs;
-  BOOLEAN        OpenForWriting;
-  BOOLEAN        PermitCreation;
-  BOOLEAN        CreateDirectoryIfCreating;
-  VIRTIO_FS_FILE *NewVirtioFsFile;
-  EFI_STATUS     Status;
-  CHAR8          *NewCanonicalPath;
-  BOOLEAN        RootEscape;
-  UINT64         DirNodeId;
-  CHAR8          *LastComponent;
-  UINT64         NewNodeId;
-  UINT64         NewFuseHandle;
-  BOOLEAN        NewNodeIsDirectory;
+  VIRTIO_FS_FILE  *VirtioFsFile;
+  VIRTIO_FS       *VirtioFs;
+  BOOLEAN         OpenForWriting;
+  BOOLEAN         PermitCreation;
+  BOOLEAN         CreateDirectoryIfCreating;
+  VIRTIO_FS_FILE  *NewVirtioFsFile;
+  EFI_STATUS      Status;
+  CHAR8           *NewCanonicalPath;
+  BOOLEAN         RootEscape;
+  UINT64          DirNodeId;
+  CHAR8           *LastComponent;
+  UINT64          NewNodeId;
+  UINT64          NewFuseHandle;
+  BOOLEAN         NewNodeIsDirectory;
 
   VirtioFsFile = VIRTIO_FS_FILE_FROM_SIMPLE_FILE (This);
   VirtioFs     = VirtioFsFile->OwnerFs;
@@ -316,21 +337,27 @@ VirtioFsSimpleFileOpen (
   // Validate OpenMode.
   //
   switch (OpenMode) {
-  case EFI_FILE_MODE_READ:
-    OpenForWriting = FALSE;
-    PermitCreation = FALSE;
-    break;
-  case EFI_FILE_MODE_READ | EFI_FILE_MODE_WRITE:
-    OpenForWriting = TRUE;
-    PermitCreation = FALSE;
-    break;
-  case EFI_FILE_MODE_READ | EFI_FILE_MODE_WRITE | EFI_FILE_MODE_CREATE:
-    OpenForWriting = TRUE;
-    PermitCreation = TRUE;
-    break;
-  default:
-    return EFI_INVALID_PARAMETER;
+    case EFI_FILE_MODE_READ:
+      OpenForWriting = FALSE;
+      PermitCreation = FALSE;
+      break;
+    case EFI_FILE_MODE_READ | EFI_FILE_MODE_WRITE:
+      OpenForWriting = TRUE;
+      PermitCreation = FALSE;
+      break;
+    case EFI_FILE_MODE_READ | EFI_FILE_MODE_WRITE | EFI_FILE_MODE_CREATE:
+      OpenForWriting = TRUE;
+      PermitCreation = TRUE;
+      break;
+    default:
+      return EFI_INVALID_PARAMETER;
   }
+
+  //
+  // Set CreateDirectoryIfCreating to suppress incorrect compiler/analyzer
+  // warnings.
+  //
+  CreateDirectoryIfCreating = FALSE;
 
   //
   // Validate the Attributes requested for the case when the file ends up being
@@ -351,7 +378,7 @@ VirtioFsSimpleFileOpen (
         ("%a: Label=\"%s\" CanonicalPathname=\"%a\" FileName=\"%s\" "
          "OpenMode=0x%Lx Attributes=0x%Lx: nonsensical request to possibly "
          "create a file marked read-only, for read-write access\n"),
-        __FUNCTION__,
+        __func__,
         VirtioFs->Label,
         VirtioFsFile->CanonicalPathname,
         FileName,
@@ -360,6 +387,7 @@ VirtioFsSimpleFileOpen (
         ));
       return EFI_INVALID_PARAMETER;
     }
+
     CreateDirectoryIfCreating = (BOOLEAN)((Attributes &
                                            EFI_FILE_DIRECTORY) != 0);
   }
@@ -367,20 +395,31 @@ VirtioFsSimpleFileOpen (
   //
   // Referring to a file relative to a regular file makes no sense (or at least
   // it cannot be implemented consistently with how a file is referred to
-  // relative to a directory).
+  // relative to a directory). See USWG Mantis ticket #2367.
   //
   if (!VirtioFsFile->IsDirectory) {
+    BOOLEAN  BugCompat;
+
+    //
+    // Tolerate this bug in the caller if FileName is absolute. If FileName is
+    // absolute, then VirtioFsAppendPath() below will disregard
+    // VirtioFsFile->CanonicalPathname.
+    //
+    BugCompat = (FileName[0] == L'\\');
+
     DEBUG ((
-      DEBUG_ERROR,
+      BugCompat ? DEBUG_WARN : DEBUG_ERROR,
       ("%a: Label=\"%s\" CanonicalPathname=\"%a\" FileName=\"%s\": "
        "nonsensical request to open a file or directory relative to a regular "
        "file\n"),
-      __FUNCTION__,
+      __func__,
       VirtioFs->Label,
       VirtioFsFile->CanonicalPathname,
       FileName
       ));
-    return EFI_INVALID_PARAMETER;
+    if (!BugCompat) {
+      return EFI_INVALID_PARAMETER;
+    }
   }
 
   //
@@ -395,11 +434,16 @@ VirtioFsSimpleFileOpen (
   // Create the canonical pathname at which the desired file is expected to
   // exist.
   //
-  Status = VirtioFsAppendPath (VirtioFsFile->CanonicalPathname, FileName,
-             &NewCanonicalPath, &RootEscape);
+  Status = VirtioFsAppendPath (
+             VirtioFsFile->CanonicalPathname,
+             FileName,
+             &NewCanonicalPath,
+             &RootEscape
+             );
   if (EFI_ERROR (Status)) {
     goto FreeNewVirtioFsFile;
   }
+
   if (RootEscape) {
     Status = EFI_ACCESS_DENIED;
     goto FreeNewCanonicalPath;
@@ -420,32 +464,59 @@ VirtioFsSimpleFileOpen (
   // (given by DirNodeId) and last pathname component (i.e., immediate child
   // within that parent directory).
   //
-  Status = VirtioFsLookupMostSpecificParentDir (VirtioFs, NewCanonicalPath,
-             &DirNodeId, &LastComponent);
+  Status = VirtioFsLookupMostSpecificParentDir (
+             VirtioFs,
+             NewCanonicalPath,
+             &DirNodeId,
+             &LastComponent
+             );
   if (EFI_ERROR (Status)) {
     goto FreeNewCanonicalPath;
   }
 
   //
+  // Set NewNodeIsDirectory to suppress incorrect compiler/analyzer warnings.
+  //
+  NewNodeIsDirectory = FALSE;
+
+  //
   // Try to open LastComponent directly under DirNodeId, as an existent regular
   // file or directory.
   //
-  Status = OpenExistentFileOrDirectory (VirtioFs, DirNodeId, LastComponent,
-             OpenForWriting, &NewNodeId, &NewFuseHandle, &NewNodeIsDirectory);
+  Status = OpenExistentFileOrDirectory (
+             VirtioFs,
+             DirNodeId,
+             LastComponent,
+             OpenForWriting,
+             &NewNodeId,
+             &NewFuseHandle,
+             &NewNodeIsDirectory
+             );
   //
   // If LastComponent could not be found under DirNodeId, but the request
   // allows us to create a new entry, attempt creating the requested regular
   // file or directory.
   //
-  if (Status == EFI_NOT_FOUND && PermitCreation) {
+  if ((Status == EFI_NOT_FOUND) && PermitCreation) {
     ASSERT (OpenForWriting);
     if (CreateDirectoryIfCreating) {
-      Status = CreateDirectory (VirtioFs, DirNodeId, LastComponent, &NewNodeId,
-                 &NewFuseHandle);
+      Status = CreateDirectory (
+                 VirtioFs,
+                 DirNodeId,
+                 LastComponent,
+                 &NewNodeId,
+                 &NewFuseHandle
+                 );
     } else {
-      Status = CreateRegularFile (VirtioFs, DirNodeId, LastComponent,
-                 &NewNodeId, &NewFuseHandle);
+      Status = CreateRegularFile (
+                 VirtioFs,
+                 DirNodeId,
+                 LastComponent,
+                 &NewNodeId,
+                 &NewFuseHandle
+                 );
     }
+
     NewNodeIsDirectory = CreateDirectoryIfCreating;
   }
 

@@ -15,19 +15,19 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include "OpalDriver.h"
 #include "OpalHii.h"
 
-EFI_GUID mOpalDeviceLockBoxGuid = OPAL_DEVICE_LOCKBOX_GUID;
+EFI_GUID  mOpalDeviceLockBoxGuid = OPAL_DEVICE_LOCKBOX_GUID;
 
-BOOLEAN                 mOpalEndOfDxe = FALSE;
-OPAL_REQUEST_VARIABLE   *mOpalRequestVariable = NULL;
-UINTN                   mOpalRequestVariableSize = 0;
-CHAR16                  mPopUpString[100];
+BOOLEAN                mOpalEndOfDxe            = FALSE;
+OPAL_REQUEST_VARIABLE  *mOpalRequestVariable    = NULL;
+UINTN                  mOpalRequestVariableSize = 0;
+CHAR16                 mPopUpString[100];
 
-OPAL_DRIVER mOpalDriver;
+OPAL_DRIVER  mOpalDriver;
 
 //
 // Globals
 //
-EFI_DRIVER_BINDING_PROTOCOL gOpalDriverBinding = {
+EFI_DRIVER_BINDING_PROTOCOL  gOpalDriverBinding = {
   OpalEfiDriverBindingSupported,
   OpalEfiDriverBindingStart,
   OpalEfiDriverBindingStop,
@@ -48,21 +48,21 @@ EFI_DRIVER_BINDING_PROTOCOL gOpalDriverBinding = {
 **/
 TCG_RESULT
 EFIAPI
-OpalSupportGetAvailableActions(
-  IN  OPAL_DISK_SUPPORT_ATTRIBUTE      *SupportedAttributes,
-  IN  TCG_LOCKING_FEATURE_DESCRIPTOR   *LockingFeature,
-  IN  UINT16                           OwnerShip,
-  OUT OPAL_DISK_ACTIONS                *AvalDiskActions
+OpalSupportGetAvailableActions (
+  IN  OPAL_DISK_SUPPORT_ATTRIBUTE     *SupportedAttributes,
+  IN  TCG_LOCKING_FEATURE_DESCRIPTOR  *LockingFeature,
+  IN  UINT16                          OwnerShip,
+  OUT OPAL_DISK_ACTIONS               *AvalDiskActions
   )
 {
-  BOOLEAN ExistingPassword;
+  BOOLEAN  ExistingPassword;
 
-  NULL_CHECK(AvalDiskActions);
+  NULL_CHECK (AvalDiskActions);
 
-  AvalDiskActions->AdminPass = 1;
-  AvalDiskActions->UserPass = 0;
+  AvalDiskActions->AdminPass   = 1;
+  AvalDiskActions->UserPass    = 0;
   AvalDiskActions->DisableUser = 0;
-  AvalDiskActions->Unlock = 0;
+  AvalDiskActions->Unlock      = 0;
 
   //
   // Revert is performed on locking sp, so only allow if locking sp is enabled
@@ -75,22 +75,25 @@ OpalSupportGetAvailableActions(
   // Psid revert is available for any device with media encryption support or pyrite 2.0 type support.
   //
   if (SupportedAttributes->PyriteSscV2 || SupportedAttributes->MediaEncryption) {
-
     //
     // Only allow psid revert if media encryption is enabled or pyrite 2.0 type support..
     // Otherwise, someone who steals a disk can psid revert the disk and the user Data is still
     // intact and accessible
     //
-    AvalDiskActions->PsidRevert = 1;
+    AvalDiskActions->PsidRevert           = 1;
     AvalDiskActions->RevertKeepDataForced = 0;
 
     //
     // Secure erase is performed by generating a new encryption key
     // this is only available if encryption is supported
     //
-    AvalDiskActions->SecureErase = 1;
+    if (SupportedAttributes->MediaEncryption) {
+      AvalDiskActions->SecureErase = 1;
+    } else {
+      AvalDiskActions->SecureErase = 0;
+    }
   } else {
-    AvalDiskActions->PsidRevert = 0;
+    AvalDiskActions->PsidRevert  = 0;
     AvalDiskActions->SecureErase = 0;
 
     //
@@ -109,7 +112,7 @@ OpalSupportGetAvailableActions(
   //
   // Only allow user to set password if an admin password exists
   //
-  ExistingPassword = OpalUtilAdminPasswordExists(OwnerShip, LockingFeature);
+  ExistingPassword          = OpalUtilAdminPasswordExists (OwnerShip, LockingFeature);
   AvalDiskActions->UserPass = ExistingPassword;
 
   //
@@ -133,42 +136,42 @@ OpalSupportGetAvailableActions(
 TCG_RESULT
 EFIAPI
 OpalSupportEnableOpalFeature (
-  IN OPAL_SESSION              *Session,
-  IN VOID                      *Msid,
-  IN UINT32                    MsidLength,
-  IN VOID                      *Password,
-  IN UINT32                    PassLength
+  IN OPAL_SESSION  *Session,
+  IN VOID          *Msid,
+  IN UINT32        MsidLength,
+  IN VOID          *Password,
+  IN UINT32        PassLength
   )
 {
-  TCG_RESULT   Ret;
+  TCG_RESULT  Ret;
 
-  NULL_CHECK(Session);
-  NULL_CHECK(Msid);
-  NULL_CHECK(Password);
+  NULL_CHECK (Session);
+  NULL_CHECK (Msid);
+  NULL_CHECK (Password);
 
-  Ret = OpalUtilSetAdminPasswordAsSid(
-                          Session,
-                          Msid,
-                          MsidLength,
-                          Password,
-                          PassLength
-                          );
+  Ret = OpalUtilSetAdminPasswordAsSid (
+          Session,
+          Msid,
+          MsidLength,
+          Password,
+          PassLength
+          );
   if (Ret == TcgResultSuccess) {
     //
     // Enable global locking range
     //
-    Ret = OpalUtilSetOpalLockingRange(
-                              Session,
-                              Password,
-                              PassLength,
-                              OPAL_LOCKING_SP_LOCKING_GLOBALRANGE,
-                              0,
-                              0,
-                              TRUE,
-                              TRUE,
-                              FALSE,
-                              FALSE
-                              );
+    Ret = OpalUtilSetOpalLockingRange (
+            Session,
+            Password,
+            PassLength,
+            OPAL_LOCKING_SP_LOCKING_GLOBALRANGE,
+            0,
+            0,
+            TRUE,
+            TRUE,
+            FALSE,
+            FALSE
+            );
   }
 
   return Ret;
@@ -184,13 +187,13 @@ OpalSupportEnableOpalFeature (
 **/
 VOID
 OpalSupportUpdatePassword (
-  IN OUT OPAL_DISK      *OpalDisk,
-  IN VOID               *Password,
-  IN UINT32             PasswordLength
+  IN OUT OPAL_DISK  *OpalDisk,
+  IN VOID           *Password,
+  IN UINT32         PasswordLength
   )
 {
   CopyMem (OpalDisk->Password, Password, PasswordLength);
-  OpalDisk->PasswordLength = (UINT8) PasswordLength;
+  OpalDisk->PasswordLength = (UINT8)PasswordLength;
 }
 
 /**
@@ -208,17 +211,17 @@ ExtractDeviceInfoFromDevicePath (
   OUT OPAL_DEVICE_LOCKBOX_DATA  *DevInfo OPTIONAL
   )
 {
-  EFI_DEVICE_PATH_PROTOCOL      *TmpDevPath;
-  EFI_DEVICE_PATH_PROTOCOL      *TmpDevPath2;
-  PCI_DEVICE_PATH               *PciDevPath;
-  UINT8                         DeviceType;
-  UINT8                         BusNum;
-  OPAL_PCI_DEVICE               *PciDevice;
+  EFI_DEVICE_PATH_PROTOCOL  *TmpDevPath;
+  EFI_DEVICE_PATH_PROTOCOL  *TmpDevPath2;
+  PCI_DEVICE_PATH           *PciDevPath;
+  UINT8                     DeviceType;
+  UINT8                     BusNum;
+  OPAL_PCI_DEVICE           *PciDevice;
 
   ASSERT (DevicePath != NULL);
   ASSERT (DevInfoLength != NULL);
 
-  DeviceType = OPAL_DEVICE_TYPE_UNKNOWN;
+  DeviceType     = OPAL_DEVICE_TYPE_UNKNOWN;
   *DevInfoLength = 0;
 
   TmpDevPath = DevicePath;
@@ -228,39 +231,42 @@ ExtractDeviceInfoFromDevicePath (
   //
   while (!IsDevicePathEnd (TmpDevPath)) {
     if ((TmpDevPath->Type == MESSAGING_DEVICE_PATH) &&
-        (TmpDevPath->SubType == MSG_SATA_DP || TmpDevPath->SubType == MSG_NVME_NAMESPACE_DP)) {
+        ((TmpDevPath->SubType == MSG_SATA_DP) || (TmpDevPath->SubType == MSG_NVME_NAMESPACE_DP)))
+    {
       if (DevInfo != NULL) {
-        DevInfo->DevicePathLength = (UINT32) GetDevicePathSize (DevicePath);
+        DevInfo->DevicePathLength = (UINT32)GetDevicePathSize (DevicePath);
         CopyMem (DevInfo->DevicePath, DevicePath, DevInfo->DevicePathLength);
       }
 
-      DeviceType = (TmpDevPath->SubType == MSG_SATA_DP) ? OPAL_DEVICE_TYPE_ATA : OPAL_DEVICE_TYPE_NVME;
-      *DevInfoLength = sizeof (OPAL_DEVICE_LOCKBOX_DATA) + (UINT32) GetDevicePathSize (DevicePath);
+      DeviceType     = (TmpDevPath->SubType == MSG_SATA_DP) ? OPAL_DEVICE_TYPE_ATA : OPAL_DEVICE_TYPE_NVME;
+      *DevInfoLength = sizeof (OPAL_DEVICE_LOCKBOX_DATA) + (UINT32)GetDevicePathSize (DevicePath);
       break;
     }
+
     TmpDevPath = NextDevicePathNode (TmpDevPath);
   }
 
   //
   // Get device info.
   //
-  BusNum = 0;
-  TmpDevPath = DevicePath;
+  BusNum      = 0;
+  TmpDevPath  = DevicePath;
   TmpDevPath2 = NextDevicePathNode (DevicePath);
   while (!IsDevicePathEnd (TmpDevPath2)) {
-    if (TmpDevPath->Type == HARDWARE_DEVICE_PATH && TmpDevPath->SubType == HW_PCI_DP) {
-      PciDevPath = (PCI_DEVICE_PATH *) TmpDevPath;
+    if ((TmpDevPath->Type == HARDWARE_DEVICE_PATH) && (TmpDevPath->SubType == HW_PCI_DP)) {
+      PciDevPath = (PCI_DEVICE_PATH *)TmpDevPath;
       if ((TmpDevPath2->Type == MESSAGING_DEVICE_PATH) &&
-          (TmpDevPath2->SubType == MSG_SATA_DP || TmpDevPath2->SubType == MSG_NVME_NAMESPACE_DP)) {
+          ((TmpDevPath2->SubType == MSG_SATA_DP) || (TmpDevPath2->SubType == MSG_NVME_NAMESPACE_DP)))
+      {
         if (DevInfo != NULL) {
-          PciDevice = &DevInfo->Device;
-          PciDevice->Segment = 0;
-          PciDevice->Bus = BusNum;
-          PciDevice->Device = PciDevPath->Device;
+          PciDevice           = &DevInfo->Device;
+          PciDevice->Segment  = 0;
+          PciDevice->Bus      = BusNum;
+          PciDevice->Device   = PciDevPath->Device;
           PciDevice->Function = PciDevPath->Function;
         }
       } else {
-        if (TmpDevPath2->Type == HARDWARE_DEVICE_PATH && TmpDevPath2->SubType == HW_PCI_DP) {
+        if ((TmpDevPath2->Type == HARDWARE_DEVICE_PATH) && (TmpDevPath2->SubType == HW_PCI_DP)) {
           BusNum = PciRead8 (PCI_LIB_ADDRESS (BusNum, PciDevPath->Device, PciDevPath->Function, PCI_BRIDGE_SECONDARY_BUS_REGISTER_OFFSET));
         }
       }
@@ -283,23 +289,23 @@ BuildOpalDeviceInfo (
   VOID
   )
 {
-  EFI_STATUS                  Status;
-  OPAL_DEVICE_LOCKBOX_DATA    *DevInfo;
-  OPAL_DEVICE_LOCKBOX_DATA    *TempDevInfo;
-  UINTN                       TotalDevInfoLength;
-  UINT32                      DevInfoLength;
-  OPAL_DRIVER_DEVICE          *TmpDev;
-  UINT8                       DummyData;
-  BOOLEAN                     S3InitDevicesExist;
-  UINTN                       S3InitDevicesLength;
-  EFI_DEVICE_PATH_PROTOCOL    *S3InitDevices;
-  EFI_DEVICE_PATH_PROTOCOL    *S3InitDevicesBak;
+  EFI_STATUS                Status;
+  OPAL_DEVICE_LOCKBOX_DATA  *DevInfo;
+  OPAL_DEVICE_LOCKBOX_DATA  *TempDevInfo;
+  UINTN                     TotalDevInfoLength;
+  UINT32                    DevInfoLength;
+  OPAL_DRIVER_DEVICE        *TmpDev;
+  UINT8                     DummyData;
+  BOOLEAN                   S3InitDevicesExist;
+  UINTN                     S3InitDevicesLength;
+  EFI_DEVICE_PATH_PROTOCOL  *S3InitDevices;
+  EFI_DEVICE_PATH_PROTOCOL  *S3InitDevicesBak;
 
   //
   // Build OPAL device info and save them to LockBox.
   //
   TotalDevInfoLength = 0;
-  TmpDev = mOpalDriver.DeviceList;
+  TmpDev             = mOpalDriver.DeviceList;
   while (TmpDev != NULL) {
     ExtractDeviceInfoFromDevicePath (
       TmpDev->OpalDisk.OpalDevicePath,
@@ -307,7 +313,7 @@ BuildOpalDeviceInfo (
       NULL
       );
     TotalDevInfoLength += DevInfoLength;
-    TmpDev = TmpDev->Next;
+    TmpDev              = TmpDev->Next;
   }
 
   if (TotalDevInfoLength == 0) {
@@ -315,11 +321,11 @@ BuildOpalDeviceInfo (
   }
 
   S3InitDevicesLength = sizeof (DummyData);
-  Status = RestoreLockBox (
-             &gS3StorageDeviceInitListGuid,
-             &DummyData,
-             &S3InitDevicesLength
-             );
+  Status              = RestoreLockBox (
+                          &gS3StorageDeviceInitListGuid,
+                          &DummyData,
+                          &S3InitDevicesLength
+                          );
   ASSERT ((Status == EFI_NOT_FOUND) || (Status == EFI_BUFFER_TOO_SMALL));
   if (Status == EFI_NOT_FOUND) {
     S3InitDevices      = NULL;
@@ -356,7 +362,7 @@ BuildOpalDeviceInfo (
       &DevInfoLength,
       TempDevInfo
       );
-    TempDevInfo->Length = DevInfoLength;
+    TempDevInfo->Length        = DevInfoLength;
     TempDevInfo->OpalBaseComId = TmpDev->OpalDisk.OpalBaseComId;
     CopyMem (
       TempDevInfo->Password,
@@ -373,13 +379,14 @@ BuildOpalDeviceInfo (
     if (S3InitDevicesBak != NULL) {
       FreePool (S3InitDevicesBak);
     }
+
     ASSERT (S3InitDevices != NULL);
     if (S3InitDevices == NULL) {
       return;
     }
 
-    TempDevInfo = (OPAL_DEVICE_LOCKBOX_DATA *) ((UINTN) TempDevInfo + DevInfoLength);
-    TmpDev = TmpDev->Next;
+    TempDevInfo = (OPAL_DEVICE_LOCKBOX_DATA *)((UINTN)TempDevInfo + DevInfoLength);
+    TmpDev      = TmpDev->Next;
   }
 
   Status = SaveLockBox (
@@ -434,10 +441,10 @@ SendBlockSidCommand (
   VOID
   )
 {
-  OPAL_DRIVER_DEVICE                         *Itr;
-  TCG_RESULT                                 Result;
-  OPAL_SESSION                               Session;
-  UINT32                                     PpStorageFlag;
+  OPAL_DRIVER_DEVICE  *Itr;
+  TCG_RESULT          Result;
+  OPAL_SESSION        Session;
+  UINT32              PpStorageFlag;
 
   PpStorageFlag = Tcg2PhysicalPresenceLibGetManagementFlags ();
   if ((PpStorageFlag & TCG2_BIOS_STORAGE_MANAGEMENT_FLAG_ENABLE_BLOCK_SID) != 0) {
@@ -447,9 +454,9 @@ SendBlockSidCommand (
     Itr = mOpalDriver.DeviceList;
     while (Itr != NULL) {
       if (Itr->OpalDisk.SupportedAttributes.BlockSid) {
-        ZeroMem(&Session, sizeof(Session));
-        Session.Sscp = Itr->OpalDisk.Sscp;
-        Session.MediaId = Itr->OpalDisk.MediaId;
+        ZeroMem (&Session, sizeof (Session));
+        Session.Sscp          = Itr->OpalDisk.Sscp;
+        Session.MediaId       = Itr->OpalDisk.MediaId;
         Session.OpalBaseComId = Itr->OpalDisk.OpalBaseComId;
 
         DEBUG ((DEBUG_INFO, "OpalPassword: EndOfDxe point, send BlockSid command to device!\n"));
@@ -482,13 +489,13 @@ SendBlockSidCommand (
 VOID
 EFIAPI
 OpalEndOfDxeEventNotify (
-  EFI_EVENT                               Event,
-  VOID                                    *Context
+  EFI_EVENT  Event,
+  VOID       *Context
   )
 {
-  OPAL_DRIVER_DEVICE    *TmpDev;
+  OPAL_DRIVER_DEVICE  *TmpDev;
 
-  DEBUG ((DEBUG_INFO, "%a() - enter\n", __FUNCTION__));
+  DEBUG ((DEBUG_INFO, "%a() - enter\n", __func__));
 
   mOpalEndOfDxe = TRUE;
 
@@ -498,7 +505,7 @@ OpalEndOfDxeEventNotify (
     // as the OPAL requests should have been processed.
     //
     FreePool (mOpalRequestVariable);
-    mOpalRequestVariable = NULL;
+    mOpalRequestVariable     = NULL;
     mOpalRequestVariableSize = 0;
   }
 
@@ -526,7 +533,7 @@ OpalEndOfDxeEventNotify (
   //
   SendBlockSidCommand ();
 
-  DEBUG ((DEBUG_INFO, "%a() - exit\n", __FUNCTION__));
+  DEBUG ((DEBUG_INFO, "%a() - exit\n", __func__));
 
   gBS->CloseEvent (Event);
 }
@@ -547,25 +554,25 @@ OpalEndOfDxeEventNotify (
 **/
 CHAR8 *
 OpalDriverPopUpPsidInput (
-  IN OPAL_DRIVER_DEVICE     *Dev,
-  IN CHAR16                 *PopUpString,
-  IN CHAR16                 *PopUpString2,
-  IN CHAR16                 *PopUpString3,
-  OUT BOOLEAN               *PressEsc
+  IN OPAL_DRIVER_DEVICE  *Dev,
+  IN CHAR16              *PopUpString,
+  IN CHAR16              *PopUpString2,
+  IN CHAR16              *PopUpString3,
+  OUT BOOLEAN            *PressEsc
   )
 {
-  EFI_INPUT_KEY             InputKey;
-  UINTN                     InputLength;
-  CHAR16                    Mask[PSID_CHARACTER_LENGTH + 1];
-  CHAR16                    Unicode[PSID_CHARACTER_LENGTH + 1];
-  CHAR8                     *Ascii;
+  EFI_INPUT_KEY  InputKey;
+  UINTN          InputLength;
+  CHAR16         Mask[PSID_CHARACTER_LENGTH + 1];
+  CHAR16         Unicode[PSID_CHARACTER_LENGTH + 1];
+  CHAR8          *Ascii;
 
-  ZeroMem(Unicode, sizeof(Unicode));
-  ZeroMem(Mask, sizeof(Mask));
+  ZeroMem (Unicode, sizeof (Unicode));
+  ZeroMem (Mask, sizeof (Mask));
 
   *PressEsc = FALSE;
 
-  gST->ConOut->ClearScreen(gST->ConOut);
+  gST->ConOut->ClearScreen (gST->ConOut);
 
   InputLength = 0;
   while (TRUE) {
@@ -578,7 +585,7 @@ OpalDriverPopUpPsidInput (
         L"---------------------",
         Mask,
         NULL
-      );
+        );
     } else {
       if (PopUpString3 == NULL) {
         CreatePopUp (
@@ -589,7 +596,7 @@ OpalDriverPopUpPsidInput (
           L"---------------------",
           Mask,
           NULL
-        );
+          );
       } else {
         CreatePopUp (
           EFI_LIGHTGRAY | EFI_BACKGROUND_BLUE,
@@ -600,7 +607,7 @@ OpalDriverPopUpPsidInput (
           L"---------------------",
           Mask,
           NULL
-        );
+          );
       }
     }
 
@@ -616,12 +623,13 @@ OpalDriverPopUpPsidInput (
         // Add the null terminator.
         //
         Unicode[InputLength] = 0;
-        Mask[InputLength] = 0;
+        Mask[InputLength]    = 0;
         break;
       } else if ((InputKey.UnicodeChar == CHAR_NULL) ||
                  (InputKey.UnicodeChar == CHAR_TAB) ||
                  (InputKey.UnicodeChar == CHAR_LINEFEED)
-                ) {
+                 )
+      {
         continue;
       } else {
         //
@@ -630,7 +638,7 @@ OpalDriverPopUpPsidInput (
         if (InputKey.UnicodeChar == CHAR_BACKSPACE) {
           if (InputLength > 0) {
             Unicode[InputLength] = 0;
-            Mask[InputLength] = 0;
+            Mask[InputLength]    = 0;
             InputLength--;
           }
         } else {
@@ -638,14 +646,14 @@ OpalDriverPopUpPsidInput (
           // add Next key entry
           //
           Unicode[InputLength] = InputKey.UnicodeChar;
-          Mask[InputLength] = InputKey.UnicodeChar;
+          Mask[InputLength]    = InputKey.UnicodeChar;
           InputLength++;
           if (InputLength == PSID_CHARACTER_LENGTH) {
             //
             // Add the null terminator.
             //
             Unicode[InputLength] = 0;
-            Mask[InputLength] = 0;
+            Mask[InputLength]    = 0;
             break;
           }
         }
@@ -661,9 +669,9 @@ OpalDriverPopUpPsidInput (
     }
   }
 
-  gST->ConOut->ClearScreen(gST->ConOut);
+  gST->ConOut->ClearScreen (gST->ConOut);
 
-  if (InputLength == 0 || InputKey.ScanCode == SCAN_ESC) {
+  if ((InputLength == 0) || (InputKey.ScanCode == SCAN_ESC)) {
     ZeroMem (Unicode, sizeof (Unicode));
     ZeroMem (Mask, sizeof (Mask));
     return NULL;
@@ -683,7 +691,6 @@ OpalDriverPopUpPsidInput (
   return Ascii;
 }
 
-
 /**
   Get password input from the popup window.
 
@@ -699,25 +706,25 @@ OpalDriverPopUpPsidInput (
 **/
 CHAR8 *
 OpalDriverPopUpPasswordInput (
-  IN OPAL_DRIVER_DEVICE     *Dev,
-  IN CHAR16                 *PopUpString1,
-  IN CHAR16                 *PopUpString2,
-  IN CHAR16                 *PopUpString3,
-  OUT BOOLEAN               *PressEsc
+  IN OPAL_DRIVER_DEVICE  *Dev,
+  IN CHAR16              *PopUpString1,
+  IN CHAR16              *PopUpString2,
+  IN CHAR16              *PopUpString3,
+  OUT BOOLEAN            *PressEsc
   )
 {
-  EFI_INPUT_KEY             InputKey;
-  UINTN                     InputLength;
-  CHAR16                    Mask[OPAL_MAX_PASSWORD_SIZE + 1];
-  CHAR16                    Unicode[OPAL_MAX_PASSWORD_SIZE + 1];
-  CHAR8                     *Ascii;
+  EFI_INPUT_KEY  InputKey;
+  UINTN          InputLength;
+  CHAR16         Mask[OPAL_MAX_PASSWORD_SIZE + 1];
+  CHAR16         Unicode[OPAL_MAX_PASSWORD_SIZE + 1];
+  CHAR8          *Ascii;
 
-  ZeroMem(Unicode, sizeof(Unicode));
-  ZeroMem(Mask, sizeof(Mask));
+  ZeroMem (Unicode, sizeof (Unicode));
+  ZeroMem (Mask, sizeof (Mask));
 
   *PressEsc = FALSE;
 
-  gST->ConOut->ClearScreen(gST->ConOut);
+  gST->ConOut->ClearScreen (gST->ConOut);
 
   InputLength = 0;
   while (TRUE) {
@@ -730,7 +737,7 @@ OpalDriverPopUpPasswordInput (
         L"---------------------",
         Mask,
         NULL
-      );
+        );
     } else {
       if (PopUpString3 == NULL) {
         CreatePopUp (
@@ -741,7 +748,7 @@ OpalDriverPopUpPasswordInput (
           L"---------------------",
           Mask,
           NULL
-        );
+          );
       } else {
         CreatePopUp (
           EFI_LIGHTGRAY | EFI_BACKGROUND_BLUE,
@@ -752,7 +759,7 @@ OpalDriverPopUpPasswordInput (
           L"---------------------",
           Mask,
           NULL
-        );
+          );
       }
     }
 
@@ -768,12 +775,13 @@ OpalDriverPopUpPasswordInput (
         // Add the null terminator.
         //
         Unicode[InputLength] = 0;
-        Mask[InputLength] = 0;
+        Mask[InputLength]    = 0;
         break;
       } else if ((InputKey.UnicodeChar == CHAR_NULL) ||
                  (InputKey.UnicodeChar == CHAR_TAB) ||
                  (InputKey.UnicodeChar == CHAR_LINEFEED)
-                ) {
+                 )
+      {
         continue;
       } else {
         //
@@ -782,7 +790,7 @@ OpalDriverPopUpPasswordInput (
         if (InputKey.UnicodeChar == CHAR_BACKSPACE) {
           if (InputLength > 0) {
             Unicode[InputLength] = 0;
-            Mask[InputLength] = 0;
+            Mask[InputLength]    = 0;
             InputLength--;
           }
         } else {
@@ -790,14 +798,14 @@ OpalDriverPopUpPasswordInput (
           // add Next key entry
           //
           Unicode[InputLength] = InputKey.UnicodeChar;
-          Mask[InputLength] = L'*';
+          Mask[InputLength]    = L'*';
           InputLength++;
           if (InputLength == OPAL_MAX_PASSWORD_SIZE) {
             //
             // Add the null terminator.
             //
             Unicode[InputLength] = 0;
-            Mask[InputLength] = 0;
+            Mask[InputLength]    = 0;
             break;
           }
         }
@@ -813,9 +821,9 @@ OpalDriverPopUpPasswordInput (
     }
   }
 
-  gST->ConOut->ClearScreen(gST->ConOut);
+  gST->ConOut->ClearScreen (gST->ConOut);
 
-  if (InputLength == 0 || InputKey.ScanCode == SCAN_ESC) {
+  if ((InputLength == 0) || (InputKey.ScanCode == SCAN_ESC)) {
     ZeroMem (Unicode, sizeof (Unicode));
     return NULL;
   }
@@ -843,8 +851,8 @@ OpalDriverPopUpPasswordInput (
 **/
 CHAR16 *
 OpalGetPopUpString (
-  IN OPAL_DRIVER_DEVICE *Dev,
-  IN CHAR16             *RequestString
+  IN OPAL_DRIVER_DEVICE  *Dev,
+  IN CHAR16              *RequestString
   )
 {
   if (Dev->Name16 == NULL) {
@@ -865,26 +873,26 @@ OpalGetPopUpString (
 **/
 VOID
 OpalDriverRequestPassword (
-  IN OPAL_DRIVER_DEVICE *Dev,
-  IN CHAR16             *RequestString
+  IN OPAL_DRIVER_DEVICE  *Dev,
+  IN CHAR16              *RequestString
   )
 {
-  UINT8                 Count;
-  BOOLEAN               IsEnabled;
-  BOOLEAN               IsLocked;
-  CHAR8                 *Password;
-  UINT32                PasswordLen;
-  OPAL_SESSION          Session;
-  BOOLEAN               PressEsc;
-  EFI_INPUT_KEY         Key;
-  TCG_RESULT            Ret;
-  CHAR16                *PopUpString;
+  UINT8          Count;
+  BOOLEAN        IsEnabled;
+  BOOLEAN        IsLocked;
+  CHAR8          *Password;
+  UINT32         PasswordLen;
+  OPAL_SESSION   Session;
+  BOOLEAN        PressEsc;
+  EFI_INPUT_KEY  Key;
+  TCG_RESULT     Ret;
+  CHAR16         *PopUpString;
 
   if (Dev == NULL) {
     return;
   }
 
-  DEBUG ((DEBUG_INFO, "%a()\n", __FUNCTION__));
+  DEBUG ((DEBUG_INFO, "%a()\n", __func__));
 
   PopUpString = OpalGetPopUpString (Dev, RequestString);
 
@@ -892,9 +900,9 @@ OpalDriverRequestPassword (
 
   IsEnabled = OpalFeatureEnabled (&Dev->OpalDisk.SupportedAttributes, &Dev->OpalDisk.LockingFeature);
   if (IsEnabled) {
-    ZeroMem(&Session, sizeof(Session));
-    Session.Sscp = Dev->OpalDisk.Sscp;
-    Session.MediaId = Dev->OpalDisk.MediaId;
+    ZeroMem (&Session, sizeof (Session));
+    Session.Sscp          = Dev->OpalDisk.Sscp;
+    Session.MediaId       = Dev->OpalDisk.MediaId;
     Session.OpalBaseComId = Dev->OpalDisk.OpalBaseComId;
 
     IsLocked = OpalDeviceLocked (&Dev->OpalDisk.SupportedAttributes, &Dev->OpalDisk.LockingFeature);
@@ -935,7 +943,7 @@ OpalDriverRequestPassword (
           } while ((Key.ScanCode != SCAN_ESC) && (Key.UnicodeChar != CHAR_CARRIAGE_RETURN));
 
           if (Key.UnicodeChar == CHAR_CARRIAGE_RETURN) {
-            gST->ConOut->ClearScreen(gST->ConOut);
+            gST->ConOut->ClearScreen (gST->ConOut);
             //
             // Keep lock and continue boot.
             //
@@ -973,17 +981,18 @@ OpalDriverRequestPassword (
       }
 
       if (Password == NULL) {
-        Count ++;
+        Count++;
         continue;
       }
-      PasswordLen = (UINT32) AsciiStrLen(Password);
+
+      PasswordLen = (UINT32)AsciiStrLen (Password);
 
       if (IsLocked) {
-        Ret = OpalUtilUpdateGlobalLockingRange(&Session, Password, PasswordLen, FALSE, FALSE);
+        Ret = OpalUtilUpdateGlobalLockingRange (&Session, Password, PasswordLen, FALSE, FALSE);
       } else {
-        Ret = OpalUtilUpdateGlobalLockingRange(&Session, Password, PasswordLen, TRUE, TRUE);
+        Ret = OpalUtilUpdateGlobalLockingRange (&Session, Password, PasswordLen, TRUE, TRUE);
         if (Ret == TcgResultSuccess) {
-          Ret = OpalUtilUpdateGlobalLockingRange(&Session, Password, PasswordLen, FALSE, FALSE);
+          Ret = OpalUtilUpdateGlobalLockingRange (&Session, Password, PasswordLen, FALSE, FALSE);
         }
       }
 
@@ -1050,76 +1059,79 @@ OpalDriverRequestPassword (
 **/
 VOID
 ProcessOpalRequestEnableFeature (
-  IN OPAL_DRIVER_DEVICE *Dev,
-  IN CHAR16             *RequestString
+  IN OPAL_DRIVER_DEVICE  *Dev,
+  IN CHAR16              *RequestString
   )
 {
-  UINT8                 Count;
-  CHAR8                 *Password;
-  UINT32                PasswordLen;
-  CHAR8                 *PasswordConfirm;
-  UINT32                PasswordLenConfirm;
-  OPAL_SESSION          Session;
-  BOOLEAN               PressEsc;
-  EFI_INPUT_KEY         Key;
-  TCG_RESULT            Ret;
-  CHAR16                *PopUpString;
+  UINT8          Count;
+  CHAR8          *Password;
+  UINT32         PasswordLen;
+  CHAR8          *PasswordConfirm;
+  UINT32         PasswordLenConfirm;
+  OPAL_SESSION   Session;
+  BOOLEAN        PressEsc;
+  EFI_INPUT_KEY  Key;
+  TCG_RESULT     Ret;
+  CHAR16         *PopUpString;
 
   if (Dev == NULL) {
     return;
   }
 
-  DEBUG ((DEBUG_INFO, "%a()\n", __FUNCTION__));
+  DEBUG ((DEBUG_INFO, "%a()\n", __func__));
 
   PopUpString = OpalGetPopUpString (Dev, RequestString);
 
   Count = 0;
 
-  ZeroMem(&Session, sizeof(Session));
-  Session.Sscp = Dev->OpalDisk.Sscp;
-  Session.MediaId = Dev->OpalDisk.MediaId;
+  ZeroMem (&Session, sizeof (Session));
+  Session.Sscp          = Dev->OpalDisk.Sscp;
+  Session.MediaId       = Dev->OpalDisk.MediaId;
   Session.OpalBaseComId = Dev->OpalDisk.OpalBaseComId;
 
   while (Count < MAX_PASSWORD_TRY_COUNT) {
     Password = OpalDriverPopUpPasswordInput (Dev, PopUpString, L"Please type in your new password", NULL, &PressEsc);
     if (PressEsc) {
-        do {
-          CreatePopUp (
-            EFI_LIGHTGRAY | EFI_BACKGROUND_BLUE,
-            &Key,
-            L"Press ENTER to skip the request and continue boot,",
-            L"Press ESC to input password again",
-            NULL
-            );
-        } while ((Key.ScanCode != SCAN_ESC) && (Key.UnicodeChar != CHAR_CARRIAGE_RETURN));
+      do {
+        CreatePopUp (
+          EFI_LIGHTGRAY | EFI_BACKGROUND_BLUE,
+          &Key,
+          L"Press ENTER to skip the request and continue boot,",
+          L"Press ESC to input password again",
+          NULL
+          );
+      } while ((Key.ScanCode != SCAN_ESC) && (Key.UnicodeChar != CHAR_CARRIAGE_RETURN));
 
-        if (Key.UnicodeChar == CHAR_CARRIAGE_RETURN) {
-          gST->ConOut->ClearScreen(gST->ConOut);
-          return;
-        } else {
-          //
-          // Let user input password again.
-          //
-          continue;
-        }
+      if (Key.UnicodeChar == CHAR_CARRIAGE_RETURN) {
+        gST->ConOut->ClearScreen (gST->ConOut);
+        return;
+      } else {
+        //
+        // Let user input password again.
+        //
+        continue;
+      }
     }
 
     if (Password == NULL) {
-      Count ++;
+      Count++;
       continue;
     }
-    PasswordLen = (UINT32) AsciiStrLen(Password);
+
+    PasswordLen = (UINT32)AsciiStrLen (Password);
 
     PasswordConfirm = OpalDriverPopUpPasswordInput (Dev, PopUpString, L"Please confirm your new password", NULL, &PressEsc);
     if (PasswordConfirm == NULL) {
       ZeroMem (Password, PasswordLen);
       FreePool (Password);
-      Count ++;
+      Count++;
       continue;
     }
-    PasswordLenConfirm = (UINT32) AsciiStrLen(PasswordConfirm);
+
+    PasswordLenConfirm = (UINT32)AsciiStrLen (PasswordConfirm);
     if ((PasswordLen != PasswordLenConfirm) ||
-        (CompareMem (Password, PasswordConfirm, PasswordLen) != 0)) {
+        (CompareMem (Password, PasswordConfirm, PasswordLen) != 0))
+    {
       ZeroMem (Password, PasswordLen);
       FreePool (Password);
       ZeroMem (PasswordConfirm, PasswordLenConfirm);
@@ -1133,7 +1145,8 @@ ProcessOpalRequestEnableFeature (
           NULL
           );
       } while (Key.UnicodeChar != CHAR_CARRIAGE_RETURN);
-      Count ++;
+
+      Count++;
       continue;
     }
 
@@ -1142,7 +1155,7 @@ ProcessOpalRequestEnableFeature (
       FreePool (PasswordConfirm);
     }
 
-    Ret = OpalSupportEnableOpalFeature (&Session, Dev->OpalDisk.Msid,  Dev->OpalDisk.MsidLength, Password, PasswordLen);
+    Ret = OpalSupportEnableOpalFeature (&Session, Dev->OpalDisk.Msid, Dev->OpalDisk.MsidLength, Password, PasswordLen);
     if (Ret == TcgResultSuccess) {
       OpalSupportUpdatePassword (&Dev->OpalDisk, Password, PasswordLen);
       DEBUG ((DEBUG_INFO, "%s Success\n", RequestString));
@@ -1182,7 +1195,8 @@ ProcessOpalRequestEnableFeature (
         NULL
         );
     } while (Key.UnicodeChar != CHAR_CARRIAGE_RETURN);
-    gST->ConOut->ClearScreen(gST->ConOut);
+
+    gST->ConOut->ClearScreen (gST->ConOut);
   }
 }
 
@@ -1195,66 +1209,67 @@ ProcessOpalRequestEnableFeature (
 **/
 VOID
 ProcessOpalRequestDisableUser (
-  IN OPAL_DRIVER_DEVICE *Dev,
-  IN CHAR16             *RequestString
+  IN OPAL_DRIVER_DEVICE  *Dev,
+  IN CHAR16              *RequestString
   )
 {
-  UINT8                 Count;
-  CHAR8                 *Password;
-  UINT32                PasswordLen;
-  OPAL_SESSION          Session;
-  BOOLEAN               PressEsc;
-  EFI_INPUT_KEY         Key;
-  TCG_RESULT            Ret;
-  BOOLEAN               PasswordFailed;
-  CHAR16                *PopUpString;
+  UINT8          Count;
+  CHAR8          *Password;
+  UINT32         PasswordLen;
+  OPAL_SESSION   Session;
+  BOOLEAN        PressEsc;
+  EFI_INPUT_KEY  Key;
+  TCG_RESULT     Ret;
+  BOOLEAN        PasswordFailed;
+  CHAR16         *PopUpString;
 
   if (Dev == NULL) {
     return;
   }
 
-  DEBUG ((DEBUG_INFO, "%a()\n", __FUNCTION__));
+  DEBUG ((DEBUG_INFO, "%a()\n", __func__));
 
   PopUpString = OpalGetPopUpString (Dev, RequestString);
 
   Count = 0;
 
-  ZeroMem(&Session, sizeof(Session));
-  Session.Sscp = Dev->OpalDisk.Sscp;
-  Session.MediaId = Dev->OpalDisk.MediaId;
+  ZeroMem (&Session, sizeof (Session));
+  Session.Sscp          = Dev->OpalDisk.Sscp;
+  Session.MediaId       = Dev->OpalDisk.MediaId;
   Session.OpalBaseComId = Dev->OpalDisk.OpalBaseComId;
 
   while (Count < MAX_PASSWORD_TRY_COUNT) {
     Password = OpalDriverPopUpPasswordInput (Dev, PopUpString, NULL, NULL, &PressEsc);
     if (PressEsc) {
-        do {
-          CreatePopUp (
-            EFI_LIGHTGRAY | EFI_BACKGROUND_BLUE,
-            &Key,
-            L"Press ENTER to skip the request and continue boot,",
-            L"Press ESC to input password again",
-            NULL
-            );
-        } while ((Key.ScanCode != SCAN_ESC) && (Key.UnicodeChar != CHAR_CARRIAGE_RETURN));
+      do {
+        CreatePopUp (
+          EFI_LIGHTGRAY | EFI_BACKGROUND_BLUE,
+          &Key,
+          L"Press ENTER to skip the request and continue boot,",
+          L"Press ESC to input password again",
+          NULL
+          );
+      } while ((Key.ScanCode != SCAN_ESC) && (Key.UnicodeChar != CHAR_CARRIAGE_RETURN));
 
-        if (Key.UnicodeChar == CHAR_CARRIAGE_RETURN) {
-          gST->ConOut->ClearScreen(gST->ConOut);
-          return;
-        } else {
-          //
-          // Let user input password again.
-          //
-          continue;
-        }
+      if (Key.UnicodeChar == CHAR_CARRIAGE_RETURN) {
+        gST->ConOut->ClearScreen (gST->ConOut);
+        return;
+      } else {
+        //
+        // Let user input password again.
+        //
+        continue;
+      }
     }
 
     if (Password == NULL) {
-      Count ++;
+      Count++;
       continue;
     }
-    PasswordLen = (UINT32) AsciiStrLen(Password);
 
-    Ret = OpalUtilDisableUser(&Session, Password, PasswordLen, &PasswordFailed);
+    PasswordLen = (UINT32)AsciiStrLen (Password);
+
+    Ret = OpalUtilDisableUser (&Session, Password, PasswordLen, &PasswordFailed);
     if (Ret == TcgResultSuccess) {
       OpalSupportUpdatePassword (&Dev->OpalDisk, Password, PasswordLen);
       DEBUG ((DEBUG_INFO, "%s Success\n", RequestString));
@@ -1294,7 +1309,8 @@ ProcessOpalRequestDisableUser (
         NULL
         );
     } while (Key.UnicodeChar != CHAR_CARRIAGE_RETURN);
-    gST->ConOut->ClearScreen(gST->ConOut);
+
+    gST->ConOut->ClearScreen (gST->ConOut);
   }
 }
 
@@ -1307,39 +1323,39 @@ ProcessOpalRequestDisableUser (
 **/
 VOID
 ProcessOpalRequestPsidRevert (
-  IN OPAL_DRIVER_DEVICE *Dev,
-  IN CHAR16             *RequestString
+  IN OPAL_DRIVER_DEVICE  *Dev,
+  IN CHAR16              *RequestString
   )
 {
-  UINT8                 Count;
-  CHAR8                 *Psid;
-  UINT32                PsidLen;
-  OPAL_SESSION          Session;
-  BOOLEAN               PressEsc;
-  EFI_INPUT_KEY         Key;
-  TCG_RESULT            Ret;
-  CHAR16                *PopUpString;
-  CHAR16                *PopUpString2;
-  CHAR16                *PopUpString3;
-  UINTN                 BufferSize;
+  UINT8          Count;
+  CHAR8          *Psid;
+  UINT32         PsidLen;
+  OPAL_SESSION   Session;
+  BOOLEAN        PressEsc;
+  EFI_INPUT_KEY  Key;
+  TCG_RESULT     Ret;
+  CHAR16         *PopUpString;
+  CHAR16         *PopUpString2;
+  CHAR16         *PopUpString3;
+  UINTN          BufferSize;
 
   if (Dev == NULL) {
     return;
   }
 
-  DEBUG ((DEBUG_INFO, "%a()\n", __FUNCTION__));
+  DEBUG ((DEBUG_INFO, "%a()\n", __func__));
 
   PopUpString = OpalGetPopUpString (Dev, RequestString);
 
   if (Dev->OpalDisk.EstimateTimeCost > MAX_ACCEPTABLE_REVERTING_TIME) {
-    BufferSize = StrSize (L"Warning: Revert action will take about ####### seconds");
+    BufferSize   = StrSize (L"Warning: Revert action will take about ####### seconds");
     PopUpString2 = AllocateZeroPool (BufferSize);
     ASSERT (PopUpString2 != NULL);
     UnicodeSPrint (
-        PopUpString2,
-        BufferSize,
-        L"WARNING: Revert action will take about %d seconds",
-        Dev->OpalDisk.EstimateTimeCost
+      PopUpString2,
+      BufferSize,
+      L"WARNING: Revert action will take about %d seconds",
+      Dev->OpalDisk.EstimateTimeCost
       );
     PopUpString3 = L"DO NOT power off system during the revert action!";
   } else {
@@ -1349,42 +1365,43 @@ ProcessOpalRequestPsidRevert (
 
   Count = 0;
 
-  ZeroMem(&Session, sizeof(Session));
-  Session.Sscp = Dev->OpalDisk.Sscp;
-  Session.MediaId = Dev->OpalDisk.MediaId;
+  ZeroMem (&Session, sizeof (Session));
+  Session.Sscp          = Dev->OpalDisk.Sscp;
+  Session.MediaId       = Dev->OpalDisk.MediaId;
   Session.OpalBaseComId = Dev->OpalDisk.OpalBaseComId;
 
   while (Count < MAX_PSID_TRY_COUNT) {
     Psid = OpalDriverPopUpPsidInput (Dev, PopUpString, PopUpString2, PopUpString3, &PressEsc);
     if (PressEsc) {
-        do {
-          CreatePopUp (
-            EFI_LIGHTGRAY | EFI_BACKGROUND_BLUE,
-            &Key,
-            L"Press ENTER to skip the request and continue boot,",
-            L"Press ESC to input Psid again",
-            NULL
-            );
-        } while ((Key.ScanCode != SCAN_ESC) && (Key.UnicodeChar != CHAR_CARRIAGE_RETURN));
+      do {
+        CreatePopUp (
+          EFI_LIGHTGRAY | EFI_BACKGROUND_BLUE,
+          &Key,
+          L"Press ENTER to skip the request and continue boot,",
+          L"Press ESC to input Psid again",
+          NULL
+          );
+      } while ((Key.ScanCode != SCAN_ESC) && (Key.UnicodeChar != CHAR_CARRIAGE_RETURN));
 
-        if (Key.UnicodeChar == CHAR_CARRIAGE_RETURN) {
-          gST->ConOut->ClearScreen(gST->ConOut);
-          goto Done;
-        } else {
-          //
-          // Let user input Psid again.
-          //
-          continue;
-        }
+      if (Key.UnicodeChar == CHAR_CARRIAGE_RETURN) {
+        gST->ConOut->ClearScreen (gST->ConOut);
+        goto Done;
+      } else {
+        //
+        // Let user input Psid again.
+        //
+        continue;
+      }
     }
 
     if (Psid == NULL) {
-      Count ++;
+      Count++;
       continue;
     }
-    PsidLen = (UINT32) AsciiStrLen(Psid);
 
-    Ret = OpalUtilPsidRevert(&Session, Psid, PsidLen);
+    PsidLen = (UINT32)AsciiStrLen (Psid);
+
+    Ret = OpalUtilPsidRevert (&Session, Psid, PsidLen);
     if (Ret == TcgResultSuccess) {
       DEBUG ((DEBUG_INFO, "%s Success\n", RequestString));
     } else {
@@ -1423,7 +1440,8 @@ ProcessOpalRequestPsidRevert (
         NULL
         );
     } while (Key.UnicodeChar != CHAR_CARRIAGE_RETURN);
-    gST->ConOut->ClearScreen(gST->ConOut);
+
+    gST->ConOut->ClearScreen (gST->ConOut);
   }
 
 Done:
@@ -1442,42 +1460,43 @@ Done:
 **/
 VOID
 ProcessOpalRequestRevert (
-  IN OPAL_DRIVER_DEVICE *Dev,
-  IN BOOLEAN            KeepUserData,
-  IN CHAR16             *RequestString
+  IN OPAL_DRIVER_DEVICE  *Dev,
+  IN BOOLEAN             KeepUserData,
+  IN CHAR16              *RequestString
   )
 {
-  UINT8                 Count;
-  CHAR8                 *Password;
-  UINT32                PasswordLen;
-  OPAL_SESSION          Session;
-  BOOLEAN               PressEsc;
-  EFI_INPUT_KEY         Key;
-  TCG_RESULT            Ret;
-  BOOLEAN               PasswordFailed;
-  CHAR16                *PopUpString;
-  CHAR16                *PopUpString2;
-  CHAR16                *PopUpString3;
-  UINTN                 BufferSize;
+  UINT8          Count;
+  CHAR8          *Password;
+  UINT32         PasswordLen;
+  OPAL_SESSION   Session;
+  BOOLEAN        PressEsc;
+  EFI_INPUT_KEY  Key;
+  TCG_RESULT     Ret;
+  BOOLEAN        PasswordFailed;
+  CHAR16         *PopUpString;
+  CHAR16         *PopUpString2;
+  CHAR16         *PopUpString3;
+  UINTN          BufferSize;
 
   if (Dev == NULL) {
     return;
   }
 
-  DEBUG ((DEBUG_INFO, "%a()\n", __FUNCTION__));
+  DEBUG ((DEBUG_INFO, "%a()\n", __func__));
 
   PopUpString = OpalGetPopUpString (Dev, RequestString);
 
   if ((!KeepUserData) &&
-      (Dev->OpalDisk.EstimateTimeCost > MAX_ACCEPTABLE_REVERTING_TIME)) {
-    BufferSize = StrSize (L"Warning: Revert action will take about ####### seconds");
+      (Dev->OpalDisk.EstimateTimeCost > MAX_ACCEPTABLE_REVERTING_TIME))
+  {
+    BufferSize   = StrSize (L"Warning: Revert action will take about ####### seconds");
     PopUpString2 = AllocateZeroPool (BufferSize);
     ASSERT (PopUpString2 != NULL);
     UnicodeSPrint (
-        PopUpString2,
-        BufferSize,
-        L"WARNING: Revert action will take about %d seconds",
-        Dev->OpalDisk.EstimateTimeCost
+      PopUpString2,
+      BufferSize,
+      L"WARNING: Revert action will take about %d seconds",
+      Dev->OpalDisk.EstimateTimeCost
       );
     PopUpString3 = L"DO NOT power off system during the revert action!";
   } else {
@@ -1487,49 +1506,51 @@ ProcessOpalRequestRevert (
 
   Count = 0;
 
-  ZeroMem(&Session, sizeof(Session));
-  Session.Sscp = Dev->OpalDisk.Sscp;
-  Session.MediaId = Dev->OpalDisk.MediaId;
+  ZeroMem (&Session, sizeof (Session));
+  Session.Sscp          = Dev->OpalDisk.Sscp;
+  Session.MediaId       = Dev->OpalDisk.MediaId;
   Session.OpalBaseComId = Dev->OpalDisk.OpalBaseComId;
 
   while (Count < MAX_PASSWORD_TRY_COUNT) {
     Password = OpalDriverPopUpPasswordInput (Dev, PopUpString, PopUpString2, PopUpString3, &PressEsc);
     if (PressEsc) {
-        do {
-          CreatePopUp (
-            EFI_LIGHTGRAY | EFI_BACKGROUND_BLUE,
-            &Key,
-            L"Press ENTER to skip the request and continue boot,",
-            L"Press ESC to input password again",
-            NULL
-            );
-        } while ((Key.ScanCode != SCAN_ESC) && (Key.UnicodeChar != CHAR_CARRIAGE_RETURN));
+      do {
+        CreatePopUp (
+          EFI_LIGHTGRAY | EFI_BACKGROUND_BLUE,
+          &Key,
+          L"Press ENTER to skip the request and continue boot,",
+          L"Press ESC to input password again",
+          NULL
+          );
+      } while ((Key.ScanCode != SCAN_ESC) && (Key.UnicodeChar != CHAR_CARRIAGE_RETURN));
 
-        if (Key.UnicodeChar == CHAR_CARRIAGE_RETURN) {
-          gST->ConOut->ClearScreen(gST->ConOut);
-          goto Done;
-        } else {
-          //
-          // Let user input password again.
-          //
-          continue;
-        }
+      if (Key.UnicodeChar == CHAR_CARRIAGE_RETURN) {
+        gST->ConOut->ClearScreen (gST->ConOut);
+        goto Done;
+      } else {
+        //
+        // Let user input password again.
+        //
+        continue;
+      }
     }
 
     if (Password == NULL) {
-      Count ++;
+      Count++;
       continue;
     }
-    PasswordLen = (UINT32) AsciiStrLen(Password);
+
+    PasswordLen = (UINT32)AsciiStrLen (Password);
 
     if ((Dev->OpalDisk.SupportedAttributes.PyriteSsc == 1) &&
-        (Dev->OpalDisk.LockingFeature.MediaEncryption == 0)) {
+        (Dev->OpalDisk.LockingFeature.MediaEncryption == 0))
+    {
       //
       // For pyrite type device which does not support media encryption,
       // it does not accept "Keep User Data" parameter.
       // So here hardcode a FALSE for this case.
       //
-      Ret = OpalUtilRevert(
+      Ret = OpalUtilRevert (
               &Session,
               FALSE,
               Password,
@@ -1539,7 +1560,7 @@ ProcessOpalRequestRevert (
               Dev->OpalDisk.MsidLength
               );
     } else {
-      Ret = OpalUtilRevert(
+      Ret = OpalUtilRevert (
               &Session,
               KeepUserData,
               Password,
@@ -1549,6 +1570,7 @@ ProcessOpalRequestRevert (
               Dev->OpalDisk.MsidLength
               );
     }
+
     if (Ret == TcgResultSuccess) {
       OpalSupportUpdatePassword (&Dev->OpalDisk, Password, PasswordLen);
       DEBUG ((DEBUG_INFO, "%s Success\n", RequestString));
@@ -1588,7 +1610,8 @@ ProcessOpalRequestRevert (
         NULL
         );
     } while (Key.UnicodeChar != CHAR_CARRIAGE_RETURN);
-    gST->ConOut->ClearScreen(gST->ConOut);
+
+    gST->ConOut->ClearScreen (gST->ConOut);
   }
 
 Done:
@@ -1606,84 +1629,86 @@ Done:
 **/
 VOID
 ProcessOpalRequestSecureErase (
-  IN OPAL_DRIVER_DEVICE *Dev,
-  IN CHAR16             *RequestString
+  IN OPAL_DRIVER_DEVICE  *Dev,
+  IN CHAR16              *RequestString
   )
 {
-  UINT8                 Count;
-  CHAR8                 *Password;
-  UINT32                PasswordLen;
-  OPAL_SESSION          Session;
-  BOOLEAN               PressEsc;
-  EFI_INPUT_KEY         Key;
-  TCG_RESULT            Ret;
-  BOOLEAN               PasswordFailed;
-  CHAR16                *PopUpString;
-  CHAR16                *PopUpString2;
-  CHAR16                *PopUpString3;
-  UINTN                 BufferSize;
+  UINT8          Count;
+  CHAR8          *Password;
+  UINT32         PasswordLen;
+  OPAL_SESSION   Session;
+  BOOLEAN        PressEsc;
+  EFI_INPUT_KEY  Key;
+  TCG_RESULT     Ret;
+  BOOLEAN        PasswordFailed;
+  CHAR16         *PopUpString;
+  CHAR16         *PopUpString2;
+  CHAR16         *PopUpString3;
+  UINTN          BufferSize;
 
   if (Dev == NULL) {
     return;
   }
 
-  DEBUG ((DEBUG_INFO, "%a()\n", __FUNCTION__));
+  DEBUG ((DEBUG_INFO, "%a()\n", __func__));
 
   PopUpString = OpalGetPopUpString (Dev, RequestString);
 
   if (Dev->OpalDisk.EstimateTimeCost > MAX_ACCEPTABLE_REVERTING_TIME) {
-    BufferSize = StrSize (L"Warning: Secure erase action will take about ####### seconds");
+    BufferSize   = StrSize (L"Warning: Secure erase action will take about ####### seconds");
     PopUpString2 = AllocateZeroPool (BufferSize);
     ASSERT (PopUpString2 != NULL);
     UnicodeSPrint (
-        PopUpString2,
-        BufferSize,
-        L"WARNING: Secure erase action will take about %d seconds",
-        Dev->OpalDisk.EstimateTimeCost
+      PopUpString2,
+      BufferSize,
+      L"WARNING: Secure erase action will take about %d seconds",
+      Dev->OpalDisk.EstimateTimeCost
       );
     PopUpString3 = L"DO NOT power off system during the action!";
   } else {
     PopUpString2 = NULL;
     PopUpString3 = NULL;
   }
+
   Count = 0;
 
-  ZeroMem(&Session, sizeof(Session));
-  Session.Sscp = Dev->OpalDisk.Sscp;
-  Session.MediaId = Dev->OpalDisk.MediaId;
+  ZeroMem (&Session, sizeof (Session));
+  Session.Sscp          = Dev->OpalDisk.Sscp;
+  Session.MediaId       = Dev->OpalDisk.MediaId;
   Session.OpalBaseComId = Dev->OpalDisk.OpalBaseComId;
 
   while (Count < MAX_PASSWORD_TRY_COUNT) {
     Password = OpalDriverPopUpPasswordInput (Dev, PopUpString, PopUpString2, PopUpString3, &PressEsc);
     if (PressEsc) {
-        do {
-          CreatePopUp (
-            EFI_LIGHTGRAY | EFI_BACKGROUND_BLUE,
-            &Key,
-            L"Press ENTER to skip the request and continue boot,",
-            L"Press ESC to input password again",
-            NULL
-            );
-        } while ((Key.ScanCode != SCAN_ESC) && (Key.UnicodeChar != CHAR_CARRIAGE_RETURN));
+      do {
+        CreatePopUp (
+          EFI_LIGHTGRAY | EFI_BACKGROUND_BLUE,
+          &Key,
+          L"Press ENTER to skip the request and continue boot,",
+          L"Press ESC to input password again",
+          NULL
+          );
+      } while ((Key.ScanCode != SCAN_ESC) && (Key.UnicodeChar != CHAR_CARRIAGE_RETURN));
 
-        if (Key.UnicodeChar == CHAR_CARRIAGE_RETURN) {
-          gST->ConOut->ClearScreen(gST->ConOut);
-          goto Done;
-        } else {
-          //
-          // Let user input password again.
-          //
-          continue;
-        }
+      if (Key.UnicodeChar == CHAR_CARRIAGE_RETURN) {
+        gST->ConOut->ClearScreen (gST->ConOut);
+        goto Done;
+      } else {
+        //
+        // Let user input password again.
+        //
+        continue;
+      }
     }
 
     if (Password == NULL) {
-      Count ++;
+      Count++;
       continue;
     }
-    PasswordLen = (UINT32) AsciiStrLen(Password);
 
-    Ret = OpalUtilSecureErase(&Session, Password, PasswordLen, &PasswordFailed);
+    PasswordLen = (UINT32)AsciiStrLen (Password);
+
+    Ret = OpalUtilSecureErase (&Session, Password, PasswordLen, &PasswordFailed);
     if (Ret == TcgResultSuccess) {
       OpalSupportUpdatePassword (&Dev->OpalDisk, Password, PasswordLen);
       DEBUG ((DEBUG_INFO, "%s Success\n", RequestString));
@@ -1723,7 +1748,8 @@ ProcessOpalRequestSecureErase (
         NULL
         );
     } while (Key.UnicodeChar != CHAR_CARRIAGE_RETURN);
-    gST->ConOut->ClearScreen(gST->ConOut);
+
+    gST->ConOut->ClearScreen (gST->ConOut);
   }
 
 Done:
@@ -1741,28 +1767,28 @@ Done:
 **/
 VOID
 ProcessOpalRequestSetUserPwd (
-  IN OPAL_DRIVER_DEVICE *Dev,
-  IN CHAR16             *RequestString
+  IN OPAL_DRIVER_DEVICE  *Dev,
+  IN CHAR16              *RequestString
   )
 {
-  UINT8                 Count;
-  CHAR8                 *OldPassword;
-  UINT32                OldPasswordLen;
-  CHAR8                 *Password;
-  UINT32                PasswordLen;
-  CHAR8                 *PasswordConfirm;
-  UINT32                PasswordLenConfirm;
-  OPAL_SESSION          Session;
-  BOOLEAN               PressEsc;
-  EFI_INPUT_KEY         Key;
-  TCG_RESULT            Ret;
-  CHAR16                *PopUpString;
+  UINT8          Count;
+  CHAR8          *OldPassword;
+  UINT32         OldPasswordLen;
+  CHAR8          *Password;
+  UINT32         PasswordLen;
+  CHAR8          *PasswordConfirm;
+  UINT32         PasswordLenConfirm;
+  OPAL_SESSION   Session;
+  BOOLEAN        PressEsc;
+  EFI_INPUT_KEY  Key;
+  TCG_RESULT     Ret;
+  CHAR16         *PopUpString;
 
   if (Dev == NULL) {
     return;
   }
 
-  DEBUG ((DEBUG_INFO, "%a()\n", __FUNCTION__));
+  DEBUG ((DEBUG_INFO, "%a()\n", __func__));
 
   PopUpString = OpalGetPopUpString (Dev, RequestString);
 
@@ -1771,38 +1797,39 @@ ProcessOpalRequestSetUserPwd (
   while (Count < MAX_PASSWORD_TRY_COUNT) {
     OldPassword = OpalDriverPopUpPasswordInput (Dev, PopUpString, L"Please type in your password", NULL, &PressEsc);
     if (PressEsc) {
-        do {
-          CreatePopUp (
-            EFI_LIGHTGRAY | EFI_BACKGROUND_BLUE,
-            &Key,
-            L"Press ENTER to skip the request and continue boot,",
-            L"Press ESC to input password again",
-            NULL
-            );
-        } while ((Key.ScanCode != SCAN_ESC) && (Key.UnicodeChar != CHAR_CARRIAGE_RETURN));
+      do {
+        CreatePopUp (
+          EFI_LIGHTGRAY | EFI_BACKGROUND_BLUE,
+          &Key,
+          L"Press ENTER to skip the request and continue boot,",
+          L"Press ESC to input password again",
+          NULL
+          );
+      } while ((Key.ScanCode != SCAN_ESC) && (Key.UnicodeChar != CHAR_CARRIAGE_RETURN));
 
-        if (Key.UnicodeChar == CHAR_CARRIAGE_RETURN) {
-          gST->ConOut->ClearScreen(gST->ConOut);
-          return;
-        } else {
-          //
-          // Let user input password again.
-          //
-          continue;
-        }
+      if (Key.UnicodeChar == CHAR_CARRIAGE_RETURN) {
+        gST->ConOut->ClearScreen (gST->ConOut);
+        return;
+      } else {
+        //
+        // Let user input password again.
+        //
+        continue;
+      }
     }
 
     if (OldPassword == NULL) {
-      Count ++;
+      Count++;
       continue;
     }
-    OldPasswordLen = (UINT32) AsciiStrLen(OldPassword);
 
-    ZeroMem(&Session, sizeof(Session));
-    Session.Sscp = Dev->OpalDisk.Sscp;
-    Session.MediaId = Dev->OpalDisk.MediaId;
+    OldPasswordLen = (UINT32)AsciiStrLen (OldPassword);
+
+    ZeroMem (&Session, sizeof (Session));
+    Session.Sscp          = Dev->OpalDisk.Sscp;
+    Session.MediaId       = Dev->OpalDisk.MediaId;
     Session.OpalBaseComId = Dev->OpalDisk.OpalBaseComId;
-    Ret = OpalUtilVerifyPassword (&Session, OldPassword, OldPasswordLen, OPAL_LOCKING_SP_USER1_AUTHORITY);
+    Ret                   = OpalUtilVerifyPassword (&Session, OldPassword, OldPasswordLen, OPAL_LOCKING_SP_USER1_AUTHORITY);
     if (Ret == TcgResultSuccess) {
       DEBUG ((DEBUG_INFO, "Verify with USER1 authority : Success\n"));
     } else {
@@ -1822,7 +1849,8 @@ ProcessOpalRequestSetUserPwd (
             NULL
             );
         } while (Key.UnicodeChar != CHAR_CARRIAGE_RETURN);
-        Count ++;
+
+        Count++;
         continue;
       }
     }
@@ -1831,10 +1859,11 @@ ProcessOpalRequestSetUserPwd (
     if (Password == NULL) {
       ZeroMem (OldPassword, OldPasswordLen);
       FreePool (OldPassword);
-      Count ++;
+      Count++;
       continue;
     }
-    PasswordLen = (UINT32) AsciiStrLen(Password);
+
+    PasswordLen = (UINT32)AsciiStrLen (Password);
 
     PasswordConfirm = OpalDriverPopUpPasswordInput (Dev, PopUpString, L"Please confirm your new password", NULL, &PressEsc);
     if (PasswordConfirm == NULL) {
@@ -1842,12 +1871,14 @@ ProcessOpalRequestSetUserPwd (
       FreePool (OldPassword);
       ZeroMem (Password, PasswordLen);
       FreePool (Password);
-      Count ++;
+      Count++;
       continue;
     }
-    PasswordLenConfirm = (UINT32) AsciiStrLen(PasswordConfirm);
+
+    PasswordLenConfirm = (UINT32)AsciiStrLen (PasswordConfirm);
     if ((PasswordLen != PasswordLenConfirm) ||
-        (CompareMem (Password, PasswordConfirm, PasswordLen) != 0)) {
+        (CompareMem (Password, PasswordConfirm, PasswordLen) != 0))
+    {
       ZeroMem (OldPassword, OldPasswordLen);
       FreePool (OldPassword);
       ZeroMem (Password, PasswordLen);
@@ -1863,7 +1894,8 @@ ProcessOpalRequestSetUserPwd (
           NULL
           );
       } while (Key.UnicodeChar != CHAR_CARRIAGE_RETURN);
-      Count ++;
+
+      Count++;
       continue;
     }
 
@@ -1872,17 +1904,17 @@ ProcessOpalRequestSetUserPwd (
       FreePool (PasswordConfirm);
     }
 
-    ZeroMem(&Session, sizeof(Session));
-    Session.Sscp = Dev->OpalDisk.Sscp;
-    Session.MediaId = Dev->OpalDisk.MediaId;
+    ZeroMem (&Session, sizeof (Session));
+    Session.Sscp          = Dev->OpalDisk.Sscp;
+    Session.MediaId       = Dev->OpalDisk.MediaId;
     Session.OpalBaseComId = Dev->OpalDisk.OpalBaseComId;
-    Ret = OpalUtilSetUserPassword(
-            &Session,
-            OldPassword,
-            OldPasswordLen,
-            Password,
-            PasswordLen
-            );
+    Ret                   = OpalUtilSetUserPassword (
+                              &Session,
+                              OldPassword,
+                              OldPasswordLen,
+                              Password,
+                              PasswordLen
+                              );
     if (Ret == TcgResultSuccess) {
       OpalSupportUpdatePassword (&Dev->OpalDisk, Password, PasswordLen);
       DEBUG ((DEBUG_INFO, "%s Success\n", RequestString));
@@ -1927,7 +1959,8 @@ ProcessOpalRequestSetUserPwd (
         NULL
         );
     } while (Key.UnicodeChar != CHAR_CARRIAGE_RETURN);
-    gST->ConOut->ClearScreen(gST->ConOut);
+
+    gST->ConOut->ClearScreen (gST->ConOut);
   }
 }
 
@@ -1940,28 +1973,28 @@ ProcessOpalRequestSetUserPwd (
 **/
 VOID
 ProcessOpalRequestSetAdminPwd (
-  IN OPAL_DRIVER_DEVICE *Dev,
-  IN CHAR16             *RequestString
+  IN OPAL_DRIVER_DEVICE  *Dev,
+  IN CHAR16              *RequestString
   )
 {
-  UINT8                 Count;
-  CHAR8                 *OldPassword;
-  UINT32                OldPasswordLen;
-  CHAR8                 *Password;
-  UINT32                PasswordLen;
-  CHAR8                 *PasswordConfirm;
-  UINT32                PasswordLenConfirm;
-  OPAL_SESSION          Session;
-  BOOLEAN               PressEsc;
-  EFI_INPUT_KEY         Key;
-  TCG_RESULT            Ret;
-  CHAR16                *PopUpString;
+  UINT8          Count;
+  CHAR8          *OldPassword;
+  UINT32         OldPasswordLen;
+  CHAR8          *Password;
+  UINT32         PasswordLen;
+  CHAR8          *PasswordConfirm;
+  UINT32         PasswordLenConfirm;
+  OPAL_SESSION   Session;
+  BOOLEAN        PressEsc;
+  EFI_INPUT_KEY  Key;
+  TCG_RESULT     Ret;
+  CHAR16         *PopUpString;
 
   if (Dev == NULL) {
     return;
   }
 
-  DEBUG ((DEBUG_INFO, "%a()\n", __FUNCTION__));
+  DEBUG ((DEBUG_INFO, "%a()\n", __func__));
 
   PopUpString = OpalGetPopUpString (Dev, RequestString);
 
@@ -1970,38 +2003,39 @@ ProcessOpalRequestSetAdminPwd (
   while (Count < MAX_PASSWORD_TRY_COUNT) {
     OldPassword = OpalDriverPopUpPasswordInput (Dev, PopUpString, L"Please type in your password", NULL, &PressEsc);
     if (PressEsc) {
-        do {
-          CreatePopUp (
-            EFI_LIGHTGRAY | EFI_BACKGROUND_BLUE,
-            &Key,
-            L"Press ENTER to skip the request and continue boot,",
-            L"Press ESC to input password again",
-            NULL
-            );
-        } while ((Key.ScanCode != SCAN_ESC) && (Key.UnicodeChar != CHAR_CARRIAGE_RETURN));
+      do {
+        CreatePopUp (
+          EFI_LIGHTGRAY | EFI_BACKGROUND_BLUE,
+          &Key,
+          L"Press ENTER to skip the request and continue boot,",
+          L"Press ESC to input password again",
+          NULL
+          );
+      } while ((Key.ScanCode != SCAN_ESC) && (Key.UnicodeChar != CHAR_CARRIAGE_RETURN));
 
-        if (Key.UnicodeChar == CHAR_CARRIAGE_RETURN) {
-          gST->ConOut->ClearScreen(gST->ConOut);
-          return;
-        } else {
-          //
-          // Let user input password again.
-          //
-          continue;
-        }
+      if (Key.UnicodeChar == CHAR_CARRIAGE_RETURN) {
+        gST->ConOut->ClearScreen (gST->ConOut);
+        return;
+      } else {
+        //
+        // Let user input password again.
+        //
+        continue;
+      }
     }
 
     if (OldPassword == NULL) {
-      Count ++;
+      Count++;
       continue;
     }
-    OldPasswordLen = (UINT32) AsciiStrLen(OldPassword);
 
-    ZeroMem(&Session, sizeof(Session));
-    Session.Sscp = Dev->OpalDisk.Sscp;
-    Session.MediaId = Dev->OpalDisk.MediaId;
+    OldPasswordLen = (UINT32)AsciiStrLen (OldPassword);
+
+    ZeroMem (&Session, sizeof (Session));
+    Session.Sscp          = Dev->OpalDisk.Sscp;
+    Session.MediaId       = Dev->OpalDisk.MediaId;
     Session.OpalBaseComId = Dev->OpalDisk.OpalBaseComId;
-    Ret = OpalUtilVerifyPassword (&Session, OldPassword, OldPasswordLen, OPAL_LOCKING_SP_ADMIN1_AUTHORITY);
+    Ret                   = OpalUtilVerifyPassword (&Session, OldPassword, OldPasswordLen, OPAL_LOCKING_SP_ADMIN1_AUTHORITY);
     if (Ret == TcgResultSuccess) {
       DEBUG ((DEBUG_INFO, "Verify: Success\n"));
     } else {
@@ -2017,7 +2051,8 @@ ProcessOpalRequestSetAdminPwd (
           NULL
           );
       } while (Key.UnicodeChar != CHAR_CARRIAGE_RETURN);
-      Count ++;
+
+      Count++;
       continue;
     }
 
@@ -2025,10 +2060,11 @@ ProcessOpalRequestSetAdminPwd (
     if (Password == NULL) {
       ZeroMem (OldPassword, OldPasswordLen);
       FreePool (OldPassword);
-      Count ++;
+      Count++;
       continue;
     }
-    PasswordLen = (UINT32) AsciiStrLen(Password);
+
+    PasswordLen = (UINT32)AsciiStrLen (Password);
 
     PasswordConfirm = OpalDriverPopUpPasswordInput (Dev, PopUpString, L"Please confirm your new password", NULL, &PressEsc);
     if (PasswordConfirm == NULL) {
@@ -2036,12 +2072,14 @@ ProcessOpalRequestSetAdminPwd (
       FreePool (OldPassword);
       ZeroMem (Password, PasswordLen);
       FreePool (Password);
-      Count ++;
+      Count++;
       continue;
     }
-    PasswordLenConfirm = (UINT32) AsciiStrLen(PasswordConfirm);
+
+    PasswordLenConfirm = (UINT32)AsciiStrLen (PasswordConfirm);
     if ((PasswordLen != PasswordLenConfirm) ||
-        (CompareMem (Password, PasswordConfirm, PasswordLen) != 0)) {
+        (CompareMem (Password, PasswordConfirm, PasswordLen) != 0))
+    {
       ZeroMem (OldPassword, OldPasswordLen);
       FreePool (OldPassword);
       ZeroMem (Password, PasswordLen);
@@ -2057,7 +2095,8 @@ ProcessOpalRequestSetAdminPwd (
           NULL
           );
       } while (Key.UnicodeChar != CHAR_CARRIAGE_RETURN);
-      Count ++;
+
+      Count++;
       continue;
     }
 
@@ -2066,18 +2105,17 @@ ProcessOpalRequestSetAdminPwd (
       FreePool (PasswordConfirm);
     }
 
-
-    ZeroMem(&Session, sizeof(Session));
-    Session.Sscp = Dev->OpalDisk.Sscp;
-    Session.MediaId = Dev->OpalDisk.MediaId;
+    ZeroMem (&Session, sizeof (Session));
+    Session.Sscp          = Dev->OpalDisk.Sscp;
+    Session.MediaId       = Dev->OpalDisk.MediaId;
     Session.OpalBaseComId = Dev->OpalDisk.OpalBaseComId;
-    Ret = OpalUtilSetAdminPassword(
-            &Session,
-            OldPassword,
-            OldPasswordLen,
-            Password,
-            PasswordLen
-            );
+    Ret                   = OpalUtilSetAdminPassword (
+                              &Session,
+                              OldPassword,
+                              OldPasswordLen,
+                              Password,
+                              PasswordLen
+                              );
     if (Ret == TcgResultSuccess) {
       OpalSupportUpdatePassword (&Dev->OpalDisk, Password, PasswordLen);
       DEBUG ((DEBUG_INFO, "%s Success\n", RequestString));
@@ -2122,7 +2160,8 @@ ProcessOpalRequestSetAdminPwd (
         NULL
         );
     } while (Key.UnicodeChar != CHAR_CARRIAGE_RETURN);
-    gST->ConOut->ClearScreen(gST->ConOut);
+
+    gST->ConOut->ClearScreen (gST->ConOut);
   }
 }
 
@@ -2134,7 +2173,7 @@ ProcessOpalRequestSetAdminPwd (
 **/
 VOID
 ProcessOpalRequest (
-  IN OPAL_DRIVER_DEVICE     *Dev
+  IN OPAL_DRIVER_DEVICE  *Dev
   )
 {
   EFI_STATUS                Status;
@@ -2147,19 +2186,20 @@ ProcessOpalRequest (
   UINTN                     DevicePathSize;
   BOOLEAN                   KeepUserData;
 
-  DEBUG ((DEBUG_INFO, "%a() - enter\n", __FUNCTION__));
+  DEBUG ((DEBUG_INFO, "%a() - enter\n", __func__));
 
   if (mOpalRequestVariable == NULL) {
     Status = GetVariable2 (
                OPAL_REQUEST_VARIABLE_NAME,
                &gHiiSetupVariableGuid,
-               (VOID **) &Variable,
+               (VOID **)&Variable,
                &VariableSize
                );
     if (EFI_ERROR (Status) || (Variable == NULL)) {
       return;
     }
-    mOpalRequestVariable = Variable;
+
+    mOpalRequestVariable     = Variable;
     mOpalRequestVariableSize = VariableSize;
 
     //
@@ -2167,14 +2207,14 @@ ProcessOpalRequest (
     //
     Status = gRT->SetVariable (
                     OPAL_REQUEST_VARIABLE_NAME,
-                    (EFI_GUID *) &gHiiSetupVariableGuid,
+                    (EFI_GUID *)&gHiiSetupVariableGuid,
                     0,
                     0,
                     NULL
                     );
     ASSERT_EFI_ERROR (Status);
   } else {
-    Variable = mOpalRequestVariable;
+    Variable     = mOpalRequestVariable;
     VariableSize = mOpalRequestVariableSize;
   }
 
@@ -2184,39 +2224,47 @@ ProcessOpalRequest (
   TempVariable = Variable;
   while ((VariableSize > sizeof (OPAL_REQUEST_VARIABLE)) &&
          (VariableSize >= TempVariable->Length) &&
-         (TempVariable->Length > sizeof (OPAL_REQUEST_VARIABLE))) {
-    DevicePathInVariable = (EFI_DEVICE_PATH_PROTOCOL *) ((UINTN) TempVariable + sizeof (OPAL_REQUEST_VARIABLE));
+         (TempVariable->Length > sizeof (OPAL_REQUEST_VARIABLE)))
+  {
+    DevicePathInVariable     = (EFI_DEVICE_PATH_PROTOCOL *)((UINTN)TempVariable + sizeof (OPAL_REQUEST_VARIABLE));
     DevicePathSizeInVariable = GetDevicePathSize (DevicePathInVariable);
-    DevicePath = Dev->OpalDisk.OpalDevicePath;
-    DevicePathSize = GetDevicePathSize (DevicePath);
+    DevicePath               = Dev->OpalDisk.OpalDevicePath;
+    DevicePathSize           = GetDevicePathSize (DevicePath);
     if ((DevicePathSize == DevicePathSizeInVariable) &&
-        (CompareMem (DevicePath, DevicePathInVariable, DevicePathSize) == 0)) {
+        (CompareMem (DevicePath, DevicePathInVariable, DevicePathSize) == 0))
+    {
       //
       // Found the node for the OPAL device.
       //
       if (TempVariable->OpalRequest.SetAdminPwd != 0) {
         ProcessOpalRequestSetAdminPwd (Dev, L"Update Admin Pwd:");
       }
+
       if (TempVariable->OpalRequest.SetUserPwd != 0) {
         ProcessOpalRequestSetUserPwd (Dev, L"Set User Pwd:");
       }
-      if (TempVariable->OpalRequest.SecureErase!= 0) {
+
+      if (TempVariable->OpalRequest.SecureErase != 0) {
         ProcessOpalRequestSecureErase (Dev, L"Secure Erase:");
       }
+
       if (TempVariable->OpalRequest.Revert != 0) {
-        KeepUserData = (BOOLEAN) TempVariable->OpalRequest.KeepUserData;
+        KeepUserData = (BOOLEAN)TempVariable->OpalRequest.KeepUserData;
         ProcessOpalRequestRevert (
           Dev,
           KeepUserData,
           KeepUserData ? L"Admin Revert(keep):" : L"Admin Revert:"
           );
       }
+
       if (TempVariable->OpalRequest.PsidRevert != 0) {
         ProcessOpalRequestPsidRevert (Dev, L"Psid Revert:");
       }
+
       if (TempVariable->OpalRequest.DisableUser != 0) {
         ProcessOpalRequestDisableUser (Dev, L"Disable User:");
       }
+
       if (TempVariable->OpalRequest.EnableFeature != 0) {
         ProcessOpalRequestEnableFeature (Dev, L"Enable Feature:");
       }
@@ -2231,10 +2279,10 @@ ProcessOpalRequest (
     }
 
     VariableSize -= TempVariable->Length;
-    TempVariable = (OPAL_REQUEST_VARIABLE *) ((UINTN) TempVariable + TempVariable->Length);
+    TempVariable  = (OPAL_REQUEST_VARIABLE *)((UINTN)TempVariable + TempVariable->Length);
   }
 
-  DEBUG ((DEBUG_INFO, "%a() - exit\n", __FUNCTION__));
+  DEBUG ((DEBUG_INFO, "%a() - exit\n", __func__));
 }
 
 /**
@@ -2244,11 +2292,11 @@ ProcessOpalRequest (
 
 **/
 VOID
-AddDeviceToTail(
-  IN OPAL_DRIVER_DEVICE    *Dev
+AddDeviceToTail (
+  IN OPAL_DRIVER_DEVICE  *Dev
   )
 {
-  OPAL_DRIVER_DEVICE                *TmpDev;
+  OPAL_DRIVER_DEVICE  *TmpDev;
 
   if (mOpalDriver.DeviceList == NULL) {
     mOpalDriver.DeviceList = Dev;
@@ -2270,10 +2318,10 @@ AddDeviceToTail(
 **/
 VOID
 RemoveDevice (
-  IN OPAL_DRIVER_DEVICE    *Dev
+  IN OPAL_DRIVER_DEVICE  *Dev
   )
 {
-  OPAL_DRIVER_DEVICE                *TmpDev;
+  OPAL_DRIVER_DEVICE  *TmpDev;
 
   if (mOpalDriver.DeviceList == NULL) {
     return;
@@ -2304,10 +2352,10 @@ GetDeviceCount (
   VOID
   )
 {
-  UINT8                Count;
-  OPAL_DRIVER_DEVICE   *TmpDev;
+  UINT8               Count;
+  OPAL_DRIVER_DEVICE  *TmpDev;
 
-  Count = 0;
+  Count  = 0;
   TmpDev = mOpalDriver.DeviceList;
 
   while (TmpDev != NULL) {
@@ -2323,8 +2371,8 @@ GetDeviceCount (
 
   @retval     return the device list pointer.
 **/
-OPAL_DRIVER_DEVICE*
-OpalDriverGetDeviceList(
+OPAL_DRIVER_DEVICE *
+OpalDriverGetDeviceList (
   VOID
   )
 {
@@ -2339,38 +2387,38 @@ OpalDriverGetDeviceList(
 **/
 VOID
 OpalDriverStopDevice (
-  OPAL_DRIVER_DEVICE     *Dev
+  OPAL_DRIVER_DEVICE  *Dev
   )
 {
   //
   // free each name
   //
-  FreePool(Dev->Name16);
+  FreePool (Dev->Name16);
 
   //
   // remove OPAL_DRIVER_DEVICE from the list
   // it updates the controllerList pointer
   //
-  RemoveDevice(Dev);
+  RemoveDevice (Dev);
 
   //
   // close protocols that were opened
   //
-  gBS->CloseProtocol(
-    Dev->Handle,
-    &gEfiStorageSecurityCommandProtocolGuid,
-    gOpalDriverBinding.DriverBindingHandle,
-    Dev->Handle
-    );
+  gBS->CloseProtocol (
+         Dev->Handle,
+         &gEfiStorageSecurityCommandProtocolGuid,
+         gOpalDriverBinding.DriverBindingHandle,
+         Dev->Handle
+         );
 
-  gBS->CloseProtocol(
-    Dev->Handle,
-    &gEfiBlockIoProtocolGuid,
-    gOpalDriverBinding.DriverBindingHandle,
-    Dev->Handle
-    );
+  gBS->CloseProtocol (
+         Dev->Handle,
+         &gEfiBlockIoProtocolGuid,
+         gOpalDriverBinding.DriverBindingHandle,
+         Dev->Handle
+         );
 
-  FreePool(Dev);
+  FreePool (Dev);
 }
 
 /**
@@ -2385,26 +2433,26 @@ OpalDriverStopDevice (
   @retval     FALSE       Not found the name for this device.
 **/
 BOOLEAN
-OpalDriverGetDeviceNameByProtocol(
-  EFI_HANDLE             *AllHandlesBuffer,
-  UINTN                  NumAllHandles,
-  OPAL_DRIVER_DEVICE     *Dev,
-  BOOLEAN                UseComp1
+OpalDriverGetDeviceNameByProtocol (
+  EFI_HANDLE          *AllHandlesBuffer,
+  UINTN               NumAllHandles,
+  OPAL_DRIVER_DEVICE  *Dev,
+  BOOLEAN             UseComp1
   )
 {
-  EFI_HANDLE*                   ProtocolHandlesBuffer;
+  EFI_HANDLE                    *ProtocolHandlesBuffer;
   UINTN                         NumProtocolHandles;
   EFI_STATUS                    Status;
-  EFI_COMPONENT_NAME2_PROTOCOL* Cnp1_2; // efi component name and componentName2 have same layout
+  EFI_COMPONENT_NAME2_PROTOCOL  *Cnp1_2; // efi component name and componentName2 have same layout
   EFI_GUID                      Protocol;
   UINTN                         StrLength;
-  EFI_DEVICE_PATH_PROTOCOL*     TmpDevPath;
+  EFI_DEVICE_PATH_PROTOCOL      *TmpDevPath;
   UINTN                         Index1;
   UINTN                         Index2;
   EFI_HANDLE                    TmpHandle;
   CHAR16                        *DevName;
 
-  if (Dev == NULL || AllHandlesBuffer == NULL || NumAllHandles == 0) {
+  if ((Dev == NULL) || (AllHandlesBuffer == NULL) || (NumAllHandles == 0)) {
     return FALSE;
   }
 
@@ -2413,17 +2461,16 @@ OpalDriverGetDeviceNameByProtocol(
   //
   // Find all EFI_HANDLES with protocol
   //
-  Status = gBS->LocateHandleBuffer(
-               ByProtocol,
-               &Protocol,
-               NULL,
-               &NumProtocolHandles,
-               &ProtocolHandlesBuffer
-               );
-  if (EFI_ERROR(Status)) {
+  Status = gBS->LocateHandleBuffer (
+                  ByProtocol,
+                  &Protocol,
+                  NULL,
+                  &NumProtocolHandles,
+                  &ProtocolHandlesBuffer
+                  );
+  if (EFI_ERROR (Status)) {
     return FALSE;
   }
-
 
   //
   // Exit early if no supported devices
@@ -2448,15 +2495,15 @@ OpalDriverGetDeviceNameByProtocol(
 
     TmpHandle = ProtocolHandlesBuffer[Index1];
 
-    Status = gBS->OpenProtocol(
-                 TmpHandle,
-                 &Protocol,
-                 (VOID**)&Cnp1_2,
-                 gImageHandle,
-                 NULL,
-                 EFI_OPEN_PROTOCOL_GET_PROTOCOL
-                 );
-    if (EFI_ERROR(Status) || Cnp1_2 == NULL) {
+    Status = gBS->OpenProtocol (
+                    TmpHandle,
+                    &Protocol,
+                    (VOID **)&Cnp1_2,
+                    gImageHandle,
+                    NULL,
+                    EFI_OPEN_PROTOCOL_GET_PROTOCOL
+                    );
+    if (EFI_ERROR (Status) || (Cnp1_2 == NULL)) {
       continue;
     }
 
@@ -2464,53 +2511,55 @@ OpalDriverGetDeviceNameByProtocol(
     // Use all handles array as controller handle
     //
     for (Index2 = 0; Index2 < NumAllHandles; Index2++) {
-      Status = Cnp1_2->GetControllerName(
-                   Cnp1_2,
-                   AllHandlesBuffer[Index2],
-                   Dev->Handle,
-                   LANGUAGE_ISO_639_2_ENGLISH,
-                   &DevName
-                   );
-      if (EFI_ERROR(Status)) {
-        Status = Cnp1_2->GetControllerName(
-                     Cnp1_2,
-                     AllHandlesBuffer[Index2],
-                     Dev->Handle,
-                     LANGUAGE_RFC_3066_ENGLISH,
-                     &DevName
-                     );
+      Status = Cnp1_2->GetControllerName (
+                         Cnp1_2,
+                         AllHandlesBuffer[Index2],
+                         Dev->Handle,
+                         LANGUAGE_ISO_639_2_ENGLISH,
+                         &DevName
+                         );
+      if (EFI_ERROR (Status)) {
+        Status = Cnp1_2->GetControllerName (
+                           Cnp1_2,
+                           AllHandlesBuffer[Index2],
+                           Dev->Handle,
+                           LANGUAGE_RFC_3066_ENGLISH,
+                           &DevName
+                           );
       }
-      if (!EFI_ERROR(Status) && DevName != NULL) {
-        StrLength = StrLen(DevName) + 1;        // Add one for NULL terminator
-        Dev->Name16 = AllocateZeroPool(StrLength * sizeof (CHAR16));
+
+      if (!EFI_ERROR (Status) && (DevName != NULL)) {
+        StrLength   = StrLen (DevName) + 1;     // Add one for NULL terminator
+        Dev->Name16 = AllocateZeroPool (StrLength * sizeof (CHAR16));
         ASSERT (Dev->Name16 != NULL);
         StrCpyS (Dev->Name16, StrLength, DevName);
-        Dev->NameZ = (CHAR8*)AllocateZeroPool(StrLength);
+        Dev->NameZ = (CHAR8 *)AllocateZeroPool (StrLength);
         UnicodeStrToAsciiStrS (DevName, Dev->NameZ, StrLength);
 
         //
         // Retrieve bridge BDF info and port number or namespace depending on type
         //
         TmpDevPath = NULL;
-        Status = gBS->OpenProtocol(
-            Dev->Handle,
-            &gEfiDevicePathProtocolGuid,
-            (VOID**)&TmpDevPath,
-            gImageHandle,
-            NULL,
-            EFI_OPEN_PROTOCOL_GET_PROTOCOL
-            );
-        if (!EFI_ERROR(Status)) {
+        Status     = gBS->OpenProtocol (
+                            Dev->Handle,
+                            &gEfiDevicePathProtocolGuid,
+                            (VOID **)&TmpDevPath,
+                            gImageHandle,
+                            NULL,
+                            EFI_OPEN_PROTOCOL_GET_PROTOCOL
+                            );
+        if (!EFI_ERROR (Status)) {
           Dev->OpalDevicePath = DuplicateDevicePath (TmpDevPath);
           return TRUE;
         }
 
         if (Dev->Name16 != NULL) {
-          FreePool(Dev->Name16);
+          FreePool (Dev->Name16);
           Dev->Name16 = NULL;
         }
+
         if (Dev->NameZ != NULL) {
-          FreePool(Dev->NameZ);
+          FreePool (Dev->NameZ);
           Dev->NameZ = NULL;
         }
       }
@@ -2529,16 +2578,16 @@ OpalDriverGetDeviceNameByProtocol(
   @retval     FALSE       Not found the name for this device.
 **/
 BOOLEAN
-OpalDriverGetDriverDeviceName(
-  OPAL_DRIVER_DEVICE          *Dev
+OpalDriverGetDriverDeviceName (
+  OPAL_DRIVER_DEVICE  *Dev
   )
 {
-  EFI_HANDLE*                  AllHandlesBuffer;
-  UINTN                        NumAllHandles;
-  EFI_STATUS                   Status;
+  EFI_HANDLE  *AllHandlesBuffer;
+  UINTN       NumAllHandles;
+  EFI_STATUS  Status;
 
   if (Dev == NULL) {
-    DEBUG((DEBUG_ERROR | DEBUG_INIT, "OpalDriverGetDriverDeviceName Exiting, Dev=NULL\n"));
+    DEBUG ((DEBUG_ERROR | DEBUG_INIT, "OpalDriverGetDriverDeviceName Exiting, Dev=NULL\n"));
     return FALSE;
   }
 
@@ -2546,29 +2595,29 @@ OpalDriverGetDriverDeviceName(
   // Iterate through ComponentName2 handles to get name, if fails, try ComponentName
   //
   if (Dev->Name16 == NULL) {
-    DEBUG((DEBUG_ERROR | DEBUG_INIT, "Name is null, update it\n"));
+    DEBUG ((DEBUG_ERROR | DEBUG_INIT, "Name is null, update it\n"));
     //
     // Find all EFI_HANDLES
     //
-    Status = gBS->LocateHandleBuffer(
-                 AllHandles,
-                 NULL,
-                 NULL,
-                 &NumAllHandles,
-                 &AllHandlesBuffer
-                 );
-    if (EFI_ERROR(Status)) {
-      DEBUG ((DEBUG_INFO, "LocateHandleBuffer for AllHandles failed %r\n", Status ));
+    Status = gBS->LocateHandleBuffer (
+                    AllHandles,
+                    NULL,
+                    NULL,
+                    &NumAllHandles,
+                    &AllHandlesBuffer
+                    );
+    if (EFI_ERROR (Status)) {
+      DEBUG ((DEBUG_INFO, "LocateHandleBuffer for AllHandles failed %r\n", Status));
       return FALSE;
     }
 
     //
     // Try component Name2
     //
-    if (!OpalDriverGetDeviceNameByProtocol(AllHandlesBuffer, NumAllHandles, Dev, FALSE)) {
-      DEBUG((DEBUG_ERROR | DEBUG_INIT, "ComponentName2 failed to get device name, try ComponentName\n"));
-      if (!OpalDriverGetDeviceNameByProtocol(AllHandlesBuffer, NumAllHandles, Dev, TRUE)) {
-        DEBUG((DEBUG_ERROR | DEBUG_INIT, "ComponentName failed to get device name, skip device\n"));
+    if (!OpalDriverGetDeviceNameByProtocol (AllHandlesBuffer, NumAllHandles, Dev, FALSE)) {
+      DEBUG ((DEBUG_ERROR | DEBUG_INIT, "ComponentName2 failed to get device name, try ComponentName\n"));
+      if (!OpalDriverGetDeviceNameByProtocol (AllHandlesBuffer, NumAllHandles, Dev, TRUE)) {
+        DEBUG ((DEBUG_ERROR | DEBUG_INIT, "ComponentName failed to get device name, skip device\n"));
         return FALSE;
       }
     }
@@ -2587,13 +2636,13 @@ OpalDriverGetDriverDeviceName(
 **/
 EFI_STATUS
 EFIAPI
-EfiDriverEntryPoint(
-  IN EFI_HANDLE         ImageHandle,
-  IN EFI_SYSTEM_TABLE*  SystemTable
+EfiDriverEntryPoint (
+  IN EFI_HANDLE        ImageHandle,
+  IN EFI_SYSTEM_TABLE  *SystemTable
   )
 {
-  EFI_STATUS                     Status;
-  EFI_EVENT                      EndOfDxeEvent;
+  EFI_STATUS  Status;
+  EFI_EVENT   EndOfDxeEvent;
 
   Status = EfiLibInstallDriverBindingComponentName2 (
              ImageHandle,
@@ -2604,15 +2653,15 @@ EfiDriverEntryPoint(
              &gOpalComponentName2
              );
 
-  if (EFI_ERROR(Status)) {
-    DEBUG((DEBUG_ERROR, "Install protocols to Opal driver Handle failed\n"));
-    return Status ;
+  if (EFI_ERROR (Status)) {
+    DEBUG ((DEBUG_ERROR, "Install protocols to Opal driver Handle failed\n"));
+    return Status;
   }
 
   //
   // Initialize Driver object
   //
-  ZeroMem(&mOpalDriver, sizeof(mOpalDriver));
+  ZeroMem (&mOpalDriver, sizeof (mOpalDriver));
   mOpalDriver.Handle = ImageHandle;
 
   Status = gBS->CreateEventEx (
@@ -2628,7 +2677,7 @@ EfiDriverEntryPoint(
   //
   // Install Hii packages.
   //
-  HiiInstall();
+  HiiInstall ();
 
   return Status;
 }
@@ -2659,14 +2708,14 @@ EfiDriverEntryPoint(
 **/
 EFI_STATUS
 EFIAPI
-OpalEfiDriverBindingSupported(
-  IN EFI_DRIVER_BINDING_PROTOCOL* This,
+OpalEfiDriverBindingSupported (
+  IN EFI_DRIVER_BINDING_PROTOCOL  *This,
   IN EFI_HANDLE                   Controller,
-  IN EFI_DEVICE_PATH_PROTOCOL*    RemainingDevicePath
+  IN EFI_DEVICE_PATH_PROTOCOL     *RemainingDevicePath
   )
 {
-  EFI_STATUS                              Status;
-  EFI_STORAGE_SECURITY_COMMAND_PROTOCOL*  SecurityCommand;
+  EFI_STATUS                             Status;
+  EFI_STORAGE_SECURITY_COMMAND_PROTOCOL  *SecurityCommand;
 
   if (mOpalEndOfDxe) {
     return EFI_UNSUPPORTED;
@@ -2675,33 +2724,32 @@ OpalEfiDriverBindingSupported(
   //
   // Test EFI_STORAGE_SECURITY_COMMAND_PROTOCOL on controller Handle.
   //
-  Status = gBS->OpenProtocol(
-    Controller,
-    &gEfiStorageSecurityCommandProtocolGuid,
-    ( VOID ** )&SecurityCommand,
-    This->DriverBindingHandle,
-    Controller,
-    EFI_OPEN_PROTOCOL_BY_DRIVER
-    );
+  Status = gBS->OpenProtocol (
+                  Controller,
+                  &gEfiStorageSecurityCommandProtocolGuid,
+                  (VOID **)&SecurityCommand,
+                  This->DriverBindingHandle,
+                  Controller,
+                  EFI_OPEN_PROTOCOL_BY_DRIVER
+                  );
 
   if (Status == EFI_ALREADY_STARTED) {
     return EFI_SUCCESS;
   }
 
-  if (EFI_ERROR(Status)) {
+  if (EFI_ERROR (Status)) {
     return Status;
   }
 
   //
   // Close protocol and reopen in Start call
   //
-  gBS->CloseProtocol(
-      Controller,
-      &gEfiStorageSecurityCommandProtocolGuid,
-      This->DriverBindingHandle,
-      Controller
-      );
-
+  gBS->CloseProtocol (
+         Controller,
+         &gEfiStorageSecurityCommandProtocolGuid,
+         This->DriverBindingHandle,
+         Controller
+         );
 
   return EFI_SUCCESS;
 }
@@ -2739,23 +2787,24 @@ OpalEfiDriverBindingSupported(
 **/
 EFI_STATUS
 EFIAPI
-OpalEfiDriverBindingStart(
-  IN EFI_DRIVER_BINDING_PROTOCOL* This,
+OpalEfiDriverBindingStart (
+  IN EFI_DRIVER_BINDING_PROTOCOL  *This,
   IN EFI_HANDLE                   Controller,
-  IN EFI_DEVICE_PATH_PROTOCOL*    RemainingDevicePath
+  IN EFI_DEVICE_PATH_PROTOCOL     *RemainingDevicePath
   )
 {
-  EFI_STATUS                  Status;
-  EFI_BLOCK_IO_PROTOCOL       *BlkIo;
-  OPAL_DRIVER_DEVICE          *Dev;
-  OPAL_DRIVER_DEVICE          *Itr;
-  BOOLEAN                     Result;
+  EFI_STATUS             Status;
+  EFI_BLOCK_IO_PROTOCOL  *BlkIo;
+  OPAL_DRIVER_DEVICE     *Dev;
+  OPAL_DRIVER_DEVICE     *Itr;
+  BOOLEAN                Result;
 
   Itr = mOpalDriver.DeviceList;
   while (Itr != NULL) {
     if (Controller == Itr->Handle) {
       return EFI_SUCCESS;
     }
+
     Itr = Itr->Next;
   }
 
@@ -2763,25 +2812,26 @@ OpalEfiDriverBindingStart(
   // Create internal device for tracking.  This allows all disks to be tracked
   // by same HII form
   //
-  Dev = (OPAL_DRIVER_DEVICE*)AllocateZeroPool(sizeof(OPAL_DRIVER_DEVICE));
+  Dev = (OPAL_DRIVER_DEVICE *)AllocateZeroPool (sizeof (OPAL_DRIVER_DEVICE));
   if (Dev == NULL) {
     return EFI_OUT_OF_RESOURCES;
   }
+
   Dev->Handle = Controller;
 
   //
   // Open EFI_STORAGE_SECURITY_COMMAND_PROTOCOL to perform Opal supported checks
   //
-  Status = gBS->OpenProtocol(
-    Controller,
-    &gEfiStorageSecurityCommandProtocolGuid,
-    (VOID **)&Dev->Sscp,
-    This->DriverBindingHandle,
-    Controller,
-    EFI_OPEN_PROTOCOL_BY_DRIVER
-    );
-  if (EFI_ERROR(Status)) {
-    FreePool(Dev);
+  Status = gBS->OpenProtocol (
+                  Controller,
+                  &gEfiStorageSecurityCommandProtocolGuid,
+                  (VOID **)&Dev->Sscp,
+                  This->DriverBindingHandle,
+                  Controller,
+                  EFI_OPEN_PROTOCOL_BY_DRIVER
+                  );
+  if (EFI_ERROR (Status)) {
+    FreePool (Dev);
     return Status;
   }
 
@@ -2789,32 +2839,32 @@ OpalEfiDriverBindingStart(
   // Open EFI_BLOCK_IO_PROTOCOL on controller Handle, required by EFI_STORAGE_SECURITY_COMMAND_PROTOCOL
   // function APIs
   //
-  Status = gBS->OpenProtocol(
-    Controller,
-    &gEfiBlockIoProtocolGuid,
-    (VOID **)&BlkIo,
-    This->DriverBindingHandle,
-    Controller,
-    EFI_OPEN_PROTOCOL_BY_DRIVER
-    );
-  if (EFI_ERROR(Status)) {
+  Status = gBS->OpenProtocol (
+                  Controller,
+                  &gEfiBlockIoProtocolGuid,
+                  (VOID **)&BlkIo,
+                  This->DriverBindingHandle,
+                  Controller,
+                  EFI_OPEN_PROTOCOL_BY_DRIVER
+                  );
+  if (EFI_ERROR (Status)) {
     //
     // Block_IO not supported on handle
     //
-    if(Status == EFI_UNSUPPORTED) {
+    if (Status == EFI_UNSUPPORTED) {
       BlkIo = NULL;
     } else {
       //
       // Close storage security that was opened
       //
-      gBS->CloseProtocol(
-          Controller,
-          &gEfiStorageSecurityCommandProtocolGuid,
-          This->DriverBindingHandle,
-          Controller
-          );
+      gBS->CloseProtocol (
+             Controller,
+             &gEfiStorageSecurityCommandProtocolGuid,
+             This->DriverBindingHandle,
+             Controller
+             );
 
-      FreePool(Dev);
+      FreePool (Dev);
       return Status;
     }
   }
@@ -2822,18 +2872,18 @@ OpalEfiDriverBindingStart(
   //
   // Save mediaId
   //
-  if(BlkIo == NULL) {
+  if (BlkIo == NULL) {
     // If no Block IO present, use defined MediaId value.
     Dev->MediaId = 0x0;
   } else {
     Dev->MediaId = BlkIo->Media->MediaId;
 
-    gBS->CloseProtocol(
-      Controller,
-      &gEfiBlockIoProtocolGuid,
-      This->DriverBindingHandle,
-      Controller
-    );
+    gBS->CloseProtocol (
+           Controller,
+           &gEfiBlockIoProtocolGuid,
+           This->DriverBindingHandle,
+           Controller
+           );
   }
 
   //
@@ -2849,7 +2899,7 @@ OpalEfiDriverBindingStart(
     goto Done;
   }
 
-  AddDeviceToTail(Dev);
+  AddDeviceToTail (Dev);
 
   //
   // Check if device is locked and prompt for password.
@@ -2867,14 +2917,14 @@ Done:
   //
   // free device, close protocols and exit
   //
-  gBS->CloseProtocol(
-      Controller,
-      &gEfiStorageSecurityCommandProtocolGuid,
-      This->DriverBindingHandle,
-      Controller
-      );
+  gBS->CloseProtocol (
+         Controller,
+         &gEfiStorageSecurityCommandProtocolGuid,
+         This->DriverBindingHandle,
+         Controller
+         );
 
-  FreePool(Dev);
+  FreePool (Dev);
 
   return EFI_DEVICE_ERROR;
 }
@@ -2894,14 +2944,14 @@ Done:
 **/
 EFI_STATUS
 EFIAPI
-OpalEfiDriverBindingStop(
-  EFI_DRIVER_BINDING_PROTOCOL*    This,
-  EFI_HANDLE                      Controller,
-  UINTN                           NumberOfChildren,
-  EFI_HANDLE*                     ChildHandleBuffer
+OpalEfiDriverBindingStop (
+  EFI_DRIVER_BINDING_PROTOCOL  *This,
+  EFI_HANDLE                   Controller,
+  UINTN                        NumberOfChildren,
+  EFI_HANDLE                   *ChildHandleBuffer
   )
 {
-  OPAL_DRIVER_DEVICE*   Itr;
+  OPAL_DRIVER_DEVICE  *Itr;
 
   Itr = mOpalDriver.DeviceList;
 
@@ -2920,7 +2970,6 @@ OpalEfiDriverBindingStop(
   return EFI_NOT_FOUND;
 }
 
-
 /**
   Unloads UEFI Driver.  Very useful for debugging and testing.
 
@@ -2932,11 +2981,11 @@ OpalEfiDriverBindingStop(
 EFI_STATUS
 EFIAPI
 OpalEfiDriverUnload (
-  IN EFI_HANDLE ImageHandle
+  IN EFI_HANDLE  ImageHandle
   )
 {
-  EFI_STATUS                     Status;
-  OPAL_DRIVER_DEVICE                   *Itr;
+  EFI_STATUS          Status;
+  OPAL_DRIVER_DEVICE  *Itr;
 
   Status = EFI_SUCCESS;
 
@@ -2953,14 +3002,13 @@ OpalEfiDriverUnload (
     // Remove OPAL_DRIVER_DEVICE from the list
     // it updates the controllerList pointer
     //
-    OpalDriverStopDevice(Itr);
+    OpalDriverStopDevice (Itr);
   }
 
   //
   // Uninstall the HII capability
   //
-  Status = HiiUninstall();
+  Status = HiiUninstall ();
 
   return Status;
 }
-

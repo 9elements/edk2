@@ -10,6 +10,15 @@
 
 #include "Dhcp6Impl.h"
 
+//
+// Verifies the packet cursor is within the packet
+// otherwise it is invalid
+//
+#define IS_INVALID_PACKET_CURSOR(PacketCursor, Packet) \
+  (((*PacketCursor) < (Packet)->Dhcp6.Option) || \
+   ((*PacketCursor) >= (Packet)->Dhcp6.Option + ((Packet)->Size - sizeof(EFI_DHCP6_HEADER))) \
+  )                                                                            \
+
 
 /**
   Generate client Duid in the format of Duid-llt.
@@ -22,21 +31,20 @@
 **/
 EFI_DHCP6_DUID *
 Dhcp6GenerateClientId (
-  IN EFI_SIMPLE_NETWORK_MODE   *Mode
+  IN EFI_SIMPLE_NETWORK_MODE  *Mode
   )
 {
-  EFI_STATUS                Status;
-  EFI_DHCP6_DUID            *Duid;
-  EFI_TIME                  Time;
-  UINT32                    Stamp;
-  EFI_GUID                  Uuid;
-
+  EFI_STATUS      Status;
+  EFI_DHCP6_DUID  *Duid;
+  EFI_TIME        Time;
+  UINT32          Stamp;
+  EFI_GUID        Uuid;
 
   //
   // Attempt to get client Id from variable to keep it constant.
   // See details in section-9 of rfc-3315.
   //
-  GetVariable2 (L"ClientId", &gEfiDhcp6ServiceBindingProtocolGuid, (VOID**)&Duid, NULL);
+  GetVariable2 (L"ClientId", &gEfiDhcp6ServiceBindingProtocolGuid, (VOID **)&Duid, NULL);
   if (Duid != NULL) {
     return Duid;
   }
@@ -84,17 +92,15 @@ Dhcp6GenerateClientId (
     //
     // sizeof (Duid-type + UUID-size) = 18 bytes
     //
-    Duid->Length = (UINT16) (18);
+    Duid->Length = (UINT16)(18);
 
     //
     // Set the Duid-type and copy UUID.
     //
-    WriteUnaligned16 ((UINT16 *) (Duid->Duid), HTONS (Dhcp6DuidTypeUuid));
+    WriteUnaligned16 ((UINT16 *)(Duid->Duid), HTONS (Dhcp6DuidTypeUuid));
 
-    CopyMem (Duid->Duid + 2, &Uuid, sizeof(EFI_GUID));
-
+    CopyMem (Duid->Duid + 2, &Uuid, sizeof (EFI_GUID));
   } else {
-
     //
     //
     //  The format of DUID-LLT:
@@ -116,11 +122,11 @@ Dhcp6GenerateClientId (
     //
     gRT->GetTime (&Time, NULL);
     Stamp = (UINT32)
-      (
-        ((((UINT32)(Time.Year - 2000) * 360 + (Time.Month - 1) * 30 + (Time.Day - 1)) * 24 + Time.Hour) * 60 + Time.Minute) *
-        60 +
-        Time.Second
-      );
+            (
+             ((((UINT32)(Time.Year - 2000) * 360 + (Time.Month - 1) * 30 + (Time.Day - 1)) * 24 + Time.Hour) * 60 + Time.Minute) *
+             60 +
+             Time.Second
+            );
 
     //
     // sizeof (option-len + Duid-type + hardware-type + time) = 10 bytes
@@ -133,14 +139,14 @@ Dhcp6GenerateClientId (
     //
     // sizeof (Duid-type + hardware-type + time) = 8 bytes
     //
-    Duid->Length = (UINT16) (Mode->HwAddressSize + 8);
+    Duid->Length = (UINT16)(Mode->HwAddressSize + 8);
 
     //
     // Set the Duid-type, hardware-type, time and copy the hardware address.
     //
-    WriteUnaligned16 ((UINT16 *) ((UINT8 *) Duid + OFFSET_OF (EFI_DHCP6_DUID, Duid)), HTONS (Dhcp6DuidTypeLlt));
-    WriteUnaligned16 ((UINT16 *) ((UINT8 *) Duid + OFFSET_OF (EFI_DHCP6_DUID, Duid) + 2), HTONS (NET_IFTYPE_ETHERNET));
-    WriteUnaligned32 ((UINT32 *) ((UINT8 *) Duid + OFFSET_OF (EFI_DHCP6_DUID, Duid) + 4), HTONL (Stamp));
+    WriteUnaligned16 ((UINT16 *)((UINT8 *)Duid + OFFSET_OF (EFI_DHCP6_DUID, Duid)), HTONS (Dhcp6DuidTypeLlt));
+    WriteUnaligned16 ((UINT16 *)((UINT8 *)Duid + OFFSET_OF (EFI_DHCP6_DUID, Duid) + 2), HTONS (NET_IFTYPE_ETHERNET));
+    WriteUnaligned32 ((UINT32 *)((UINT8 *)Duid + OFFSET_OF (EFI_DHCP6_DUID, Duid) + 4), HTONL (Stamp));
 
     CopyMem (Duid->Duid + 8, &Mode->CurrentAddress, Mode->HwAddressSize);
   }
@@ -150,7 +156,7 @@ Dhcp6GenerateClientId (
                   &gEfiDhcp6ServiceBindingProtocolGuid,
                   (EFI_VARIABLE_NON_VOLATILE | EFI_VARIABLE_BOOTSERVICE_ACCESS),
                   Duid->Length + 2,
-                  (VOID *) Duid
+                  (VOID *)Duid
                   );
   if (EFI_ERROR (Status)) {
     FreePool (Duid);
@@ -159,7 +165,6 @@ Dhcp6GenerateClientId (
 
   return Duid;
 }
-
 
 /**
   Copy the Dhcp6 configure data.
@@ -173,13 +178,13 @@ Dhcp6GenerateClientId (
 **/
 EFI_STATUS
 Dhcp6CopyConfigData (
-  IN EFI_DHCP6_CONFIG_DATA      *DstCfg,
-  IN EFI_DHCP6_CONFIG_DATA      *SorCfg
+  IN EFI_DHCP6_CONFIG_DATA  *DstCfg,
+  IN EFI_DHCP6_CONFIG_DATA  *SorCfg
   )
 {
-  UINTN                     Index;
-  UINTN                     OptionListSize;
-  UINTN                     OptionSize;
+  UINTN  Index;
+  UINTN  OptionListSize;
+  UINTN  OptionSize;
 
   CopyMem (DstCfg, SorCfg, sizeof (EFI_DHCP6_CONFIG_DATA));
 
@@ -187,7 +192,6 @@ Dhcp6CopyConfigData (
   // Allocate another buffer for solicitretransmission, and copy it.
   //
   if (SorCfg->SolicitRetransmission != NULL) {
-
     DstCfg->SolicitRetransmission = AllocateZeroPool (sizeof (EFI_DHCP6_RETRANSMISSION));
 
     if (DstCfg->SolicitRetransmission == NULL) {
@@ -204,8 +208,7 @@ Dhcp6CopyConfigData (
       );
   }
 
-  if (SorCfg->OptionList != NULL && SorCfg->OptionCount != 0) {
-
+  if ((SorCfg->OptionList != NULL) && (SorCfg->OptionCount != 0)) {
     OptionListSize     = SorCfg->OptionCount * sizeof (EFI_DHCP6_PACKET_OPTION *);
     DstCfg->OptionList = AllocateZeroPool (OptionListSize);
 
@@ -217,7 +220,6 @@ Dhcp6CopyConfigData (
     }
 
     for (Index = 0; Index < SorCfg->OptionCount; Index++) {
-
       OptionSize                = NTOHS (SorCfg->OptionList[Index]->OpLen) + 4;
       DstCfg->OptionList[Index] = AllocateZeroPool (OptionSize);
 
@@ -239,7 +241,6 @@ Dhcp6CopyConfigData (
   return EFI_SUCCESS;
 }
 
-
 /**
   Clean up the configure data.
 
@@ -248,10 +249,10 @@ Dhcp6CopyConfigData (
 **/
 VOID
 Dhcp6CleanupConfigData (
-  IN OUT EFI_DHCP6_CONFIG_DATA       *CfgData
+  IN OUT EFI_DHCP6_CONFIG_DATA  *CfgData
   )
 {
-  UINTN                          Index;
+  UINTN  Index;
 
   ASSERT (CfgData != NULL);
   //
@@ -264,6 +265,7 @@ Dhcp6CleanupConfigData (
         FreePool (CfgData->OptionList[Index]);
       }
     }
+
     FreePool (CfgData->OptionList);
   }
 
@@ -274,7 +276,6 @@ Dhcp6CleanupConfigData (
   ZeroMem (CfgData, sizeof (EFI_DHCP6_CONFIG_DATA));
 }
 
-
 /**
   Clean up the mode data.
 
@@ -283,7 +284,7 @@ Dhcp6CleanupConfigData (
 **/
 VOID
 Dhcp6CleanupModeData (
-  IN OUT EFI_DHCP6_MODE_DATA        *ModeData
+  IN OUT EFI_DHCP6_MODE_DATA  *ModeData
   )
 {
   ASSERT (ModeData != NULL);
@@ -296,16 +297,15 @@ Dhcp6CleanupModeData (
   }
 
   if (ModeData->Ia != NULL) {
-
     if (ModeData->Ia->ReplyPacket != NULL) {
       FreePool (ModeData->Ia->ReplyPacket);
     }
+
     FreePool (ModeData->Ia);
   }
 
   ZeroMem (ModeData, sizeof (EFI_DHCP6_MODE_DATA));
 }
-
 
 /**
   Calculate the expire time by the algorithm defined in rfc.
@@ -319,15 +319,15 @@ Dhcp6CleanupModeData (
 **/
 UINT32
 Dhcp6CalculateExpireTime (
-  IN UINT32                 Base,
-  IN BOOLEAN                IsFirstRt,
-  IN BOOLEAN                NeedSigned
+  IN UINT32   Base,
+  IN BOOLEAN  IsFirstRt,
+  IN BOOLEAN  NeedSigned
   )
 {
-  EFI_TIME                  Time;
-  BOOLEAN                   Signed;
-  UINT32                    Seed;
-  UINT32                    Expire;
+  EFI_TIME  Time;
+  BOOLEAN   Signed;
+  UINT32    Seed;
+  UINT32    Expire;
 
   //
   // Take the 10bits of microsecond in system time as a uniform distribution.
@@ -335,8 +335,8 @@ Dhcp6CalculateExpireTime (
   //
   gRT->GetTime (&Time, NULL);
   Seed   = ((Time.Nanosecond >> 10) & DHCP6_10_BIT_MASK);
-  Signed = (BOOLEAN) ((((Time.Nanosecond >> 9) & 0x01) != 0) ? TRUE : FALSE);
-  Signed = (BOOLEAN) (NeedSigned ? Signed : FALSE);
+  Signed = (BOOLEAN)((((Time.Nanosecond >> 9) & 0x01) != 0) ? TRUE : FALSE);
+  Signed = (BOOLEAN)(NeedSigned ? Signed : FALSE);
 
   //
   // Calculate expire by the following algo:
@@ -348,27 +348,19 @@ Dhcp6CalculateExpireTime (
   // The (Seed / 0x3ff / 10) is used to a random range (0, 0.1).
   //
   if (IsFirstRt && Signed) {
-
-    Expire = Base - (UINT32) (Base * Seed / DHCP6_10_BIT_MASK / 10);
-
+    Expire = Base - (UINT32)(Base * Seed / DHCP6_10_BIT_MASK / 10);
   } else if (IsFirstRt && !Signed) {
-
-    Expire = Base + (UINT32) (Base * Seed / DHCP6_10_BIT_MASK / 10);
-
+    Expire = Base + (UINT32)(Base * Seed / DHCP6_10_BIT_MASK / 10);
   } else if (!IsFirstRt && Signed) {
-
-    Expire = 2 * Base - (UINT32) (Base * Seed / DHCP6_10_BIT_MASK / 10);
-
+    Expire = 2 * Base - (UINT32)(Base * Seed / DHCP6_10_BIT_MASK / 10);
   } else {
-
-    Expire = 2 * Base + (UINT32) (Base * Seed / DHCP6_10_BIT_MASK / 10);
+    Expire = 2 * Base + (UINT32)(Base * Seed / DHCP6_10_BIT_MASK / 10);
   }
 
   Expire = (Expire != 0) ? Expire : 1;
 
   return Expire;
 }
-
 
 /**
   Calculate the lease time by the algorithm defined in rfc.
@@ -378,25 +370,25 @@ Dhcp6CalculateExpireTime (
 **/
 VOID
 Dhcp6CalculateLeaseTime (
-  IN DHCP6_IA_CB              *IaCb
+  IN DHCP6_IA_CB  *IaCb
   )
 {
-  UINT32                      MinLt;
-  UINT32                      MaxLt;
-  UINTN                       Index;
+  UINT32  MinLt;
+  UINT32  MaxLt;
+  UINTN   Index;
 
   ASSERT (IaCb->Ia->IaAddressCount > 0);
 
-  MinLt    = (UINT32) (-1);
-  MaxLt    = 0;
+  MinLt = (UINT32)(-1);
+  MaxLt = 0;
 
   //
   // Calculate minlt as min of all valid life time, and maxlt as max of all
   // valid life time.
   //
   for (Index = 0; Index < IaCb->Ia->IaAddressCount; Index++) {
-    MinLt  = MIN (MinLt, IaCb->Ia->IaAddress[Index].ValidLifetime);
-    MaxLt  = MAX (MinLt, IaCb->Ia->IaAddress[Index].ValidLifetime);
+    MinLt = MIN (MinLt, IaCb->Ia->IaAddress[Index].ValidLifetime);
+    MaxLt = MAX (MinLt, IaCb->Ia->IaAddress[Index].ValidLifetime);
   }
 
   //
@@ -408,7 +400,6 @@ Dhcp6CalculateLeaseTime (
   IaCb->AllExpireTime = MaxLt;
   IaCb->LeaseTime     = 0;
 }
-
 
 /**
   Check whether the addresses are all included by the configured Ia.
@@ -423,31 +414,29 @@ Dhcp6CalculateLeaseTime (
 **/
 EFI_STATUS
 Dhcp6CheckAddress (
-  IN EFI_DHCP6_IA             *Ia,
-  IN UINT32                   AddressCount,
-  IN EFI_IPv6_ADDRESS         *Addresses
+  IN EFI_DHCP6_IA      *Ia,
+  IN UINT32            AddressCount,
+  IN EFI_IPv6_ADDRESS  *Addresses
   )
 {
-  UINTN                       Index1;
-  UINTN                       Index2;
-  BOOLEAN                     Found;
+  UINTN    Index1;
+  UINTN    Index2;
+  BOOLEAN  Found;
 
   //
   // Check whether the addresses are all included by the configured IA. And it
   // will return success if address count is zero, which means all addresses.
   //
   for (Index1 = 0; Index1 < AddressCount; Index1++) {
-
     Found = FALSE;
 
     for (Index2 = 0; Index2 < Ia->IaAddressCount; Index2++) {
-
       if (CompareMem (
             &Addresses[Index1],
             &Ia->IaAddress[Index2],
             sizeof (EFI_IPv6_ADDRESS)
-            ) == 0) {
-
+            ) == 0)
+      {
         Found = TRUE;
         break;
       }
@@ -460,7 +449,6 @@ Dhcp6CheckAddress (
 
   return EFI_SUCCESS;
 }
-
 
 /**
   Deprive the addresses from current Ia, and generate another eliminated Ia.
@@ -475,16 +463,16 @@ Dhcp6CheckAddress (
 **/
 EFI_DHCP6_IA *
 Dhcp6DepriveAddress (
-  IN EFI_DHCP6_IA             *Ia,
-  IN UINT32                   AddressCount,
-  IN EFI_IPv6_ADDRESS         *Addresses
+  IN EFI_DHCP6_IA      *Ia,
+  IN UINT32            AddressCount,
+  IN EFI_IPv6_ADDRESS  *Addresses
   )
 {
-  EFI_DHCP6_IA                *IaCopy;
-  UINTN                       IaCopySize;
-  UINTN                       Index1;
-  UINTN                       Index2;
-  BOOLEAN                     Found;
+  EFI_DHCP6_IA  *IaCopy;
+  UINTN         IaCopySize;
+  UINTN         Index1;
+  UINTN         Index2;
+  BOOLEAN       Found;
 
   if (AddressCount == 0) {
     //
@@ -521,16 +509,15 @@ Dhcp6DepriveAddress (
   // Move the addresses from the Ia of instance to the deprived Ia.
   //
   for (Index1 = 0; Index1 < AddressCount; Index1++) {
-
     Found = FALSE;
 
     for (Index2 = 0; Index2 < Ia->IaAddressCount; Index2++) {
-
       if (CompareMem (
             &Addresses[Index1],
             &Ia->IaAddress[Index2],
             sizeof (EFI_IPv6_ADDRESS)
-            ) == 0) {
+            ) == 0)
+      {
         //
         // Copy the deprived address to the copy of Ia
         //
@@ -549,10 +536,12 @@ Dhcp6DepriveAddress (
             (Ia->IaAddressCount - Index2 - 1) * sizeof (EFI_DHCP6_IA_ADDRESS)
             );
         }
+
         Found = TRUE;
         break;
       }
     }
+
     ASSERT (Found == TRUE);
   }
 
@@ -561,7 +550,6 @@ Dhcp6DepriveAddress (
 
   return IaCopy;
 }
-
 
 /**
   The dummy ext buffer free callback routine.
@@ -572,11 +560,10 @@ Dhcp6DepriveAddress (
 VOID
 EFIAPI
 Dhcp6DummyExtFree (
-  IN VOID                      *Arg
+  IN VOID  *Arg
   )
 {
 }
-
 
 /**
   The callback routine once message transmitted.
@@ -590,35 +577,43 @@ Dhcp6DummyExtFree (
 VOID
 EFIAPI
 Dhcp6OnTransmitted (
-  IN NET_BUF                   *Wrap,
-  IN UDP_END_POINT             *EndPoint,
-  IN EFI_STATUS                IoStatus,
-  IN VOID                      *Context
+  IN NET_BUF        *Wrap,
+  IN UDP_END_POINT  *EndPoint,
+  IN EFI_STATUS     IoStatus,
+  IN VOID           *Context
   )
 {
   NetbufFree (Wrap);
 }
 
-
 /**
-  Append the option to Buf, and move Buf to the end.
+  Append the option to Buf, update the length of packet, and move Buf to the end.
 
-  @param[in, out] Buf           The pointer to the buffer.
-  @param[in]      OptType       The option type.
-  @param[in]      OptLen        The length of option contents.
-  @param[in]      Data          The pointer to the option content.
+  @param[in, out] Packet         A pointer to the packet, on success Packet->Length
+                                 will be updated.
+  @param[in, out] PacketCursor   The pointer in the packet, on success PacketCursor
+                                 will be moved to the end of the option.
+  @param[in]      OptType        The option type.
+  @param[in]      OptLen         The length of option contents.
+  @param[in]      Data           The pointer to the option content.
 
-  @return         Buf           The position to append the next option.
+  @retval   EFI_INVALID_PARAMETER An argument provided to the function was invalid
+  @retval   EFI_BUFFER_TOO_SMALL  The buffer is too small to append the option.
+  @retval   EFI_SUCCESS           The option is appended successfully.
 
 **/
-UINT8 *
+EFI_STATUS
 Dhcp6AppendOption (
-  IN OUT UINT8               *Buf,
-  IN     UINT16              OptType,
-  IN     UINT16              OptLen,
-  IN     UINT8               *Data
+  IN OUT EFI_DHCP6_PACKET  *Packet,
+  IN OUT UINT8             **PacketCursor,
+  IN     UINT16            OptType,
+  IN     UINT16            OptLen,
+  IN     UINT8             *Data
   )
 {
+  UINT32  Length;
+  UINT32  BytesNeeded;
+
   //
   //  The format of Dhcp6 option:
   //
@@ -631,35 +626,83 @@ Dhcp6AppendOption (
   //    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
   //
 
-  ASSERT (OptLen != 0);
+  //
+  // Verify the arguments are valid
+  //
+  if (Packet == NULL) {
+    return EFI_INVALID_PARAMETER;
+  }
 
-  WriteUnaligned16 ((UINT16 *) Buf, OptType);
-  Buf            += 2;
-  WriteUnaligned16 ((UINT16 *) Buf, OptLen);
-  Buf            += 2;
-  CopyMem (Buf, Data, NTOHS (OptLen));
-  Buf            += NTOHS (OptLen);
+  if ((PacketCursor == NULL) || (*PacketCursor == NULL)) {
+    return EFI_INVALID_PARAMETER;
+  }
 
-  return Buf;
+  if (Data == NULL) {
+    return EFI_INVALID_PARAMETER;
+  }
+
+  if (OptLen == 0) {
+    return EFI_INVALID_PARAMETER;
+  }
+
+  //
+  // Verify the PacketCursor is within the packet
+  //
+  if (IS_INVALID_PACKET_CURSOR (PacketCursor, Packet)) {
+    return EFI_INVALID_PARAMETER;
+  }
+
+  //
+  // Calculate the bytes needed for the option
+  //
+  BytesNeeded = DHCP6_SIZE_OF_COMBINED_CODE_AND_LEN + NTOHS (OptLen);
+
+  //
+  // Space remaining in the packet
+  //
+  Length = Packet->Size - Packet->Length;
+  if (Length < BytesNeeded) {
+    return EFI_BUFFER_TOO_SMALL;
+  }
+
+  WriteUnaligned16 ((UINT16 *)*PacketCursor, OptType);
+  *PacketCursor += DHCP6_SIZE_OF_OPT_CODE;
+  WriteUnaligned16 ((UINT16 *)*PacketCursor, OptLen);
+  *PacketCursor += DHCP6_SIZE_OF_OPT_LEN;
+  CopyMem (*PacketCursor, Data, NTOHS (OptLen));
+  *PacketCursor += NTOHS (OptLen);
+
+  // Update the packet length by the length of the option + 4 bytes
+  Packet->Length += BytesNeeded;
+
+  return EFI_SUCCESS;
 }
 
 /**
   Append the appointed IA Address option to Buf, and move Buf to the end.
 
-  @param[in, out] Buf           The pointer to the position to append.
+  @param[in, out] Packet        A pointer to the packet, on success Packet->Length
+                                will be updated.
+  @param[in, out] PacketCursor  The pointer in the packet, on success PacketCursor
+                                will be moved to the end of the option.
   @param[in]      IaAddr        The pointer to the IA Address.
   @param[in]      MessageType   Message type of DHCP6 package.
 
-  @return         Buf           The position to append the next option.
+  @retval   EFI_INVALID_PARAMETER An argument provided to the function was invalid
+  @retval   EFI_BUFFER_TOO_SMALL  The buffer is too small to append the option.
+  @retval   EFI_SUCCESS           The option is appended successfully.
 
 **/
-UINT8 *
+EFI_STATUS
 Dhcp6AppendIaAddrOption (
-  IN OUT UINT8                  *Buf,
-  IN     EFI_DHCP6_IA_ADDRESS   *IaAddr,
-  IN     UINT32                 MessageType
-)
+  IN OUT EFI_DHCP6_PACKET      *Packet,
+  IN OUT UINT8                 **PacketCursor,
+  IN     EFI_DHCP6_IA_ADDRESS  *IaAddr,
+  IN     UINT32                MessageType
+  )
 {
+  UINT32  BytesNeeded;
+  UINT32  Length;
 
   //  The format of the IA Address option is:
   //
@@ -683,16 +726,57 @@ Dhcp6AppendIaAddrOption (
   //      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 
   //
+  // Verify the arguments are valid
+  //
+  if (Packet == NULL) {
+    return EFI_INVALID_PARAMETER;
+  }
+
+  if ((PacketCursor == NULL) || (*PacketCursor == NULL)) {
+    return EFI_INVALID_PARAMETER;
+  }
+
+  if (IaAddr == NULL) {
+    return EFI_INVALID_PARAMETER;
+  }
+
+  //
+  // Verify the PacketCursor is within the packet
+  //
+  if (IS_INVALID_PACKET_CURSOR (PacketCursor, Packet)) {
+    return EFI_INVALID_PARAMETER;
+  }
+
+  BytesNeeded  = DHCP6_SIZE_OF_COMBINED_CODE_AND_LEN;
+  BytesNeeded += sizeof (EFI_IPv6_ADDRESS);
+  //
+  // Even if the preferred-lifetime is 0, it still needs to store it.
+  //
+  BytesNeeded += sizeof (IaAddr->PreferredLifetime);
+  //
+  // Even if the valid-lifetime is 0, it still needs to store it.
+  //
+  BytesNeeded += sizeof (IaAddr->ValidLifetime);
+
+  //
+  // Space remaining in the packet
+  //
+  Length = Packet->Size - Packet->Length;
+  if (Length < BytesNeeded) {
+    return EFI_BUFFER_TOO_SMALL;
+  }
+
+  //
   // Fill the value of Ia Address option type
   //
-  WriteUnaligned16 ((UINT16 *) Buf, HTONS (Dhcp6OptIaAddr));
-  Buf                     += 2;
+  WriteUnaligned16 ((UINT16 *)*PacketCursor, HTONS (Dhcp6OptIaAddr));
+  *PacketCursor += DHCP6_SIZE_OF_OPT_CODE;
 
-  WriteUnaligned16 ((UINT16 *) Buf, HTONS (sizeof (EFI_DHCP6_IA_ADDRESS)));
-  Buf                     += 2;
+  WriteUnaligned16 ((UINT16 *)*PacketCursor, HTONS (sizeof (EFI_DHCP6_IA_ADDRESS)));
+  *PacketCursor += DHCP6_SIZE_OF_OPT_LEN;
 
-  CopyMem (Buf, &IaAddr->IpAddress, sizeof(EFI_IPv6_ADDRESS));
-  Buf                     += sizeof(EFI_IPv6_ADDRESS);
+  CopyMem (*PacketCursor, &IaAddr->IpAddress, sizeof (EFI_IPv6_ADDRESS));
+  *PacketCursor += sizeof (EFI_IPv6_ADDRESS);
 
   //
   // Fill the value of preferred-lifetime and valid-lifetime.
@@ -700,43 +784,58 @@ Dhcp6AppendIaAddrOption (
   // should set to 0 when initiate a Confirm message.
   //
   if (MessageType != Dhcp6MsgConfirm) {
-    WriteUnaligned32 ((UINT32 *) Buf, HTONL (IaAddr->PreferredLifetime));
+    WriteUnaligned32 ((UINT32 *)*PacketCursor, HTONL (IaAddr->PreferredLifetime));
   }
-  Buf                     += 4;
+
+  *PacketCursor += sizeof (IaAddr->PreferredLifetime);
 
   if (MessageType != Dhcp6MsgConfirm) {
-    WriteUnaligned32 ((UINT32 *) Buf, HTONL (IaAddr->ValidLifetime));
+    WriteUnaligned32 ((UINT32 *)*PacketCursor, HTONL (IaAddr->ValidLifetime));
   }
-  Buf                     += 4;
 
-  return Buf;
+  *PacketCursor += sizeof (IaAddr->ValidLifetime);
+
+  //
+  // Update the packet length
+  //
+  Packet->Length += BytesNeeded;
+
+  return EFI_SUCCESS;
 }
-
 
 /**
   Append the appointed Ia option to Buf, and move Buf to the end.
 
-  @param[in, out] Buf           The pointer to the position to append.
+  @param[in, out] Packet        A pointer to the packet, on success Packet->Length
+                                will be updated.
+  @param[in, out] PacketCursor  The pointer in the packet, on success PacketCursor
+                                will be moved to the end of the option.
   @param[in]      Ia            The pointer to the Ia.
   @param[in]      T1            The time of T1.
   @param[in]      T2            The time of T2.
   @param[in]      MessageType   Message type of DHCP6 package.
 
-  @return         Buf           The position to append the next Ia option.
+  @retval   EFI_INVALID_PARAMETER An argument provided to the function was invalid
+  @retval   EFI_BUFFER_TOO_SMALL  The buffer is too small to append the option.
+  @retval   EFI_SUCCESS           The option is appended successfully.
 
 **/
-UINT8 *
+EFI_STATUS
 Dhcp6AppendIaOption (
-  IN OUT UINT8                  *Buf,
-  IN     EFI_DHCP6_IA           *Ia,
-  IN     UINT32                 T1,
-  IN     UINT32                 T2,
-  IN     UINT32                 MessageType
+  IN OUT EFI_DHCP6_PACKET  *Packet,
+  IN OUT UINT8             **PacketCursor,
+  IN     EFI_DHCP6_IA      *Ia,
+  IN     UINT32            T1,
+  IN     UINT32            T2,
+  IN     UINT32            MessageType
   )
 {
-  UINT8                     *AddrOpt;
-  UINT16                    *Len;
-  UINTN                     Index;
+  UINT8       *AddrOpt;
+  UINT16      *Len;
+  UINTN       Index;
+  UINT32      BytesNeeded;
+  UINT32      Length;
+  EFI_STATUS  Status;
 
   //
   //  The format of IA_NA and IA_TA option:
@@ -758,67 +857,124 @@ Dhcp6AppendIaOption (
   //
 
   //
+  // Verify the arguments are valid
+  //
+  if (Packet == NULL) {
+    return EFI_INVALID_PARAMETER;
+  }
+
+  if ((PacketCursor == NULL) || (*PacketCursor == NULL)) {
+    return EFI_INVALID_PARAMETER;
+  }
+
+  if (Ia == NULL) {
+    return EFI_INVALID_PARAMETER;
+  }
+
+  //
+  // Verify the PacketCursor is within the packet
+  //
+  if (IS_INVALID_PACKET_CURSOR (PacketCursor, Packet)) {
+    return EFI_INVALID_PARAMETER;
+  }
+
+  BytesNeeded  = DHCP6_SIZE_OF_COMBINED_CODE_AND_LEN;
+  BytesNeeded += sizeof (Ia->Descriptor.IaId);
+  //
+  // + N for the IA_NA-options/IA_TA-options
+  // Dhcp6AppendIaAddrOption will need to check the length for each address
+  //
+  if (Ia->Descriptor.Type == Dhcp6OptIana) {
+    BytesNeeded += sizeof (T1) + sizeof (T2);
+  }
+
+  //
+  // Space remaining in the packet
+  //
+  Length = (UINT16)(Packet->Size - Packet->Length);
+  if (Length < BytesNeeded) {
+    return EFI_BUFFER_TOO_SMALL;
+  }
+
+  //
   // Fill the value of Ia option type
   //
-  WriteUnaligned16 ((UINT16 *) Buf, HTONS (Ia->Descriptor.Type));
-  Buf                     += 2;
+  WriteUnaligned16 ((UINT16 *)*PacketCursor, HTONS (Ia->Descriptor.Type));
+  *PacketCursor += DHCP6_SIZE_OF_OPT_CODE;
 
   //
   // Fill the len of Ia option later, keep the pointer first
   //
-  Len                      = (UINT16 *) Buf;
-  Buf                     += 2;
+  Len            = (UINT16 *)*PacketCursor;
+  *PacketCursor += DHCP6_SIZE_OF_OPT_LEN;
 
   //
   // Fill the value of iaid
   //
-  WriteUnaligned32 ((UINT32 *) Buf, HTONL (Ia->Descriptor.IaId));
-  Buf                     += 4;
+  WriteUnaligned32 ((UINT32 *)*PacketCursor, HTONL (Ia->Descriptor.IaId));
+  *PacketCursor += sizeof (Ia->Descriptor.IaId);
 
   //
   // Fill the value of t1 and t2 if iana, keep it 0xffffffff if no specified.
   //
   if (Ia->Descriptor.Type == Dhcp6OptIana) {
-    WriteUnaligned32 ((UINT32 *) Buf, HTONL ((T1 != 0) ? T1 : 0xffffffff));
-    Buf                   += 4;
-    WriteUnaligned32 ((UINT32 *) Buf, HTONL ((T2 != 0) ? T2 : 0xffffffff));
-    Buf                   += 4;
+    WriteUnaligned32 ((UINT32 *)*PacketCursor, HTONL ((T1 != 0) ? T1 : 0xffffffff));
+    *PacketCursor += sizeof (T1);
+    WriteUnaligned32 ((UINT32 *)*PacketCursor, HTONL ((T2 != 0) ? T2 : 0xffffffff));
+    *PacketCursor += sizeof (T2);
   }
+
+  //
+  // Update the packet length
+  //
+  Packet->Length += BytesNeeded;
 
   //
   // Fill all the addresses belong to the Ia
   //
   for (Index = 0; Index < Ia->IaAddressCount; Index++) {
-    AddrOpt = (UINT8 *) Ia->IaAddress + Index * sizeof (EFI_DHCP6_IA_ADDRESS);
-    Buf = Dhcp6AppendIaAddrOption (Buf, (EFI_DHCP6_IA_ADDRESS *) AddrOpt, MessageType);
+    AddrOpt = (UINT8 *)Ia->IaAddress + Index * sizeof (EFI_DHCP6_IA_ADDRESS);
+    Status  = Dhcp6AppendIaAddrOption (Packet, PacketCursor, (EFI_DHCP6_IA_ADDRESS *)AddrOpt, MessageType);
+    if (EFI_ERROR (Status)) {
+      return Status;
+    }
   }
 
   //
   // Fill the value of Ia option length
   //
-  *Len = HTONS ((UINT16) (Buf - (UINT8 *) Len - 2));
+  *Len = HTONS ((UINT16)(*PacketCursor - (UINT8 *)Len - 2));
 
-  return Buf;
+  return EFI_SUCCESS;
 }
 
 /**
   Append the appointed Elapsed time option to Buf, and move Buf to the end.
 
-  @param[in, out] Buf           The pointer to the position to append.
+  @param[in, out] Packet        A pointer to the packet, on success Packet->Length
+                                will be updated.
+  @param[in, out] PacketCursor  The pointer in the packet, on success PacketCursor
+                                will be moved to the end of the option.
   @param[in]      Instance      The pointer to the Dhcp6 instance.
   @param[out]     Elapsed       The pointer to the elapsed time value in
-                                  the generated packet.
+                                the generated packet.
 
-  @return         Buf           The position to append the next Ia option.
+  @retval   EFI_INVALID_PARAMETER An argument provided to the function was invalid
+  @retval   EFI_BUFFER_TOO_SMALL  The buffer is too small to append the option.
+  @retval   EFI_SUCCESS           The option is appended successfully.
 
 **/
-UINT8 *
+EFI_STATUS
 Dhcp6AppendETOption (
-  IN OUT UINT8                  *Buf,
-  IN     DHCP6_INSTANCE         *Instance,
-  OUT    UINT16                 **Elapsed
+  IN OUT EFI_DHCP6_PACKET  *Packet,
+  IN OUT UINT8             **PacketCursor,
+  IN     DHCP6_INSTANCE    *Instance,
+  OUT    UINT16            **Elapsed
   )
 {
+  UINT32  BytesNeeded;
+  UINT32  Length;
+
   //
   //  The format of elapsed time option:
   //
@@ -831,26 +987,67 @@ Dhcp6AppendETOption (
   //
 
   //
+  // Verify the arguments are valid
+  //
+  if (Packet == NULL) {
+    return EFI_INVALID_PARAMETER;
+  }
+
+  if ((PacketCursor == NULL) || (*PacketCursor == NULL)) {
+    return EFI_INVALID_PARAMETER;
+  }
+
+  if (Instance == NULL) {
+    return EFI_INVALID_PARAMETER;
+  }
+
+  if ((Elapsed == NULL)) {
+    return EFI_INVALID_PARAMETER;
+  }
+
+  //
+  // Verify the PacketCursor is within the packet
+  //
+  if (IS_INVALID_PACKET_CURSOR (PacketCursor, Packet)) {
+    return EFI_INVALID_PARAMETER;
+  }
+
+  BytesNeeded = DHCP6_SIZE_OF_COMBINED_CODE_AND_LEN;
+  //
+  // + 2 for elapsed-time
+  //
+  BytesNeeded += sizeof (UINT16);
+  //
+  // Space remaining in the packet
+  //
+  Length = Packet->Size - Packet->Length;
+  if (Length < BytesNeeded) {
+    return EFI_BUFFER_TOO_SMALL;
+  }
+
+  //
   // Fill the value of elapsed-time option type.
   //
-  WriteUnaligned16 ((UINT16 *) Buf, HTONS (Dhcp6OptElapsedTime));
-  Buf                     += 2;
+  WriteUnaligned16 ((UINT16 *)*PacketCursor, HTONS (Dhcp6OptElapsedTime));
+  *PacketCursor += DHCP6_SIZE_OF_OPT_CODE;
 
   //
   // Fill the len of elapsed-time option, which is fixed.
   //
-  WriteUnaligned16 ((UINT16 *) Buf, HTONS(2));
-  Buf                     += 2;
+  WriteUnaligned16 ((UINT16 *)*PacketCursor, HTONS (2));
+  *PacketCursor += DHCP6_SIZE_OF_OPT_LEN;
 
   //
   // Fill in elapsed time value with 0 value for now.  The actual value is
   // filled in later just before the packet is transmitted.
   //
-  WriteUnaligned16 ((UINT16 *) Buf, HTONS(0));
-  *Elapsed                  = (UINT16 *) Buf;
-  Buf                     += 2;
+  WriteUnaligned16 ((UINT16 *)*PacketCursor, HTONS (0));
+  *Elapsed       = (UINT16 *)*PacketCursor;
+  *PacketCursor += sizeof (UINT16);
 
-  return Buf;
+  Packet->Length += BytesNeeded;
+
+  return EFI_SUCCESS;
 }
 
 /**
@@ -863,13 +1060,13 @@ Dhcp6AppendETOption (
 **/
 VOID
 SetElapsedTime (
-  IN     UINT16                 *Elapsed,
-  IN     DHCP6_INSTANCE         *Instance
+  IN     UINT16          *Elapsed,
+  IN     DHCP6_INSTANCE  *Instance
   )
 {
-  EFI_TIME          Time;
-  UINT64            CurrentStamp;
-  UINT64            ElapsedTimeValue;
+  EFI_TIME  Time;
+  UINT64    CurrentStamp;
+  UINT64    ElapsedTimeValue;
 
   //
   // Generate a time stamp of the centiseconds from 2000/1/1, assume 30day/month.
@@ -879,7 +1076,7 @@ SetElapsedTime (
                    ((((UINT32)(Time.Year - 2000) * 360 + (Time.Month - 1) * 30 + (Time.Day - 1)) * 24 + Time.Hour) * 60 + Time.Minute) * 60 + Time.Second,
                    100
                    ) +
-                 DivU64x32(
+                 DivU64x32 (
                    Time.Nanosecond,
                    10000000
                    );
@@ -890,7 +1087,7 @@ SetElapsedTime (
   // gets 0 elapsed-time.  Otherwise, calculate based on StartTime.
   //
   if (Instance->StartTime == 0) {
-    ElapsedTimeValue = 0;
+    ElapsedTimeValue    = 0;
     Instance->StartTime = CurrentStamp;
   } else {
     ElapsedTimeValue = CurrentStamp - Instance->StartTime;
@@ -902,9 +1099,9 @@ SetElapsedTime (
       ElapsedTimeValue = 0xffff;
     }
   }
-  WriteUnaligned16 (Elapsed, HTONS((UINT16) ElapsedTimeValue));
-}
 
+  WriteUnaligned16 (Elapsed, HTONS ((UINT16)ElapsedTimeValue));
+}
 
 /**
   Seek the address of the first byte of the option header.
@@ -919,15 +1116,15 @@ SetElapsedTime (
 **/
 UINT8 *
 Dhcp6SeekOption (
-  IN UINT8           *Buf,
-  IN UINT32          SeekLen,
-  IN UINT16          OptType
+  IN UINT8   *Buf,
+  IN UINT32  SeekLen,
+  IN UINT16  OptType
   )
 {
-  UINT8              *Cursor;
-  UINT8              *Option;
-  UINT16             DataLen;
-  UINT16             OpCode;
+  UINT8   *Cursor;
+  UINT8   *Option;
+  UINT16  DataLen;
+  UINT16  OpCode;
 
   Option = NULL;
   Cursor = Buf;
@@ -936,18 +1133,18 @@ Dhcp6SeekOption (
   // The format of Dhcp6 option refers to Dhcp6AppendOption().
   //
   while (Cursor < Buf + SeekLen) {
-    OpCode = ReadUnaligned16 ((UINT16 *) Cursor);
+    OpCode = ReadUnaligned16 ((UINT16 *)Cursor);
     if (OpCode == HTONS (OptType)) {
       Option = Cursor;
       break;
     }
-    DataLen = NTOHS (ReadUnaligned16 ((UINT16 *) (Cursor + 2)));
+
+    DataLen = NTOHS (ReadUnaligned16 ((UINT16 *)(Cursor + 2)));
     Cursor += (DataLen + 4);
   }
 
   return Option;
 }
-
 
 /**
   Seek the address of the first byte of the Ia option header.
@@ -967,11 +1164,11 @@ Dhcp6SeekIaOption (
   IN EFI_DHCP6_IA_DESCRIPTOR  *IaDesc
   )
 {
-  UINT8              *Cursor;
-  UINT8              *Option;
-  UINT16             DataLen;
-  UINT16             OpCode;
-  UINT32             IaId;
+  UINT8   *Cursor;
+  UINT8   *Option;
+  UINT16  DataLen;
+  UINT16  OpCode;
+  UINT32  IaId;
 
   //
   // The format of IA_NA and IA_TA option refers to Dhcp6AppendIaOption().
@@ -980,13 +1177,14 @@ Dhcp6SeekIaOption (
   Cursor = Buf;
 
   while (Cursor < Buf + SeekLen) {
-    OpCode = ReadUnaligned16 ((UINT16 *) Cursor);
-    IaId   = ReadUnaligned32 ((UINT32 *) (Cursor + 4));
-    if (OpCode == HTONS (IaDesc->Type) && IaId == HTONL (IaDesc->IaId)) {
+    OpCode = ReadUnaligned16 ((UINT16 *)Cursor);
+    IaId   = ReadUnaligned32 ((UINT32 *)(Cursor + 4));
+    if ((OpCode == HTONS (IaDesc->Type)) && (IaId == HTONL (IaDesc->IaId))) {
       Option = Cursor;
       break;
     }
-    DataLen = NTOHS (ReadUnaligned16 ((UINT16 *) (Cursor + 2)));
+
+    DataLen = NTOHS (ReadUnaligned16 ((UINT16 *)(Cursor + 2)));
     Cursor += (DataLen + 4);
   }
 
@@ -1006,19 +1204,20 @@ Dhcp6SeekIaOption (
 **/
 BOOLEAN
 Dhcp6AddrIsInCurrentIa (
-  IN    EFI_DHCP6_IA_ADDRESS      *IaAddr,
-  IN    EFI_DHCP6_IA              *CurrentIa
+  IN    EFI_DHCP6_IA_ADDRESS  *IaAddr,
+  IN    EFI_DHCP6_IA          *CurrentIa
   )
 {
-  UINT32    Index;
+  UINT32  Index;
 
   ASSERT (IaAddr != NULL && CurrentIa != NULL);
 
   for (Index = 0; Index < CurrentIa->IaAddressCount; Index++) {
-    if (EFI_IP6_EQUAL(&IaAddr->IpAddress, &CurrentIa->IaAddress[Index].IpAddress)) {
+    if (EFI_IP6_EQUAL (&IaAddr->IpAddress, &CurrentIa->IaAddress[Index].IpAddress)) {
       return TRUE;
     }
   }
+
   return FALSE;
 }
 
@@ -1034,19 +1233,19 @@ Dhcp6AddrIsInCurrentIa (
 **/
 VOID
 Dhcp6ParseAddrOption (
-  IN     EFI_DHCP6_IA            *CurrentIa,
-  IN     UINT8                   *IaInnerOpt,
-  IN     UINT16                  IaInnerLen,
-     OUT UINT32                  *AddrNum,
-  IN OUT EFI_DHCP6_IA_ADDRESS    *AddrBuf
+  IN     EFI_DHCP6_IA          *CurrentIa,
+  IN     UINT8                 *IaInnerOpt,
+  IN     UINT16                IaInnerLen,
+  OUT UINT32                   *AddrNum,
+  IN OUT EFI_DHCP6_IA_ADDRESS  *AddrBuf
   )
 {
-  UINT8                       *Cursor;
-  UINT16                      DataLen;
-  UINT16                      OpCode;
-  UINT32                      ValidLt;
-  UINT32                      PreferredLt;
-  EFI_DHCP6_IA_ADDRESS        *IaAddr;
+  UINT8                 *Cursor;
+  UINT16                DataLen;
+  UINT16                OpCode;
+  UINT32                ValidLt;
+  UINT32                PreferredLt;
+  EFI_DHCP6_IA_ADDRESS  *IaAddr;
 
   //
   //  The format of the IA Address option:
@@ -1086,25 +1285,27 @@ Dhcp6ParseAddrOption (
     // Refer to RFC3315 Chapter 18.1.8, we need to update lifetimes for any addresses in the IA option
     // that the client already has recorded in the IA, and discard the Ia address option with 0 valid time.
     //
-    OpCode  = ReadUnaligned16 ((UINT16 *) Cursor);
-    PreferredLt = NTOHL (ReadUnaligned32 ((UINT32 *) (Cursor + 20)));
-    ValidLt = NTOHL (ReadUnaligned32 ((UINT32 *) (Cursor + 24)));
-    IaAddr = (EFI_DHCP6_IA_ADDRESS *) (Cursor + 4);
-    if (OpCode == HTONS (Dhcp6OptIaAddr) && ValidLt >= PreferredLt &&
-        (Dhcp6AddrIsInCurrentIa(IaAddr, CurrentIa) || ValidLt !=0)) {
+    OpCode      = ReadUnaligned16 ((UINT16 *)Cursor);
+    PreferredLt = NTOHL (ReadUnaligned32 ((UINT32 *)(Cursor + 20)));
+    ValidLt     = NTOHL (ReadUnaligned32 ((UINT32 *)(Cursor + 24)));
+    IaAddr      = (EFI_DHCP6_IA_ADDRESS *)(Cursor + 4);
+    if ((OpCode == HTONS (Dhcp6OptIaAddr)) && (ValidLt >= PreferredLt) &&
+        (Dhcp6AddrIsInCurrentIa (IaAddr, CurrentIa) || (ValidLt != 0)))
+    {
       if (AddrBuf != NULL) {
         CopyMem (AddrBuf, IaAddr, sizeof (EFI_DHCP6_IA_ADDRESS));
         AddrBuf->PreferredLifetime = PreferredLt;
         AddrBuf->ValidLifetime     = ValidLt;
-        AddrBuf = (EFI_DHCP6_IA_ADDRESS *) ((UINT8 *) AddrBuf + sizeof (EFI_DHCP6_IA_ADDRESS));
+        AddrBuf                    = (EFI_DHCP6_IA_ADDRESS *)((UINT8 *)AddrBuf + sizeof (EFI_DHCP6_IA_ADDRESS));
       }
+
       (*AddrNum)++;
     }
-    DataLen = NTOHS (ReadUnaligned16 ((UINT16 *) (Cursor + 2)));
+
+    DataLen = NTOHS (ReadUnaligned16 ((UINT16 *)(Cursor + 2)));
     Cursor += (DataLen + 4);
   }
 }
-
 
 /**
   Create a control block for the Ia according to the corresponding options.
@@ -1123,16 +1324,16 @@ Dhcp6ParseAddrOption (
 **/
 EFI_STATUS
 Dhcp6GenerateIaCb (
-  IN  DHCP6_INSTANCE           *Instance,
-  IN  UINT8                    *IaInnerOpt,
-  IN  UINT16                   IaInnerLen,
-  IN  UINT32                   T1,
-  IN  UINT32                   T2
+  IN  DHCP6_INSTANCE  *Instance,
+  IN  UINT8           *IaInnerOpt,
+  IN  UINT16          IaInnerLen,
+  IN  UINT32          T1,
+  IN  UINT32          T2
   )
 {
-  UINT32                       AddrNum;
-  UINT32                       IaSize;
-  EFI_DHCP6_IA                 *Ia;
+  UINT32        AddrNum;
+  UINT32        IaSize;
+  EFI_DHCP6_IA  *Ia;
 
   if (Instance->IaCb.Ia == NULL) {
     return EFI_DEVICE_ERROR;
@@ -1152,7 +1353,7 @@ Dhcp6GenerateIaCb (
   // Allocate for new IA.
   //
   IaSize = sizeof (EFI_DHCP6_IA) + (AddrNum - 1) * sizeof (EFI_DHCP6_IA_ADDRESS);
-  Ia = AllocateZeroPool (IaSize);
+  Ia     = AllocateZeroPool (IaSize);
 
   if (Ia == NULL) {
     return EFI_OUT_OF_RESOURCES;
@@ -1172,19 +1373,19 @@ Dhcp6GenerateIaCb (
   if (Instance->IaCb.Ia->ReplyPacket != NULL) {
     FreePool (Instance->IaCb.Ia->ReplyPacket);
   }
-  FreePool (Instance->IaCb.Ia);
 
+  FreePool (Instance->IaCb.Ia);
 
   ZeroMem (&Instance->IaCb, sizeof (DHCP6_IA_CB));
 
   //
   // Update IaCb to use new IA.
   //
-  Instance->IaCb.Ia   = Ia;
+  Instance->IaCb.Ia = Ia;
 
   //
 
- // Fill in IaCb fields. Such as T1, T2, AllExpireTime and LeaseTime.
+  // Fill in IaCb fields. Such as T1, T2, AllExpireTime and LeaseTime.
   //
   Instance->IaCb.T1 = T1;
   Instance->IaCb.T2 = T2;
@@ -1192,7 +1393,6 @@ Dhcp6GenerateIaCb (
 
   return EFI_SUCCESS;
 }
-
 
 /**
   Cache the current IA configuration information.
@@ -1205,11 +1405,11 @@ Dhcp6GenerateIaCb (
 **/
 EFI_STATUS
 Dhcp6CacheIa (
-  IN DHCP6_INSTANCE           *Instance
+  IN DHCP6_INSTANCE  *Instance
   )
 {
-  UINTN                        IaSize;
-  EFI_DHCP6_IA                 *Ia;
+  UINTN         IaSize;
+  EFI_DHCP6_IA  *Ia;
 
   Ia = Instance->IaCb.Ia;
 
@@ -1223,8 +1423,10 @@ Dhcp6CacheIa (
     if (Instance->CacheIa == NULL) {
       return EFI_OUT_OF_RESOURCES;
     }
+
     CopyMem (Instance->CacheIa, Ia, IaSize);
   }
+
   return EFI_SUCCESS;
 }
 
@@ -1236,16 +1438,16 @@ Dhcp6CacheIa (
 **/
 VOID
 Dhcp6AppendCacheIa (
-  IN DHCP6_INSTANCE           *Instance
+  IN DHCP6_INSTANCE  *Instance
   )
 {
-  UINT8                        *Ptr;
-  UINTN                        Index;
-  UINTN                        IaSize;
-  UINTN                        NewIaSize;
-  EFI_DHCP6_IA                 *Ia;
-  EFI_DHCP6_IA                 *NewIa;
-  EFI_DHCP6_IA                 *CacheIa;
+  UINT8         *Ptr;
+  UINTN         Index;
+  UINTN         IaSize;
+  UINTN         NewIaSize;
+  EFI_DHCP6_IA  *Ia;
+  EFI_DHCP6_IA  *NewIa;
+  EFI_DHCP6_IA  *CacheIa;
 
   Ia      = Instance->IaCb.Ia;
   CacheIa = Instance->CacheIa;
@@ -1267,11 +1469,11 @@ Dhcp6AppendCacheIa (
     // Clear old address.ValidLifetime
     //
     for (Index = 0; Index < CacheIa->IaAddressCount; Index++) {
-      CacheIa->IaAddress[Index].ValidLifetime  = 0;
+      CacheIa->IaAddress[Index].ValidLifetime = 0;
     }
 
     NewIa->IaAddressCount += CacheIa->IaAddressCount;
-    Ptr   = (UINT8*)&NewIa->IaAddress[Ia->IaAddressCount];
+    Ptr                    = (UINT8 *)&NewIa->IaAddress[Ia->IaAddressCount];
     CopyMem (Ptr, CacheIa->IaAddress, CacheIa->IaAddressCount * sizeof (EFI_DHCP6_IA_ADDRESS));
 
     //
@@ -1279,8 +1481,8 @@ Dhcp6AppendCacheIa (
     //
     FreePool (Instance->CacheIa);
     FreePool (Instance->IaCb.Ia);
-    Instance->CacheIa  = NULL;
-    Instance->IaCb.Ia  = NewIa;
+    Instance->CacheIa = NULL;
+    Instance->IaCb.Ia = NewIa;
   }
 }
 
@@ -1295,25 +1497,25 @@ Dhcp6AppendCacheIa (
 **/
 EFI_STATUS
 Dhcp6GetMappingTimeOut (
-  IN  EFI_IP6_CONFIG_PROTOCOL       *Ip6Cfg,
-  OUT UINTN                         *TimeOut
+  IN  EFI_IP6_CONFIG_PROTOCOL  *Ip6Cfg,
+  OUT UINTN                    *TimeOut
   )
 {
-  EFI_STATUS            Status;
-  UINTN                 DataSize;
-  EFI_IP6_CONFIG_DUP_ADDR_DETECT_TRANSMITS    DadXmits;
+  EFI_STATUS                                Status;
+  UINTN                                     DataSize;
+  EFI_IP6_CONFIG_DUP_ADDR_DETECT_TRANSMITS  DadXmits;
 
-  if (Ip6Cfg == NULL || TimeOut == NULL) {
+  if ((Ip6Cfg == NULL) || (TimeOut == NULL)) {
     return EFI_INVALID_PARAMETER;
   }
 
   DataSize = sizeof (EFI_IP6_CONFIG_DUP_ADDR_DETECT_TRANSMITS);
-  Status = Ip6Cfg->GetData (
-                     Ip6Cfg,
-                     Ip6ConfigDataTypeDupAddrDetectTransmits,
-                     &DataSize,
-                     &DadXmits
-                     );
+  Status   = Ip6Cfg->GetData (
+                       Ip6Cfg,
+                       Ip6ConfigDataTypeDupAddrDetectTransmits,
+                       &DataSize,
+                       &DadXmits
+                       );
   if (EFI_ERROR (Status)) {
     return Status;
   }

@@ -69,7 +69,7 @@ class CharEncodingCheck(ICiBuildPlugin):
         overall_status = 0
         files_tested = 0
 
-        abs_pkg_path = Edk2pathObj.GetAbsolutePathOnThisSytemFromEdk2RelativePath(packagename)
+        abs_pkg_path = Edk2pathObj.GetAbsolutePathOnThisSystemFromEdk2RelativePath(packagename)
 
         if abs_pkg_path is None:
             tc.SetSkipped()
@@ -90,12 +90,10 @@ class CharEncodingCheck(ICiBuildPlugin):
                         tc.LogStdError("CharEncodingCheck.IgnoreInf -> {0} not found in filesystem.  Invalid ignore file".format(a))
                         logging.info("CharEncodingCheck.IgnoreInf -> {0} not found in filesystem.  Invalid ignore file".format(a))
 
-            files = [Edk2pathObj.GetAbsolutePathOnThisSytemFromEdk2RelativePath(x) for x in files]
+            files = [Edk2pathObj.GetAbsolutePathOnThisSystemFromEdk2RelativePath(x) for x in files]
             for a in files:
                 files_tested += 1
-                if(self.TestEncodingOk(a, enc)):
-                    logging.debug("File {0} Passed Encoding Check {1}".format(a, enc))
-                else:
+                if not self.TestEncodingOk(a, enc):
                     tc.LogStdError("Encoding Failure in {0}.  Not {1}".format(a, enc))
                     overall_status += 1
 

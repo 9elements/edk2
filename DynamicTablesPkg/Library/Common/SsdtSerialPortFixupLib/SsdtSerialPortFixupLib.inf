@@ -1,7 +1,7 @@
 ## @file
 #  SSDT Serial Port fixup Library
 #
-#  Copyright (c) 2020, Arm Limited. All rights reserved.<BR>
+#  Copyright (c) 2020 - 2021, Arm Limited. All rights reserved.<BR>
 #
 #  SPDX-License-Identifier: BSD-2-Clause-Patent
 ##
@@ -18,13 +18,19 @@
   SsdtSerialPortFixupLib.c
   SsdtSerialPortTemplate.asl
 
-[Packages]
+[Packages.common]
   MdePkg/MdePkg.dec
   MdeModulePkg/MdeModulePkg.dec
   EmbeddedPkg/EmbeddedPkg.dec
   DynamicTablesPkg/DynamicTablesPkg.dec
 
+[Packages.ARM, Packages.AARCH64]
+  ArmPkg/ArmPkg.dec
+
 [LibraryClasses]
+  AcpiHelperLib
   AmlLib
   BaseLib
 
+[Pcd]
+  gEdkiiDynamicTablesPkgTokenSpaceGuid.PcdNonBsaCompliant16550SerialHid

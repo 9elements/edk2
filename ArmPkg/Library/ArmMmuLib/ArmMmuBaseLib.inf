@@ -19,15 +19,16 @@
   CONSTRUCTOR                    = ArmMmuBaseLibConstructor
 
 [Sources.AARCH64]
+  ArmMmuLibInternal.h
   AArch64/ArmMmuLibCore.c
   AArch64/ArmMmuLibReplaceEntry.S
 
 [Sources.ARM]
+  ArmMmuLibInternal.h
   Arm/ArmMmuLibConvert.c
   Arm/ArmMmuLibCore.c
   Arm/ArmMmuLibUpdate.c
   Arm/ArmMmuLibV7Support.S   |GCC
-  Arm/ArmMmuLibV7Support.asm |RVCT
 
 [Packages]
   ArmPkg/ArmPkg.dec
@@ -37,7 +38,11 @@
 [LibraryClasses]
   ArmLib
   CacheMaintenanceLib
+  HobLib
   MemoryAllocationLib
+
+[Guids]
+  gArmMmuReplaceLiveTranslationEntryFuncGuid
 
 [Pcd.ARM]
   gArmTokenSpaceGuid.PcdNormalMemoryNonshareableOverride

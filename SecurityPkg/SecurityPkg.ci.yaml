@@ -2,12 +2,14 @@
 # CI configuration for SecurityPkg
 #
 # Copyright (c) Microsoft Corporation
-# Copyright (c) 2020, Intel Corporation. All rights reserved.<BR>
+# Copyright (c) 2020 - 2024, Intel Corporation. All rights reserved.<BR>
 # SPDX-License-Identifier: BSD-2-Clause-Patent
 ##
 {
     "LicenseCheck": {
-        "IgnoreFiles": []
+        "IgnoreFiles": [
+            "DeviceSecurity/SpdmLib/Include",
+        ]
     },
     "EccCheck": {
         ## Exception sample looks like below:
@@ -15,13 +17,26 @@
         ##     "<ErrorID>", "<KeyWord>"
         ## ]
         "ExceptionList": [
+            "8005", "gRT",
+            "8001", "DxeTpm2MeasureBootLibUnitTestMain",
+            "8001", "DxeTpmMeasureBootLibUnitTestMain"
         ],
         ## Both file path and directory path are accepted.
         "IgnoreFiles": [
+            "Library/TcgStorageCoreLib/TcgStorageUtil.c",
+            "Library/TcgStorageCoreLib/TcgStorageCore.c",
+            "Library/Tpm2CommandLib/Tpm2NVStorage.c",
+            "DeviceSecurity/SpdmLib/Include",
+            "DeviceSecurity/SpdmLib/libspdm",
+            "DeviceSecurity/OsStub"
         ]
     },
     "CompilerPlugin": {
         "DscPath": "SecurityPkg.dsc"
+    },
+    ## options defined .pytool/Plugin/HostUnitTestCompilerPlugin
+    "HostUnitTestCompilerPlugin": {
+        "DscPath": "Test/SecurityPkgHostTest.dsc"
     },
     "CharEncodingCheck": {
         "IgnoreFiles": []
@@ -30,7 +45,9 @@
         "AcceptableDependencies": [
             "MdePkg/MdePkg.dec",
             "MdeModulePkg/MdeModulePkg.dec",
+            "UnitTestFrameworkPkg/UnitTestFrameworkPkg.dec",
             "SecurityPkg/SecurityPkg.dec",
+            "StandaloneMmPkg/StandaloneMmPkg.dec",
             "CryptoPkg/CryptoPkg.dec"
         ],
         # For host based unit tests
@@ -43,6 +60,11 @@
         "DscPath": "SecurityPkg.dsc",
         "IgnoreInf": []
     },
+    ## options defined .pytool/Plugin/HostUnitTestDscCompleteCheck
+    "HostUnitTestDscCompleteCheck": {
+        "IgnoreInf": [""],
+        "DscPath": "Test/SecurityPkgHostTest.dsc"
+    },
     "GuidCheck": {
         "IgnoreGuidName": [],
         "IgnoreGuidValue": ["00000000-0000-0000-0000-000000000000"],
@@ -52,7 +74,11 @@
         ]
     },
     "LibraryClassCheck": {
-        "IgnoreHeaderFile": []
+        "IgnoreHeaderFile": [
+            "DeviceSecurity/SpdmLib/Include/library",
+            "DeviceSecurity/SpdmLib/libspdm/include/library",
+        ],
+        "skip": True
     },
 
     ## options defined ci/Plugin/SpellCheck
@@ -91,5 +117,14 @@
 
     "Defines": {
         "BLD_*_CONTINUOUS_INTEGRATION": "TRUE",
+    },
+
+    "DebugMacroCheck": {
+      "StringSubstitutions": {
+          # SecurityPkg/IntelTdx/TdTcg2Dxe/TdTcg2Dxe.c
+          # Reason: Acknowledging use of two format specifiers in string with one argument
+          #         Replace ternary operator in debug string with single specifier
+          'Index == COLUME_SIZE/2 ? " | %02x" : " %02x"': "%d"
+      }
     }
 }

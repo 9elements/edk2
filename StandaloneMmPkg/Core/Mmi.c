@@ -20,11 +20,11 @@
 #define MMI_ENTRY_SIGNATURE  SIGNATURE_32('m','m','i','e')
 
 typedef struct {
-  UINTN       Signature;
-  LIST_ENTRY  AllEntries;  // All entries
+  UINTN         Signature;
+  LIST_ENTRY    AllEntries; // All entries
 
-  EFI_GUID    HandlerType; // Type of interrupt
-  LIST_ENTRY  MmiHandlers; // All handlers
+  EFI_GUID      HandlerType; // Type of interrupt
+  LIST_ENTRY    MmiHandlers; // All handlers
 } MMI_ENTRY;
 
 #define MMI_HANDLER_SIGNATURE  SIGNATURE_32('m','m','i','h')
@@ -34,10 +34,50 @@ typedef struct {
   LIST_ENTRY                    Link;        // Link on MMI_ENTRY.MmiHandlers
   EFI_MM_HANDLER_ENTRY_POINT    Handler;     // The mm handler's entry point
   MMI_ENTRY                     *MmiEntry;
+  BOOLEAN                       ToRemove;    // To remove this MMI_HANDLER later
 } MMI_HANDLER;
+
+//
+// mMmiManageCallingDepth is used to track the depth of recursive calls of MmiManage.
+//
+UINTN  mMmiManageCallingDepth = 0;
 
 LIST_ENTRY  mRootMmiHandlerList = INITIALIZE_LIST_HEAD_VARIABLE (mRootMmiHandlerList);
 LIST_ENTRY  mMmiEntryList       = INITIALIZE_LIST_HEAD_VARIABLE (mMmiEntryList);
+
+/**
+  Remove MmiHandler and free the memory it used.
+  If MmiEntry is empty, remove MmiEntry and free the memory it used.
+
+  @param  MmiHandler  Points to MMI handler.
+  @param  MmiEntry    Points to MMI Entry or NULL for root MMI handlers.
+
+  @retval TRUE        MmiEntry is removed.
+  @retval FALSE       MmiEntry is not removed.
+**/
+BOOLEAN
+RemoveMmiHandler (
+  IN MMI_HANDLER  *MmiHandler,
+  IN MMI_ENTRY    *MmiEntry
+  )
+{
+  ASSERT (MmiHandler->ToRemove);
+  RemoveEntryList (&MmiHandler->Link);
+  FreePool (MmiHandler);
+
+  //
+  // Remove the MMI_ENTRY if all handlers have been removed.
+  //
+  if (MmiEntry != NULL) {
+    if (IsListEmpty (&MmiEntry->MmiHandlers)) {
+      RemoveEntryList (&MmiEntry->AllEntries);
+      FreePool (MmiEntry);
+      return TRUE;
+    }
+  }
+
+  return FALSE;
+}
 
 /**
   Finds the MMI entry for the requested handler type.
@@ -65,8 +105,8 @@ MmCoreFindMmiEntry (
   MmiEntry = NULL;
   for (Link = mMmiEntryList.ForwardLink;
        Link != &mMmiEntryList;
-       Link = Link->ForwardLink) {
-
+       Link = Link->ForwardLink)
+  {
     Item = CR (Link, MMI_ENTRY, AllEntries, MMI_ENTRY_SIGNATURE);
     if (CompareGuid (&Item->HandlerType, HandlerType)) {
       //
@@ -97,6 +137,7 @@ MmCoreFindMmiEntry (
       InsertTailList (&mMmiEntryList, &MmiEntry->AllEntries);
     }
   }
+
   return MmiEntry;
 }
 
@@ -125,13 +166,17 @@ MmiManage (
 {
   LIST_ENTRY   *Link;
   LIST_ENTRY   *Head;
+  LIST_ENTRY   *EntryLink;
   MMI_ENTRY    *MmiEntry;
   MMI_HANDLER  *MmiHandler;
-  BOOLEAN      SuccessReturn;
+  EFI_STATUS   ReturnStatus;
+  BOOLEAN      WillReturn;
   EFI_STATUS   Status;
 
-  Status = EFI_NOT_FOUND;
-  SuccessReturn = FALSE;
+  mMmiManageCallingDepth++;
+  WillReturn   = FALSE;
+  Status       = EFI_NOT_FOUND;
+  ReturnStatus = Status;
   if (HandlerType == NULL) {
     //
     // Root MMI handler
@@ -142,7 +187,7 @@ MmiManage (
     //
     // Non-root MMI handler
     //
-    MmiEntry = MmCoreFindMmiEntry ((EFI_GUID *) HandlerType, FALSE);
+    MmiEntry = MmCoreFindMmiEntry ((EFI_GUID *)HandlerType, FALSE);
     if (MmiEntry == NULL) {
       //
       // There is no handler registered for this interrupt source
@@ -157,64 +202,142 @@ MmiManage (
     MmiHandler = CR (Link, MMI_HANDLER, Link, MMI_HANDLER_SIGNATURE);
 
     Status = MmiHandler->Handler (
-               (EFI_HANDLE) MmiHandler,
-               Context,
-               CommBuffer,
-               CommBufferSize
-               );
+                           (EFI_HANDLE)MmiHandler,
+                           Context,
+                           CommBuffer,
+                           CommBufferSize
+                           );
 
     switch (Status) {
-    case EFI_INTERRUPT_PENDING:
-      //
-      // If a handler returns EFI_INTERRUPT_PENDING and HandlerType is not NULL then
-      // no additional handlers will be processed and EFI_INTERRUPT_PENDING will be returned.
-      //
-      if (HandlerType != NULL) {
-        return EFI_INTERRUPT_PENDING;
-      }
-      break;
+      case EFI_INTERRUPT_PENDING:
+        //
+        // If a handler returns EFI_INTERRUPT_PENDING and HandlerType is not NULL then
+        // no additional handlers will be processed and EFI_INTERRUPT_PENDING will be returned.
+        //
+        if (HandlerType != NULL) {
+          ReturnStatus = EFI_INTERRUPT_PENDING;
+          WillReturn   = TRUE;
+        } else {
+          //
+          // If any other handler's result sets ReturnStatus as EFI_SUCCESS, the return status
+          // will be EFI_SUCCESS.
+          //
+          if (ReturnStatus != EFI_SUCCESS) {
+            ReturnStatus = Status;
+          }
+        }
 
-    case EFI_SUCCESS:
-      //
-      // If at least one of the handlers returns EFI_SUCCESS then the function will return
-      // EFI_SUCCESS. If a handler returns EFI_SUCCESS and HandlerType is not NULL then no
-      // additional handlers will be processed.
-      //
-      if (HandlerType != NULL) {
-        return EFI_SUCCESS;
-      }
-      SuccessReturn = TRUE;
-      break;
+        break;
 
-    case EFI_WARN_INTERRUPT_SOURCE_QUIESCED:
-      //
-      // If at least one of the handlers returns EFI_WARN_INTERRUPT_SOURCE_QUIESCED
-      // then the function will return EFI_SUCCESS.
-      //
-      SuccessReturn = TRUE;
-      break;
+      case EFI_SUCCESS:
+        //
+        // If at least one of the handlers returns EFI_SUCCESS then the function will return
+        // EFI_SUCCESS. If a handler returns EFI_SUCCESS and HandlerType is not NULL then no
+        // additional handlers will be processed.
+        //
+        if (HandlerType != NULL) {
+          WillReturn = TRUE;
+        }
 
-    case EFI_WARN_INTERRUPT_SOURCE_PENDING:
-      //
-      // If all the handlers returned EFI_WARN_INTERRUPT_SOURCE_PENDING
-      // then EFI_WARN_INTERRUPT_SOURCE_PENDING will be returned.
-      //
-      break;
+        ReturnStatus = EFI_SUCCESS;
+        break;
 
-    default:
-      //
-      // Unexpected status code returned.
-      //
-      ASSERT (FALSE);
+      case EFI_WARN_INTERRUPT_SOURCE_QUIESCED:
+        //
+        // If at least one of the handlers returns EFI_WARN_INTERRUPT_SOURCE_QUIESCED
+        // then the function will return EFI_SUCCESS.
+        //
+        ReturnStatus = EFI_SUCCESS;
+        break;
+
+      case EFI_WARN_INTERRUPT_SOURCE_PENDING:
+        //
+        // If all the handlers returned EFI_WARN_INTERRUPT_SOURCE_PENDING
+        // then EFI_WARN_INTERRUPT_SOURCE_PENDING will be returned.
+        //
+        if (ReturnStatus != EFI_SUCCESS) {
+          ReturnStatus = Status;
+        }
+
+        break;
+
+      default:
+        //
+        // Unexpected status code returned.
+        //
+        ASSERT_EFI_ERROR (Status);
+        break;
+    }
+
+    if (WillReturn) {
       break;
     }
   }
 
-  if (SuccessReturn) {
-    Status = EFI_SUCCESS;
+  ASSERT (mMmiManageCallingDepth > 0);
+  mMmiManageCallingDepth--;
+
+  //
+  // MmiHandlerUnRegister() calls from MMI handlers are deferred till this point.
+  // Before returned from MmiManage, delete the MmiHandler which is
+  // marked as ToRemove.
+  // Note that MmiManage can be called recursively.
+  //
+  if (mMmiManageCallingDepth == 0) {
+    //
+    // Go through all MmiHandler in root Mmi handlers
+    //
+    for ( Link = GetFirstNode (&mRootMmiHandlerList)
+          ; !IsNull (&mRootMmiHandlerList, Link);
+          )
+    {
+      //
+      // MmiHandler might be removed in below, so cache the next link in Link
+      //
+      MmiHandler = CR (Link, MMI_HANDLER, Link, MMI_HANDLER_SIGNATURE);
+      Link       = GetNextNode (&mRootMmiHandlerList, Link);
+      if (MmiHandler->ToRemove) {
+        //
+        // Remove MmiHandler if the ToRemove is set.
+        //
+        RemoveMmiHandler (MmiHandler, NULL);
+      }
+    }
+
+    //
+    // Go through all MmiHandler in non-root MMI handlers
+    //
+    for ( EntryLink = GetFirstNode (&mMmiEntryList)
+          ; !IsNull (&mMmiEntryList, EntryLink);
+          )
+    {
+      //
+      // MmiEntry might be removed in below, so cache the next link in EntryLink
+      //
+      MmiEntry  = CR (EntryLink, MMI_ENTRY, AllEntries, MMI_ENTRY_SIGNATURE);
+      EntryLink = GetNextNode (&mMmiEntryList, EntryLink);
+      for ( Link = GetFirstNode (&MmiEntry->MmiHandlers)
+            ; !IsNull (&MmiEntry->MmiHandlers, Link);
+            )
+      {
+        //
+        // MmiHandler might be removed in below, so cache the next link in Link
+        //
+        MmiHandler = CR (Link, MMI_HANDLER, Link, MMI_HANDLER_SIGNATURE);
+        Link       = GetNextNode (&MmiEntry->MmiHandlers, Link);
+        if (MmiHandler->ToRemove) {
+          //
+          // Remove MmiHandler if the ToRemove is set.
+          //
+          if (RemoveMmiHandler (MmiHandler, MmiEntry)) {
+            break;
+          }
+        }
+      }
+    }
   }
 
-  return Status;
+  return ReturnStatus;
 }
 
 /**
@@ -231,16 +354,16 @@ MmiManage (
 EFI_STATUS
 EFIAPI
 MmiHandlerRegister (
-  IN  EFI_MM_HANDLER_ENTRY_POINT    Handler,
-  IN  CONST EFI_GUID                *HandlerType  OPTIONAL,
-  OUT EFI_HANDLE                    *DispatchHandle
+  IN  EFI_MM_HANDLER_ENTRY_POINT  Handler,
+  IN  CONST EFI_GUID              *HandlerType  OPTIONAL,
+  OUT EFI_HANDLE                  *DispatchHandle
   )
 {
   MMI_HANDLER  *MmiHandler;
   MMI_ENTRY    *MmiEntry;
   LIST_ENTRY   *List;
 
-  if (Handler == NULL || DispatchHandle == NULL) {
+  if ((Handler == NULL) || (DispatchHandle == NULL)) {
     return EFI_INVALID_PARAMETER;
   }
 
@@ -250,19 +373,20 @@ MmiHandlerRegister (
   }
 
   MmiHandler->Signature = MMI_HANDLER_SIGNATURE;
-  MmiHandler->Handler = Handler;
+  MmiHandler->Handler   = Handler;
+  MmiHandler->ToRemove  = FALSE;
 
   if (HandlerType == NULL) {
     //
     // This is root MMI handler
     //
     MmiEntry = NULL;
-    List = &mRootMmiHandlerList;
+    List     = &mRootMmiHandlerList;
   } else {
     //
     // None root MMI handler
     //
-    MmiEntry = MmCoreFindMmiEntry ((EFI_GUID *) HandlerType, TRUE);
+    MmiEntry = MmCoreFindMmiEntry ((EFI_GUID *)HandlerType, TRUE);
     if (MmiEntry == NULL) {
       return EFI_OUT_OF_RESOURCES;
     }
@@ -273,7 +397,7 @@ MmiHandlerRegister (
   MmiHandler->MmiEntry = MmiEntry;
   InsertTailList (List, &MmiHandler->Link);
 
-  *DispatchHandle = (EFI_HANDLE) MmiHandler;
+  *DispatchHandle = (EFI_HANDLE)MmiHandler;
 
   return EFI_SUCCESS;
 }
@@ -296,7 +420,7 @@ MmiHandlerUnRegister (
   MMI_HANDLER  *MmiHandler;
   MMI_ENTRY    *MmiEntry;
 
-  MmiHandler = (MMI_HANDLER *) DispatchHandle;
+  MmiHandler = (MMI_HANDLER *)DispatchHandle;
 
   if (MmiHandler == NULL) {
     return EFI_INVALID_PARAMETER;
@@ -306,26 +430,17 @@ MmiHandlerUnRegister (
     return EFI_INVALID_PARAMETER;
   }
 
-  MmiEntry = MmiHandler->MmiEntry;
-
-  RemoveEntryList (&MmiHandler->Link);
-  FreePool (MmiHandler);
-
-  if (MmiEntry == NULL) {
+  MmiHandler->ToRemove = TRUE;
+  if (mMmiManageCallingDepth > 0) {
     //
-    // This is root MMI handler
+    // This function is called from MmiManage()
+    // Do not delete or remove MmiHandler or MmiEntry now.
     //
     return EFI_SUCCESS;
   }
 
-  if (IsListEmpty (&MmiEntry->MmiHandlers)) {
-    //
-    // No handler registered for this interrupt now, remove the MMI_ENTRY
-    //
-    RemoveEntryList (&MmiEntry->AllEntries);
-
-    FreePool (MmiEntry);
-  }
+  MmiEntry = MmiHandler->MmiEntry;
+  RemoveMmiHandler (MmiHandler, MmiEntry);
 
   return EFI_SUCCESS;
 }

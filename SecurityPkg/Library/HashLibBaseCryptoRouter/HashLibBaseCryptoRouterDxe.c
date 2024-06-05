@@ -3,7 +3,7 @@
   hash handler registered, such as SHA1, SHA256.
   Platform can use PcdTpm2HashMask to mask some hash engines.
 
-Copyright (c) 2013 - 2018, Intel Corporation. All rights reserved. <BR>
+Copyright (c) 2013 - 2024, Intel Corporation. All rights reserved. <BR>
 SPDX-License-Identifier: BSD-2-Clause-Patent
 
 **/
@@ -16,14 +16,19 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include <Library/MemoryAllocationLib.h>
 #include <Library/PcdLib.h>
 #include <Library/HashLib.h>
+#include <Protocol/Tcg2Protocol.h>
 
 #include "HashLibBaseCryptoRouterCommon.h"
 
-HASH_INTERFACE   mHashInterface[HASH_COUNT] = {{{0}, NULL, NULL, NULL}};
-UINTN            mHashInterfaceCount = 0;
+HASH_INTERFACE  mHashInterface[HASH_COUNT] = {
+  {
+    { 0 }, NULL, NULL, NULL
+  }
+};
+UINTN           mHashInterfaceCount = 0;
 
-UINT32           mSupportedHashMaskLast = 0;
-UINT32           mSupportedHashMaskCurrent = 0;
+UINT32  mSupportedHashMaskLast    = 0;
+UINT32  mSupportedHashMaskCurrent = 0;
 
 /**
   Check mismatch of supported HashMask between modules
@@ -57,7 +62,7 @@ CheckSupportedHashMaskMismatch (
 EFI_STATUS
 EFIAPI
 HashStart (
-  OUT HASH_HANDLE    *HashHandle
+  OUT HASH_HANDLE  *HashHandle
   )
 {
   HASH_HANDLE  *HashCtx;
@@ -70,7 +75,7 @@ HashStart (
 
   CheckSupportedHashMaskMismatch ();
 
-  HashCtx = AllocatePool (sizeof(*HashCtx) * mHashInterfaceCount);
+  HashCtx = AllocatePool (sizeof (*HashCtx) * mHashInterfaceCount);
   ASSERT (HashCtx != NULL);
 
   for (Index = 0; Index < mHashInterfaceCount; Index++) {
@@ -97,9 +102,9 @@ HashStart (
 EFI_STATUS
 EFIAPI
 HashUpdate (
-  IN HASH_HANDLE    HashHandle,
-  IN VOID           *DataToHash,
-  IN UINTN          DataToHashLen
+  IN HASH_HANDLE  HashHandle,
+  IN VOID         *DataToHash,
+  IN UINTN        DataToHashLen
   )
 {
   HASH_HANDLE  *HashCtx;
@@ -125,6 +130,49 @@ HashUpdate (
 }
 
 /**
+  Extend to TPM NvIndex.
+
+  @param[in]  NvIndex            The NV Index of the area to extend.
+  @param[in]  DataSize           The data size to extend.
+  @param[in]  Data               The data to extend.
+
+  @retval EFI_SUCCESS            Operation completed successfully.
+  @retval EFI_DEVICE_ERROR       The command was unsuccessful.
+  @retval EFI_NOT_FOUND          The command was returned successfully, but NvIndex is not found.
+**/
+EFI_STATUS
+EFIAPI
+Tpm2ExtendNvIndex (
+  TPMI_RH_NV_INDEX  NvIndex,
+  UINT16            DataSize,
+  BYTE              *Data
+  )
+{
+  EFI_STATUS        Status;
+  TPMI_RH_NV_AUTH   AuthHandle;
+  TPM2B_MAX_BUFFER  NvExtendData;
+
+  AuthHandle = TPM_RH_PLATFORM;
+  ZeroMem (&NvExtendData, sizeof (NvExtendData));
+  CopyMem (NvExtendData.buffer, Data, DataSize);
+  NvExtendData.size = DataSize;
+  Status            = Tpm2NvExtend (
+                        AuthHandle,
+                        NvIndex,
+                        NULL,
+                        &NvExtendData
+                        );
+  if (EFI_ERROR (Status)) {
+    DEBUG (
+      (DEBUG_ERROR, "Extend TPM NV index failed, Index: 0x%x Status: %d\n",
+       NvIndex, Status)
+      );
+  }
+
+  return Status;
+}
+
+/**
   Hash sequence complete and extend to PCR.
 
   @param HashHandle    Hash handle.
@@ -138,18 +186,23 @@ HashUpdate (
 EFI_STATUS
 EFIAPI
 HashCompleteAndExtend (
-  IN HASH_HANDLE         HashHandle,
-  IN TPMI_DH_PCR         PcrIndex,
-  IN VOID                *DataToHash,
-  IN UINTN               DataToHashLen,
-  OUT TPML_DIGEST_VALUES *DigestList
+  IN HASH_HANDLE          HashHandle,
+  IN TPMI_DH_PCR          PcrIndex,
+  IN VOID                 *DataToHash,
+  IN UINTN                DataToHashLen,
+  OUT TPML_DIGEST_VALUES  *DigestList
   )
 {
-  TPML_DIGEST_VALUES Digest;
-  HASH_HANDLE        *HashCtx;
-  UINTN              Index;
-  EFI_STATUS         Status;
-  UINT32             HashMask;
+  TPML_DIGEST_VALUES               Digest;
+  HASH_HANDLE                      *HashCtx;
+  UINTN                            Index;
+  EFI_STATUS                       Status;
+  UINT32                           HashMask;
+  TPML_DIGEST_VALUES               TcgPcrEvent2Digest;
+  EFI_TCG2_EVENT_ALGORITHM_BITMAP  TpmHashAlgorithmBitmap;
+  UINT32                           ActivePcrBanks;
+  UINT32                           *BufferPtr;
+  UINT32                           DigestListBinSize;
 
   if (mHashInterfaceCount == 0) {
     return EFI_UNSUPPORTED;
@@ -158,7 +211,7 @@ HashCompleteAndExtend (
   CheckSupportedHashMaskMismatch ();
 
   HashCtx = (HASH_HANDLE *)HashHandle;
-  ZeroMem (DigestList, sizeof(*DigestList));
+  ZeroMem (DigestList, sizeof (*DigestList));
 
   for (Index = 0; Index < mHashInterfaceCount; Index++) {
     HashMask = Tpm2GetHashMaskFromAlgo (&mHashInterface[Index].HashGuid);
@@ -171,10 +224,29 @@ HashCompleteAndExtend (
 
   FreePool (HashCtx);
 
-  Status = Tpm2PcrExtend (
-             PcrIndex,
-             DigestList
-             );
+  if (PcrIndex <= MAX_PCR_INDEX) {
+    Status = Tpm2PcrExtend (
+               PcrIndex,
+               DigestList
+               );
+  } else {
+    Status = Tpm2GetCapabilitySupportedAndActivePcrs (&TpmHashAlgorithmBitmap, &ActivePcrBanks);
+    ASSERT_EFI_ERROR (Status);
+    ActivePcrBanks = ActivePcrBanks & mSupportedHashMaskCurrent;
+    ZeroMem (&TcgPcrEvent2Digest, sizeof (TcgPcrEvent2Digest));
+    BufferPtr         = CopyDigestListToBuffer (&TcgPcrEvent2Digest, DigestList, ActivePcrBanks);
+    DigestListBinSize = (UINT32)((UINT8 *)BufferPtr - (UINT8 *)&TcgPcrEvent2Digest);
+
+    //
+    // Extend to TPM NvIndex
+    //
+    Status = Tpm2ExtendNvIndex (
+               PcrIndex,
+               (UINT16)DigestListBinSize,
+               (BYTE *)&TcgPcrEvent2Digest
+               );
+  }
+
   return Status;
 }
 
@@ -191,14 +263,14 @@ HashCompleteAndExtend (
 EFI_STATUS
 EFIAPI
 HashAndExtend (
-  IN TPMI_DH_PCR                    PcrIndex,
-  IN VOID                           *DataToHash,
-  IN UINTN                          DataToHashLen,
-  OUT TPML_DIGEST_VALUES            *DigestList
+  IN TPMI_DH_PCR          PcrIndex,
+  IN VOID                 *DataToHash,
+  IN UINTN                DataToHashLen,
+  OUT TPML_DIGEST_VALUES  *DigestList
   )
 {
-  HASH_HANDLE    HashHandle;
-  EFI_STATUS     Status;
+  HASH_HANDLE  HashHandle;
+  EFI_STATUS   Status;
 
   if (mHashInterfaceCount == 0) {
     return EFI_UNSUPPORTED;
@@ -225,22 +297,27 @@ HashAndExtend (
 EFI_STATUS
 EFIAPI
 RegisterHashInterfaceLib (
-  IN HASH_INTERFACE   *HashInterface
+  IN HASH_INTERFACE  *HashInterface
   )
 {
-  UINTN              Index;
-  UINT32             HashMask;
-  EFI_STATUS         Status;
+  UINTN       Index;
+  UINT32      HashMask;
+  UINT32      Tpm2HashMask;
+  EFI_STATUS  Status;
 
   //
   // Check allow
   //
-  HashMask = Tpm2GetHashMaskFromAlgo (&HashInterface->HashGuid);
-  if ((HashMask & PcdGet32 (PcdTpm2HashMask)) == 0) {
+  HashMask     = Tpm2GetHashMaskFromAlgo (&HashInterface->HashGuid);
+  Tpm2HashMask = PcdGet32 (PcdTpm2HashMask);
+
+  if ((Tpm2HashMask != 0) &&
+      ((HashMask & Tpm2HashMask) == 0))
+  {
     return EFI_UNSUPPORTED;
   }
 
-  if (mHashInterfaceCount >= sizeof(mHashInterface)/sizeof(mHashInterface[0])) {
+  if (mHashInterfaceCount >= sizeof (mHashInterface)/sizeof (mHashInterface[0])) {
     return EFI_OUT_OF_RESOURCES;
   }
 
@@ -258,11 +335,11 @@ RegisterHashInterfaceLib (
   // Record hash algorithm bitmap of CURRENT module which consumes HashLib.
   //
   mSupportedHashMaskCurrent = PcdGet32 (PcdTcg2HashAlgorithmBitmap) | HashMask;
-  Status = PcdSet32S (PcdTcg2HashAlgorithmBitmap, mSupportedHashMaskCurrent);
+  Status                    = PcdSet32S (PcdTcg2HashAlgorithmBitmap, mSupportedHashMaskCurrent);
   ASSERT_EFI_ERROR (Status);
 
-  CopyMem (&mHashInterface[mHashInterfaceCount], HashInterface, sizeof(*HashInterface));
-  mHashInterfaceCount ++;
+  CopyMem (&mHashInterface[mHashInterfaceCount], HashInterface, sizeof (*HashInterface));
+  mHashInterfaceCount++;
 
   return EFI_SUCCESS;
 }
@@ -283,7 +360,7 @@ HashLibBaseCryptoRouterDxeConstructor (
   IN EFI_SYSTEM_TABLE  *SystemTable
   )
 {
-  EFI_STATUS    Status;
+  EFI_STATUS  Status;
 
   //
   // Record hash algorithm bitmap of LAST module which also consumes HashLib.

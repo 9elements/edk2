@@ -3,6 +3,7 @@
 
   Copyright (c) 2017 - 2018, Linaro Ltd. All rights reserved.<BR>
   Copyright (c) 2019, Intel Corporation. All rights reserved.<BR>
+  Copyright (c) 2022, Arm Limited. All rights reserved.<BR>
 
   SPDX-License-Identifier: BSD-2-Clause-Patent
 
@@ -31,11 +32,8 @@ ResetCold (
   VOID
   )
 {
-  ARM_SMC_ARGS ArmSmcArgs;
-
   // Send a PSCI 0.2 SYSTEM_RESET command
-  ArmSmcArgs.Arg0 = ARM_SMC_ID_PSCI_SYSTEM_RESET;
-  ArmCallSmc (&ArmSmcArgs);
+  ArmCallSmc0 (ARM_SMC_ID_PSCI_SYSTEM_RESET, NULL, NULL, NULL);
 }
 
 /**
@@ -50,8 +48,24 @@ ResetWarm (
   VOID
   )
 {
-  // Map a warm reset into a cold reset
-  ResetCold ();
+  UINTN  Arg1;
+  UINTN  Ret;
+
+  Arg1 = ARM_SMC_ID_PSCI_SYSTEM_RESET2_AARCH64;
+
+  // Is SYSTEM_RESET2 supported?
+  Ret = ArmCallSmc0 (ARM_SMC_ID_PSCI_FEATURES, &Arg1, NULL, NULL);
+  if (Ret == ARM_SMC_PSCI_RET_SUCCESS) {
+    // Send PSCI SYSTEM_RESET2 command
+    ArmCallSmc0 (Arg1, NULL, NULL, NULL);
+  } else {
+    // Map a warm reset into a cold reset
+    DEBUG ((
+      DEBUG_INFO,
+      "Warm reboot not supported by platform, issuing cold reboot\n"
+      ));
+    ResetCold ();
+  }
 }
 
 /**
@@ -66,11 +80,8 @@ ResetShutdown (
   VOID
   )
 {
-  ARM_SMC_ARGS ArmSmcArgs;
-
   // Send a PSCI 0.2 SYSTEM_OFF command
-  ArmSmcArgs.Arg0 = ARM_SMC_ID_PSCI_SYSTEM_OFF;
-  ArmCallSmc (&ArmSmcArgs);
+  ArmCallSmc0 (ARM_SMC_ID_PSCI_SYSTEM_OFF, NULL, NULL, NULL);
 }
 
 /**
@@ -87,8 +98,8 @@ ResetShutdown (
 VOID
 EFIAPI
 ResetPlatformSpecific (
-  IN UINTN   DataSize,
-  IN VOID    *ResetData
+  IN UINTN  DataSize,
+  IN VOID   *ResetData
   )
 {
   // Map the platform specific reset as reboot
@@ -110,30 +121,30 @@ ResetPlatformSpecific (
 VOID
 EFIAPI
 ResetSystem (
-  IN EFI_RESET_TYPE               ResetType,
-  IN EFI_STATUS                   ResetStatus,
-  IN UINTN                        DataSize,
-  IN VOID                         *ResetData OPTIONAL
+  IN EFI_RESET_TYPE  ResetType,
+  IN EFI_STATUS      ResetStatus,
+  IN UINTN           DataSize,
+  IN VOID            *ResetData OPTIONAL
   )
 {
   switch (ResetType) {
-  case EfiResetWarm:
-    ResetWarm ();
-    break;
+    case EfiResetWarm:
+      ResetWarm ();
+      break;
 
-  case EfiResetCold:
-    ResetCold ();
-    break;
+    case EfiResetCold:
+      ResetCold ();
+      break;
 
-  case EfiResetShutdown:
-    ResetShutdown ();
-    return;
+    case EfiResetShutdown:
+      ResetShutdown ();
+      return;
 
-  case EfiResetPlatformSpecific:
-    ResetPlatformSpecific (DataSize, ResetData);
-    return;
+    case EfiResetPlatformSpecific:
+      ResetPlatformSpecific (DataSize, ResetData);
+      return;
 
-  default:
-    return;
+    default:
+      return;
   }
 }

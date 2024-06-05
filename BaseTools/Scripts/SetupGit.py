@@ -46,7 +46,10 @@ UPSTREAMS = [
      'list': 'devel@edk2.groups.io', 'prefix': 'edk2-platforms'},
     {'name': 'edk2-non-osi',
      'repo': 'https://github.com/tianocore/edk2-non-osi.git',
-     'list': 'devel@edk2.groups.io', 'prefix': 'edk2-non-osi'}
+     'list': 'devel@edk2.groups.io', 'prefix': 'edk2-non-osi'},
+    {'name': 'edk2-test',
+     'repo': 'https://github.com/tianocore/edk2-test.git',
+     'list': 'devel@edk2.groups.io', 'prefix': 'edk2-test'}
     ]
 
 # The minimum version required for all of the below options to work
@@ -54,6 +57,8 @@ MIN_GIT_VERSION = (1, 9, 0)
 
 # Set of options to be set identically for all repositories
 OPTIONS = [
+    {'section': 'alias',       'option': 'fp',
+     'value': 'format-patch -M --stat=1000 --stat-graph-width=20'},
     {'section': 'am',          'option': 'keepcr',            'value': True},
     {'section': 'am',          'option': 'signoff',           'value': True},
     {'section': 'cherry-pick', 'option': 'signoff',           'value': True},

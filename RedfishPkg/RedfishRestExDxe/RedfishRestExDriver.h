@@ -3,6 +3,8 @@
 
   Copyright (c) 2019, Intel Corporation. All rights reserved.<BR>
   (C) Copyright 2020 Hewlett Packard Enterprise Development LP<BR>
+  Copyright (c) 2023, Ampere Computing LLC. All rights reserved.<BR>
+  Copyright (C) 2024 Advanced Micro Devices, Inc. All rights reserved.<BR>
 
   SPDX-License-Identifier: BSD-2-Clause-Patent
 
@@ -31,6 +33,8 @@
 #include <Protocol/DriverBinding.h>
 #include <Protocol/RestEx.h>
 #include <Protocol/ServiceBinding.h>
+#include <Protocol/HttpCallback.h>
+#include <Protocol/Tls.h>
 
 ///
 /// Protocol instances
@@ -45,7 +49,7 @@ extern EFI_REST_EX_PROTOCOL          mRedfishRestExProtocol;
 ///
 /// RestEx service block
 ///
-typedef struct _RESTEX_SERVICE  RESTEX_SERVICE;
+typedef struct _RESTEX_SERVICE RESTEX_SERVICE;
 
 ///
 /// RestEx instance block
@@ -57,8 +61,8 @@ typedef struct _RESTEX_INSTANCE RESTEX_INSTANCE;
 ///
 #define REDFISH_RESTEX_DRIVER_VERSION  0x0100
 
-#define RESTEX_SERVICE_SIGNATURE    SIGNATURE_32 ('R', 'E', 'S', 'S')
-#define RESTEX_INSTANCE_SIGNATURE   SIGNATURE_32 ('R', 'E', 'I', 'S')
+#define RESTEX_SERVICE_SIGNATURE   SIGNATURE_32 ('R', 'E', 'S', 'S')
+#define RESTEX_INSTANCE_SIGNATURE  SIGNATURE_32 ('R', 'E', 'I', 'S')
 
 #define RESTEX_SERVICE_FROM_THIS(a)   \
   CR (a, RESTEX_SERVICE, ServiceBinding, RESTEX_SERVICE_SIGNATURE)
@@ -66,59 +70,67 @@ typedef struct _RESTEX_INSTANCE RESTEX_INSTANCE;
 #define RESTEX_INSTANCE_FROM_THIS(a)  \
   CR (a, RESTEX_INSTANCE, RestEx, RESTEX_INSTANCE_SIGNATURE)
 
+#define RESTEX_INSTANCE_FROM_HTTP_CALLBACK(a)  \
+  CR (a, RESTEX_INSTANCE, HttpCallbakFunction, RESTEX_INSTANCE_SIGNATURE)
 
-#define RESTEX_STATE_UNCONFIGED     0
-#define RESTEX_STATE_CONFIGED       1
+#define RESTEX_STATE_UNCONFIGED  0
+#define RESTEX_STATE_CONFIGED    1
 
 struct _RESTEX_SERVICE {
-  UINT32                        Signature;
-  EFI_SERVICE_BINDING_PROTOCOL  ServiceBinding;
+  UINT32                          Signature;
+  EFI_SERVICE_BINDING_PROTOCOL    ServiceBinding;
 
-  UINT16                        RestExChildrenNum;
-  LIST_ENTRY                    RestExChildrenList;
+  UINT16                          RestExChildrenNum;
+  LIST_ENTRY                      RestExChildrenList;
 
-  EFI_HANDLE                    ControllerHandle;
-  EFI_HANDLE                    ImageHandle;
+  EFI_HANDLE                      ControllerHandle;
+  EFI_HANDLE                      ImageHandle;
 
   //
   // Use to establish the parent-child relationship.
   //
-  EFI_HANDLE                    HttpChildHandle;
+  EFI_HANDLE                      HttpChildHandle;
 
-  UINT32                        Id;
+  UINT32                          *Id;
 
-  EFI_REST_EX_SERVICE_INFO      RestExServiceInfo;
+  EFI_REST_EX_SERVICE_INFO        RestExServiceInfo;
 };
 
-#define RESTEX_INSTANCE_FLAGS_TLS_RETRY       0x00000001
-#define RESTEX_INSTANCE_FLAGS_TCP_ERROR_RETRY 0x00000002
+#define RESTEX_INSTANCE_FLAGS_TLS_RETRY        0x00000001
+#define RESTEX_INSTANCE_FLAGS_TCP_ERROR_RETRY  0x00000002
 
 struct _RESTEX_INSTANCE {
-  UINT32                        Signature;
-  LIST_ENTRY                    Link;
+  UINT32                          Signature;
+  LIST_ENTRY                      Link;
 
-  EFI_REST_EX_PROTOCOL          RestEx;
+  EFI_REST_EX_PROTOCOL            RestEx;
 
-  INTN                          State;
-  BOOLEAN                       InDestroy;
+  INTN                            State;
+  BOOLEAN                         InDestroy;
 
-  RESTEX_SERVICE                *Service;
-  EFI_HANDLE                    ChildHandle;
+  RESTEX_SERVICE                  *Service;
+  EFI_HANDLE                      ChildHandle;
 
-  EFI_REST_EX_CONFIG_DATA       ConfigData;
+  EFI_REST_EX_CONFIG_DATA         ConfigData;
 
   //
   // HTTP_IO to access the HTTP service
   //
-  HTTP_IO                       HttpIo;
+  HTTP_IO                         HttpIo;
 
-  UINT32                        Flags;
+  //
+  // EDKII_HTTP_CALLBACK_PROTOCOL that listens to
+  // HttpEventInitSession event.
+  //
+  EDKII_HTTP_CALLBACK_PROTOCOL    HttpCallbakFunction;
+
+  UINT32                          Flags;
 };
 
 typedef struct {
-  EFI_SERVICE_BINDING_PROTOCOL  *ServiceBinding;
-  UINTN                         NumberOfChildren;
-  EFI_HANDLE                    *ChildHandleBuffer;
+  EFI_SERVICE_BINDING_PROTOCOL    *ServiceBinding;
+  UINTN                           NumberOfChildren;
+  EFI_HANDLE                      *ChildHandleBuffer;
 } RESTEX_DESTROY_CHILD_IN_HANDLE_BUF_CONTEXT;
 
 /**
@@ -143,9 +155,9 @@ typedef struct {
 EFI_STATUS
 EFIAPI
 RedfishRestExSendReceive (
-  IN      EFI_REST_EX_PROTOCOL   *This,
-  IN      EFI_HTTP_MESSAGE       *RequestMessage,
-  OUT     EFI_HTTP_MESSAGE       *ResponseMessage
+  IN      EFI_REST_EX_PROTOCOL  *This,
+  IN      EFI_HTTP_MESSAGE      *RequestMessage,
+  OUT     EFI_HTTP_MESSAGE      *ResponseMessage
   );
 
 /**
@@ -173,8 +185,8 @@ RedfishRestExSendReceive (
 EFI_STATUS
 EFIAPI
 RedfishRestExGetServiceTime (
-  IN      EFI_REST_EX_PROTOCOL   *This,
-  OUT     EFI_TIME               *Time
+  IN      EFI_REST_EX_PROTOCOL  *This,
+  OUT     EFI_TIME              *Time
   );
 
 /**
@@ -244,8 +256,8 @@ RedfishRestExGetService (
 EFI_STATUS
 EFIAPI
 RedfishRestExGetModeData (
-  IN  EFI_REST_EX_PROTOCOL      *This,
-  OUT EFI_REST_EX_CONFIG_DATA   *RestExConfigData
+  IN  EFI_REST_EX_PROTOCOL     *This,
+  OUT EFI_REST_EX_CONFIG_DATA  *RestExConfigData
   );
 
 /**
@@ -282,8 +294,8 @@ RedfishRestExGetModeData (
 EFI_STATUS
 EFIAPI
 RedfishRestExConfigure (
-  IN  EFI_REST_EX_PROTOCOL    *This,
-  IN  EFI_REST_EX_CONFIG_DATA RestExConfigData
+  IN  EFI_REST_EX_PROTOCOL     *This,
+  IN  EFI_REST_EX_CONFIG_DATA  RestExConfigData
   );
 
 /**
@@ -320,10 +332,10 @@ RedfishRestExConfigure (
 EFI_STATUS
 EFIAPI
 RedfishRestExAyncSendReceive (
-  IN      EFI_REST_EX_PROTOCOL   *This,
-  IN      EFI_HTTP_MESSAGE       *RequestMessage OPTIONAL,
-  IN      EFI_REST_EX_TOKEN      *RestExToken,
-  IN      UINTN                  *TimeOutInMilliSeconds OPTIONAL
+  IN      EFI_REST_EX_PROTOCOL  *This,
+  IN      EFI_HTTP_MESSAGE      *RequestMessage OPTIONAL,
+  IN      EFI_REST_EX_TOKEN     *RestExToken,
+  IN      UINTN                 *TimeOutInMilliSeconds OPTIONAL
   );
 
 /**
@@ -355,10 +367,11 @@ RedfishRestExAyncSendReceive (
 EFI_STATUS
 EFIAPI
 RedfishRestExEventService (
-  IN      EFI_REST_EX_PROTOCOL   *This,
-  IN      EFI_HTTP_MESSAGE       *RequestMessage OPTIONAL,
-  IN      EFI_REST_EX_TOKEN      *RestExToken
+  IN      EFI_REST_EX_PROTOCOL  *This,
+  IN      EFI_HTTP_MESSAGE      *RequestMessage OPTIONAL,
+  IN      EFI_REST_EX_TOKEN     *RestExToken
   );
+
 /**
   Create a new TLS session becuase the previous on is closed.
   status.
@@ -372,8 +385,7 @@ RedfishRestExEventService (
 EFI_STATUS
 ResetHttpTslSession (
   IN   RESTEX_INSTANCE  *Instance
-);
-
+  );
 
 /**
   Callback function which provided by user to remove one node in NetDestroyLinkList process.
@@ -388,8 +400,8 @@ ResetHttpTslSession (
 EFI_STATUS
 EFIAPI
 RestExDestroyChildEntryInHandleBuffer (
-  IN LIST_ENTRY         *Entry,
-  IN VOID               *Context
+  IN LIST_ENTRY  *Entry,
+  IN VOID        *Context
   );
 
 /**
@@ -400,7 +412,7 @@ RestExDestroyChildEntryInHandleBuffer (
 **/
 VOID
 RestExDestroyInstance (
-  IN RESTEX_INSTANCE         *Instance
+  IN RESTEX_INSTANCE  *Instance
   );
 
 /**
@@ -415,10 +427,9 @@ RestExDestroyInstance (
 **/
 EFI_STATUS
 RestExCreateInstance (
-  IN  RESTEX_SERVICE         *Service,
-  OUT RESTEX_INSTANCE        **Instance
+  IN  RESTEX_SERVICE   *Service,
+  OUT RESTEX_INSTANCE  **Instance
   );
-
 
 /**
   Release all the resource used the RestEx service binding instance.
@@ -428,7 +439,7 @@ RestExCreateInstance (
 **/
 VOID
 RestExDestroyService (
-  IN RESTEX_SERVICE     *RestExSb
+  IN RESTEX_SERVICE  *RestExSb
   );
 
 /**
@@ -446,9 +457,9 @@ RestExDestroyService (
 **/
 EFI_STATUS
 RestExCreateService (
-  IN     EFI_HANDLE            Controller,
-  IN     EFI_HANDLE            Image,
-  OUT    RESTEX_SERVICE        **Service
+  IN     EFI_HANDLE      Controller,
+  IN     EFI_HANDLE      Image,
+  OUT    RESTEX_SERVICE  **Service
   );
 
 /**
@@ -647,4 +658,5 @@ RedfishRestExServiceBindingDestroyChild (
   IN EFI_SERVICE_BINDING_PROTOCOL  *This,
   IN EFI_HANDLE                    ChildHandle
   );
+
 #endif

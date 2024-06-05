@@ -10,9 +10,15 @@
 
 #include "UefiShellDebug1CommandsLib.h"
 #include <Protocol/PciRootBridgeIo.h>
+#include <Protocol/HiiDatabase.h>
 #include <Guid/Acpi.h>
 #include <Guid/Mps.h>
 #include <Guid/SmBios.h>
+#include <Guid/MemoryAttributesTable.h>
+#include <Guid/RtPropertiesTable.h>
+#include <Guid/SystemResourceTable.h>
+#include <Guid/DebugImageInfoTable.h>
+#include <Guid/ImageAuthentication.h>
 
 /**
   Make a printable character.
@@ -24,13 +30,14 @@
   @return A printable character representing Char.
 **/
 CHAR16
-MakePrintable(
-  IN CONST CHAR16 Char
+MakePrintable (
+  IN CONST CHAR16  Char
   )
 {
-  if ((Char < 0x20 && Char > 0)||(Char > 126)) {
+  if (((Char < 0x20) && (Char > 0)) || (Char > 126)) {
     return (L'?');
   }
+
   return (Char);
 }
 
@@ -41,45 +48,46 @@ MakePrintable(
   @param[in] Size       The length of memory to display.
 **/
 SHELL_STATUS
-DisplayMmioMemory(
+DisplayMmioMemory (
   IN CONST VOID   *Address,
   IN CONST UINTN  Size
   )
 {
-  EFI_PCI_ROOT_BRIDGE_IO_PROTOCOL *PciRbIo;
-  EFI_STATUS                      Status;
-  VOID                            *Buffer;
-  SHELL_STATUS                    ShellStatus;
+  EFI_PCI_ROOT_BRIDGE_IO_PROTOCOL  *PciRbIo;
+  EFI_STATUS                       Status;
+  VOID                             *Buffer;
+  SHELL_STATUS                     ShellStatus;
 
   ShellStatus = SHELL_SUCCESS;
 
-  Status = gBS->LocateProtocol(&gEfiPciRootBridgeIoProtocolGuid, NULL, (VOID**)&PciRbIo);
-  if (EFI_ERROR(Status)) {
-    ShellPrintHiiEx(-1, -1, NULL, STRING_TOKEN (STR_GEN_PCIRBIO_NF), gShellDebug1HiiHandle, L"dmem");
+  Status = gBS->LocateProtocol (&gEfiPciRootBridgeIoProtocolGuid, NULL, (VOID **)&PciRbIo);
+  if (EFI_ERROR (Status)) {
+    ShellPrintHiiEx (-1, -1, NULL, STRING_TOKEN (STR_GEN_PCIRBIO_NF), gShellDebug1HiiHandle, L"dmem");
     return (SHELL_NOT_FOUND);
   }
-  Buffer = AllocateZeroPool(Size);
+
+  Buffer = AllocateZeroPool (Size);
   if (Buffer == NULL) {
     return SHELL_OUT_OF_RESOURCES;
   }
 
-  Status = PciRbIo->Mem.Read(PciRbIo, EfiPciWidthUint8, (UINT64)(UINTN)Address, Size, Buffer);
-  if (EFI_ERROR(Status)) {
-    ShellPrintHiiEx(-1, -1, NULL, STRING_TOKEN (STR_GEN_PCIRBIO_ER), gShellDebug1HiiHandle, L"dmem");
+  Status = PciRbIo->Mem.Read (PciRbIo, EfiPciWidthUint8, (UINT64)(UINTN)Address, Size, Buffer);
+  if (EFI_ERROR (Status)) {
+    ShellPrintHiiEx (-1, -1, NULL, STRING_TOKEN (STR_GEN_PCIRBIO_ER), gShellDebug1HiiHandle, L"dmem");
     ShellStatus = SHELL_NOT_FOUND;
   } else {
-    ShellPrintHiiEx(-1, -1, NULL, STRING_TOKEN (STR_DMEM_MMIO_HEADER_ROW), gShellDebug1HiiHandle, (UINT64)(UINTN)Address, Size);
-    DumpHex(2, (UINTN)Address, Size, Buffer);
+    ShellPrintHiiEx (-1, -1, NULL, STRING_TOKEN (STR_DMEM_MMIO_HEADER_ROW), gShellDebug1HiiHandle, (UINT64)(UINTN)Address, Size);
+    DumpHex (2, (UINTN)Address, Size, Buffer);
   }
 
-  FreePool(Buffer);
+  FreePool (Buffer);
   return (ShellStatus);
 }
 
-STATIC CONST SHELL_PARAM_ITEM ParamList[] = {
-  {L"-mmio", TypeFlag},
-  {NULL, TypeMax}
-  };
+STATIC CONST SHELL_PARAM_ITEM  ParamList[] = {
+  { L"-mmio", TypeFlag },
+  { NULL,     TypeMax  }
+};
 
 /**
   Function for 'dmem' command.
@@ -94,66 +102,79 @@ ShellCommandRunDmem (
   IN EFI_SYSTEM_TABLE  *SystemTable
   )
 {
-  EFI_STATUS          Status;
-  LIST_ENTRY          *Package;
-  CHAR16              *ProblemParam;
-  SHELL_STATUS        ShellStatus;
-  VOID                *Address;
-  UINT64              Size;
-  CONST CHAR16        *Temp1;
-  UINT64              AcpiTableAddress;
-  UINT64              Acpi20TableAddress;
-  UINT64              SalTableAddress;
-  UINT64              SmbiosTableAddress;
-  UINT64              MpsTableAddress;
-  UINTN               TableWalker;
+  EFI_STATUS    Status;
+  LIST_ENTRY    *Package;
+  CHAR16        *ProblemParam;
+  SHELL_STATUS  ShellStatus;
+  VOID          *Address;
+  UINT64        Size;
+  CONST CHAR16  *Temp1;
+  UINT64        AcpiTableAddress;
+  UINT64        Acpi20TableAddress;
+  UINT64        SalTableAddress;
+  UINT64        SmbiosTableAddress;
+  UINT64        MpsTableAddress;
+  UINT64        DtbTableAddress;
+  UINT64        MemoryAttributesTableAddress;
+  UINT64        RtPropertiesTableAddress;
+  UINT64        SystemResourceTableAddress;
+  UINT64        DebugImageInfoTableAddress;
+  UINT64        ImageExecutionTableAddress;
+  UINT64        JsonConfigDataTableAddress;
+  UINT64        JsonCapsuleDataTableAddress;
+  UINT64        JsonCapsuleResultTableAddress;
+  UINT64        MemoryRangeCapsuleAddress;
+  UINT64        HiiDatabaseExportBufferAddress;
+  UINT64        ConformanceProfileTableAddress;
+  UINTN         TableWalker;
 
-  ShellStatus         = SHELL_SUCCESS;
-  Status              = EFI_SUCCESS;
-  Address             = NULL;
-  Size                = 0;
+  ShellStatus = SHELL_SUCCESS;
+  Status      = EFI_SUCCESS;
+  Address     = NULL;
+  Size        = 0;
 
   //
   // initialize the shell lib (we must be in non-auto-init...)
   //
-  Status = ShellInitialize();
-  ASSERT_EFI_ERROR(Status);
+  Status = ShellInitialize ();
+  ASSERT_EFI_ERROR (Status);
 
-  Status = CommandInit();
-  ASSERT_EFI_ERROR(Status);
+  Status = CommandInit ();
+  ASSERT_EFI_ERROR (Status);
 
   //
   // parse the command line
   //
   Status = ShellCommandLineParse (ParamList, &Package, &ProblemParam, TRUE);
-  if (EFI_ERROR(Status)) {
-    if (Status == EFI_VOLUME_CORRUPTED && ProblemParam != NULL) {
-      ShellPrintHiiEx(-1, -1, NULL, STRING_TOKEN (STR_GEN_PROBLEM), gShellDebug1HiiHandle, L"dmem", ProblemParam);
-      FreePool(ProblemParam);
+  if (EFI_ERROR (Status)) {
+    if ((Status == EFI_VOLUME_CORRUPTED) && (ProblemParam != NULL)) {
+      ShellPrintHiiEx (-1, -1, NULL, STRING_TOKEN (STR_GEN_PROBLEM), gShellDebug1HiiHandle, L"dmem", ProblemParam);
+      FreePool (ProblemParam);
       ShellStatus = SHELL_INVALID_PARAMETER;
     } else {
-      ASSERT(FALSE);
+      ASSERT (FALSE);
     }
   } else {
-    if (ShellCommandLineGetCount(Package) > 3) {
-      ShellPrintHiiEx(-1, -1, NULL, STRING_TOKEN (STR_GEN_TOO_MANY), gShellDebug1HiiHandle, L"dmem");
+    if (ShellCommandLineGetCount (Package) > 3) {
+      ShellPrintHiiEx (-1, -1, NULL, STRING_TOKEN (STR_GEN_TOO_MANY), gShellDebug1HiiHandle, L"dmem");
       ShellStatus = SHELL_INVALID_PARAMETER;
     } else {
-      Temp1 = ShellCommandLineGetRawValue(Package, 1);
+      Temp1 = ShellCommandLineGetRawValue (Package, 1);
       if (Temp1 == NULL) {
         Address = gST;
         Size    = sizeof (*gST);
       } else {
-        if (!ShellIsHexOrDecimalNumber(Temp1, TRUE, FALSE) || EFI_ERROR(ShellConvertStringToUint64(Temp1, (UINT64*)&Address, TRUE, FALSE))) {
-          ShellPrintHiiEx(-1, -1, NULL, STRING_TOKEN (STR_GEN_PARAM_INV), gShellDebug1HiiHandle, L"dmem", Temp1);
+        if (!ShellIsHexOrDecimalNumber (Temp1, TRUE, FALSE) || EFI_ERROR (ShellConvertStringToUint64 (Temp1, (UINT64 *)&Address, TRUE, FALSE))) {
+          ShellPrintHiiEx (-1, -1, NULL, STRING_TOKEN (STR_GEN_PARAM_INV), gShellDebug1HiiHandle, L"dmem", Temp1);
           ShellStatus = SHELL_INVALID_PARAMETER;
         }
-        Temp1 = ShellCommandLineGetRawValue(Package, 2);
+
+        Temp1 = ShellCommandLineGetRawValue (Package, 2);
         if (Temp1 == NULL) {
           Size = 512;
         } else {
-          if (!ShellIsHexOrDecimalNumber(Temp1, FALSE, FALSE) || EFI_ERROR(ShellConvertStringToUint64(Temp1, &Size, TRUE, FALSE))) {
-            ShellPrintHiiEx(-1, -1, NULL, STRING_TOKEN (STR_GEN_PARAM_INV), gShellDebug1HiiHandle, L"dmem", Temp1);
+          if (!ShellIsHexOrDecimalNumber (Temp1, FALSE, FALSE) || EFI_ERROR (ShellConvertStringToUint64 (Temp1, &Size, TRUE, FALSE))) {
+            ShellPrintHiiEx (-1, -1, NULL, STRING_TOKEN (STR_GEN_PARAM_INV), gShellDebug1HiiHandle, L"dmem", Temp1);
             ShellStatus = SHELL_INVALID_PARAMETER;
           }
         }
@@ -161,39 +182,105 @@ ShellCommandRunDmem (
     }
 
     if (ShellStatus == SHELL_SUCCESS) {
-      if (!ShellCommandLineGetFlag(Package, L"-mmio")) {
-        ShellPrintHiiEx(-1, -1, NULL, STRING_TOKEN (STR_DMEM_HEADER_ROW), gShellDebug1HiiHandle, (UINT64)(UINTN)Address, Size);
-        DumpHex(2, (UINTN)Address, (UINTN)Size, Address);
-        if (Address == (VOID*)gST) {
-          Acpi20TableAddress  = 0;
-          AcpiTableAddress    = 0;
-          SalTableAddress     = 0;
-          SmbiosTableAddress  = 0;
-          MpsTableAddress     = 0;
-          for (TableWalker = 0 ; TableWalker < gST->NumberOfTableEntries ; TableWalker++) {
-            if (CompareGuid(&gST->ConfigurationTable[TableWalker].VendorGuid, &gEfiAcpi20TableGuid)) {
+      if (!ShellCommandLineGetFlag (Package, L"-mmio")) {
+        ShellPrintHiiEx (-1, -1, NULL, STRING_TOKEN (STR_DMEM_HEADER_ROW), gShellDebug1HiiHandle, (UINT64)(UINTN)Address, Size);
+        DumpHex (2, (UINTN)Address, (UINTN)Size, Address);
+        if (Address == (VOID *)gST) {
+          Acpi20TableAddress             = 0;
+          AcpiTableAddress               = 0;
+          SalTableAddress                = 0;
+          SmbiosTableAddress             = 0;
+          MpsTableAddress                = 0;
+          DtbTableAddress                = 0;
+          MemoryAttributesTableAddress   = 0;
+          RtPropertiesTableAddress       = 0;
+          SystemResourceTableAddress     = 0;
+          DebugImageInfoTableAddress     = 0;
+          ImageExecutionTableAddress     = 0;
+          JsonConfigDataTableAddress     = 0;
+          JsonCapsuleDataTableAddress    = 0;
+          JsonCapsuleResultTableAddress  = 0;
+          MemoryRangeCapsuleAddress      = 0;
+          HiiDatabaseExportBufferAddress = 0;
+          ConformanceProfileTableAddress = 0;
+          for (TableWalker = 0; TableWalker < gST->NumberOfTableEntries; TableWalker++) {
+            if (CompareGuid (&gST->ConfigurationTable[TableWalker].VendorGuid, &gEfiAcpi20TableGuid)) {
               Acpi20TableAddress = (UINT64)(UINTN)gST->ConfigurationTable[TableWalker].VendorTable;
               continue;
             }
-            if (CompareGuid(&gST->ConfigurationTable[TableWalker].VendorGuid, &gEfiAcpi10TableGuid)) {
+
+            if (CompareGuid (&gST->ConfigurationTable[TableWalker].VendorGuid, &gEfiAcpi10TableGuid)) {
               AcpiTableAddress = (UINT64)(UINTN)gST->ConfigurationTable[TableWalker].VendorTable;
               continue;
             }
-            if (CompareGuid(&gST->ConfigurationTable[TableWalker].VendorGuid, &gEfiSmbiosTableGuid)) {
+
+            if (CompareGuid (&gST->ConfigurationTable[TableWalker].VendorGuid, &gEfiSmbiosTableGuid)) {
               SmbiosTableAddress = (UINT64)(UINTN)gST->ConfigurationTable[TableWalker].VendorTable;
               continue;
             }
+
             if (CompareGuid (&gST->ConfigurationTable[TableWalker].VendorGuid, &gEfiSmbios3TableGuid)) {
-              SmbiosTableAddress = (UINT64) (UINTN) gST->ConfigurationTable[TableWalker].VendorTable;
+              SmbiosTableAddress = (UINT64)(UINTN)gST->ConfigurationTable[TableWalker].VendorTable;
               continue;
             }
-            if (CompareGuid(&gST->ConfigurationTable[TableWalker].VendorGuid, &gEfiMpsTableGuid)) {
+
+            if (CompareGuid (&gST->ConfigurationTable[TableWalker].VendorGuid, &gEfiMpsTableGuid)) {
               MpsTableAddress = (UINT64)(UINTN)gST->ConfigurationTable[TableWalker].VendorTable;
+              continue;
+            }
+
+            if (CompareGuid (&gST->ConfigurationTable[TableWalker].VendorGuid, &gEfiMemoryAttributesTableGuid)) {
+              MemoryAttributesTableAddress = (UINT64)(UINTN)gST->ConfigurationTable[TableWalker].VendorTable;
+              continue;
+            }
+
+            if (CompareGuid (&gST->ConfigurationTable[TableWalker].VendorGuid, &gEfiRtPropertiesTableGuid)) {
+              RtPropertiesTableAddress = (UINT64)(UINTN)gST->ConfigurationTable[TableWalker].VendorTable;
+              continue;
+            }
+
+            if (CompareGuid (&gST->ConfigurationTable[TableWalker].VendorGuid, &gEfiSystemResourceTableGuid)) {
+              SystemResourceTableAddress = (UINT64)(UINTN)gST->ConfigurationTable[TableWalker].VendorTable;
+              continue;
+            }
+
+            if (CompareGuid (&gST->ConfigurationTable[TableWalker].VendorGuid, &gEfiDebugImageInfoTableGuid)) {
+              DebugImageInfoTableAddress = (UINT64)(UINTN)gST->ConfigurationTable[TableWalker].VendorTable;
+              continue;
+            }
+
+            if (CompareGuid (&gST->ConfigurationTable[TableWalker].VendorGuid, &gEfiImageSecurityDatabaseGuid)) {
+              ImageExecutionTableAddress = (UINT64)(UINTN)gST->ConfigurationTable[TableWalker].VendorTable;
+              continue;
+            }
+
+            if (CompareGuid (&gST->ConfigurationTable[TableWalker].VendorGuid, &gEfiJsonConfigDataTableGuid)) {
+              JsonConfigDataTableAddress = (UINT64)(UINTN)gST->ConfigurationTable[TableWalker].VendorTable;
+              continue;
+            }
+
+            if (CompareGuid (&gST->ConfigurationTable[TableWalker].VendorGuid, &gEfiJsonCapsuleDataTableGuid)) {
+              JsonCapsuleDataTableAddress = (UINT64)(UINTN)gST->ConfigurationTable[TableWalker].VendorTable;
+              continue;
+            }
+
+            if (CompareGuid (&gST->ConfigurationTable[TableWalker].VendorGuid, &gEfiJsonCapsuleResultTableGuid)) {
+              JsonCapsuleResultTableAddress = (UINT64)(UINTN)gST->ConfigurationTable[TableWalker].VendorTable;
+              continue;
+            }
+
+            if (CompareGuid (&gST->ConfigurationTable[TableWalker].VendorGuid, &gEfiHiiDatabaseProtocolGuid)) {
+              HiiDatabaseExportBufferAddress = (UINT64)(UINTN)gST->ConfigurationTable[TableWalker].VendorTable;
               continue;
             }
           }
 
-          ShellPrintHiiEx(-1, -1, NULL, STRING_TOKEN (STR_DMEM_SYSTEM_TABLE), gShellDebug1HiiHandle,
+          ShellPrintHiiEx (
+            -1,
+            -1,
+            NULL,
+            STRING_TOKEN (STR_DMEM_SYSTEM_TABLE),
+            gShellDebug1HiiHandle,
             (UINT64)(UINTN)Address,
             gST->Hdr.HeaderSize,
             gST->Hdr.Revision,
@@ -206,14 +293,25 @@ ShellCommandRunDmem (
             AcpiTableAddress,
             Acpi20TableAddress,
             MpsTableAddress,
-            SmbiosTableAddress
+            SmbiosTableAddress,
+            DtbTableAddress,
+            MemoryAttributesTableAddress,
+            RtPropertiesTableAddress,
+            SystemResourceTableAddress,
+            DebugImageInfoTableAddress,
+            ImageExecutionTableAddress,
+            JsonConfigDataTableAddress,
+            JsonCapsuleDataTableAddress,
+            JsonCapsuleResultTableAddress,
+            MemoryRangeCapsuleAddress,
+            HiiDatabaseExportBufferAddress,
+            ConformanceProfileTableAddress
             );
         }
       } else {
-        ShellStatus = DisplayMmioMemory(Address, (UINTN)Size);
+        ShellStatus = DisplayMmioMemory (Address, (UINTN)Size);
       }
     }
-
 
     ShellCommandLineFreeVarList (Package);
   }

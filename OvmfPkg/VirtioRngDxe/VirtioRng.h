@@ -17,7 +17,7 @@
 
 #include <IndustryStandard/Virtio.h>
 
-#define VIRTIO_RNG_SIG SIGNATURE_32 ('V', 'R', 'N', 'G')
+#define VIRTIO_RNG_SIG  SIGNATURE_32 ('V', 'R', 'N', 'G')
 
 typedef struct {
   //
@@ -33,6 +33,7 @@ typedef struct {
   VRING                     Ring;           // VirtioRingInit       2
   EFI_RNG_PROTOCOL          Rng;            // VirtioRngInit        1
   VOID                      *RingMap;       // VirtioRingMap        2
+  BOOLEAN                   Ready;
 } VIRTIO_RNG_DEV;
 
 #define VIRTIO_ENTROPY_SOURCE_FROM_RNG(RngPointer) \

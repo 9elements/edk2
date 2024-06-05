@@ -4,6 +4,7 @@
 
   Copyright (c) 2019, Intel Corporation. All rights reserved.<BR>
   (C) Copyright 2020 Hewlett Packard Enterprise Development LP<BR>
+  Copyright (c) 2023, Ampere Computing LLC. All rights reserved.<BR>
 
     SPDX-License-Identifier: BSD-2-Clause-Patent
 
@@ -14,6 +15,8 @@
 
 #include <Protocol/DevicePath.h>
 
+#define MAX_DEVICE_PATH_NODE  40
+
 typedef enum {
   DEVICE_PATH_MATCH_MAC_NODE = 1,
   DEVICE_PATH_MATCH_PCI_NODE = 2,
@@ -21,8 +24,8 @@ typedef enum {
 } DEVICE_PATH_MATCH_MODE;
 
 typedef struct {
-  UINT32 DevicePathMatchMode;
-  UINT32 DevicePathNum;
+  UINT32    DevicePathMatchMode;
+  UINT32    DevicePathNum;
   //
   // Example:
   //   {DEVICE_PATH("PciRoot(0)/Pci(0,0)/MAC(005056C00002,0x1)")}
@@ -32,7 +35,7 @@ typedef struct {
   //    0x03,0x0b,0x25,0x00,0x00,0x50,0x56,0xc0,0x00,0x02,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x01,
   //    0x7f,0xff,0x04,0x00}
   //
-  EFI_DEVICE_PATH_PROTOCOL      DevicePath[];
+  EFI_DEVICE_PATH_PROTOCOL    DevicePath[MAX_DEVICE_PATH_NODE];
 } REST_EX_SERVICE_DEVICE_PATH_DATA;
 
 #endif

@@ -24,7 +24,7 @@ Sha384GetContextSize (
   //
   // Retrieves OpenSSL SHA-384 Context Size
   //
-  return (UINTN) (sizeof (SHA512_CTX));
+  return (UINTN)(sizeof (SHA512_CTX));
 }
 
 /**
@@ -55,7 +55,7 @@ Sha384Init (
   //
   // OpenSSL SHA-384 Context Initialization
   //
-  return (BOOLEAN) (SHA384_Init ((SHA512_CTX *) Sha384Context));
+  return (BOOLEAN)(SHA384_Init ((SHA512_CTX *)Sha384Context));
 }
 
 /**
@@ -83,7 +83,7 @@ Sha384Duplicate (
   //
   // Check input parameters.
   //
-  if (Sha384Context == NULL || NewSha384Context == NULL) {
+  if ((Sha384Context == NULL) || (NewSha384Context == NULL)) {
     return FALSE;
   }
 
@@ -128,14 +128,14 @@ Sha384Update (
   //
   // Check invalid parameters, in case that only DataLength was checked in OpenSSL
   //
-  if (Data == NULL && DataSize != 0) {
+  if ((Data == NULL) && (DataSize != 0)) {
     return FALSE;
   }
 
   //
   // OpenSSL SHA-384 Hash Update
   //
-  return (BOOLEAN) (SHA384_Update ((SHA512_CTX *) Sha384Context, Data, DataSize));
+  return (BOOLEAN)(SHA384_Update ((SHA512_CTX *)Sha384Context, Data, DataSize));
 }
 
 /**
@@ -168,14 +168,14 @@ Sha384Final (
   //
   // Check input parameters.
   //
-  if (Sha384Context == NULL || HashValue == NULL) {
+  if ((Sha384Context == NULL) || (HashValue == NULL)) {
     return FALSE;
   }
 
   //
   // OpenSSL SHA-384 Hash Finalization
   //
-  return (BOOLEAN) (SHA384_Final (HashValue, (SHA512_CTX *) Sha384Context));
+  return (BOOLEAN)(SHA384_Final (HashValue, (SHA512_CTX *)Sha384Context));
 }
 
 /**
@@ -204,24 +204,35 @@ Sha384HashAll (
   OUT  UINT8       *HashValue
   )
 {
+  SHA512_CTX  Context;
+
   //
   // Check input parameters.
   //
   if (HashValue == NULL) {
     return FALSE;
   }
-  if (Data == NULL && DataSize != 0) {
+
+  if ((Data == NULL) && (DataSize != 0)) {
     return FALSE;
   }
 
   //
   // OpenSSL SHA-384 Hash Computation.
   //
-  if (SHA384 (Data, DataSize, HashValue) == NULL) {
+  if (!SHA384_Init (&Context)) {
     return FALSE;
-  } else {
-    return TRUE;
   }
+
+  if (!SHA384_Update (&Context, Data, DataSize)) {
+    return FALSE;
+  }
+
+  if (!SHA384_Final (HashValue, &Context)) {
+    return FALSE;
+  }
+
+  return TRUE;
 }
 
 /**
@@ -239,7 +250,7 @@ Sha512GetContextSize (
   //
   // Retrieves OpenSSL SHA-512 Context Size
   //
-  return (UINTN) (sizeof (SHA512_CTX));
+  return (UINTN)(sizeof (SHA512_CTX));
 }
 
 /**
@@ -270,7 +281,7 @@ Sha512Init (
   //
   // OpenSSL SHA-512 Context Initialization
   //
-  return (BOOLEAN) (SHA512_Init ((SHA512_CTX *) Sha512Context));
+  return (BOOLEAN)(SHA512_Init ((SHA512_CTX *)Sha512Context));
 }
 
 /**
@@ -298,7 +309,7 @@ Sha512Duplicate (
   //
   // Check input parameters.
   //
-  if (Sha512Context == NULL || NewSha512Context == NULL) {
+  if ((Sha512Context == NULL) || (NewSha512Context == NULL)) {
     return FALSE;
   }
 
@@ -343,14 +354,14 @@ Sha512Update (
   //
   // Check invalid parameters, in case that only DataLength was checked in OpenSSL
   //
-  if (Data == NULL && DataSize != 0) {
+  if ((Data == NULL) && (DataSize != 0)) {
     return FALSE;
   }
 
   //
   // OpenSSL SHA-512 Hash Update
   //
-  return (BOOLEAN) (SHA512_Update ((SHA512_CTX *) Sha512Context, Data, DataSize));
+  return (BOOLEAN)(SHA512_Update ((SHA512_CTX *)Sha512Context, Data, DataSize));
 }
 
 /**
@@ -383,14 +394,14 @@ Sha512Final (
   //
   // Check input parameters.
   //
-  if (Sha512Context == NULL || HashValue == NULL) {
+  if ((Sha512Context == NULL) || (HashValue == NULL)) {
     return FALSE;
   }
 
   //
   // OpenSSL SHA-512 Hash Finalization
   //
-  return (BOOLEAN) (SHA384_Final (HashValue, (SHA512_CTX *) Sha512Context));
+  return (BOOLEAN)(SHA384_Final (HashValue, (SHA512_CTX *)Sha512Context));
 }
 
 /**
@@ -419,22 +430,33 @@ Sha512HashAll (
   OUT  UINT8       *HashValue
   )
 {
+  SHA512_CTX  Context;
+
   //
   // Check input parameters.
   //
   if (HashValue == NULL) {
     return FALSE;
   }
-  if (Data == NULL && DataSize != 0) {
+
+  if ((Data == NULL) && (DataSize != 0)) {
     return FALSE;
   }
 
   //
   // OpenSSL SHA-512 Hash Computation.
   //
-  if (SHA512 (Data, DataSize, HashValue) == NULL) {
+  if (!SHA512_Init (&Context)) {
     return FALSE;
-  } else {
-    return TRUE;
   }
+
+  if (!SHA512_Update (&Context, Data, DataSize)) {
+    return FALSE;
+  }
+
+  if (!SHA512_Final (HashValue, &Context)) {
+    return FALSE;
+  }
+
+  return TRUE;
 }

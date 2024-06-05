@@ -6,11 +6,10 @@
   to log performance data. If both SMM PerformanceEx and Performance Protocol are not available, it does not log any
   performance information.
 
-  Copyright (c) 2011 - 2018, Intel Corporation. All rights reserved.<BR>
+  Copyright (c) 2011 - 2023, Intel Corporation. All rights reserved.<BR>
 SPDX-License-Identifier: BSD-2-Clause-Patent
 
 **/
-
 
 #include <Guid/PerformanceMeasurement.h>
 
@@ -24,6 +23,36 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 // The cached SMM Performance Protocol and SMM PerformanceEx Protocol interface.
 EDKII_PERFORMANCE_MEASUREMENT_PROTOCOL  *mPerformanceMeasurement = NULL;
 BOOLEAN                                 mPerformanceMeasurementEnabled;
+VOID                                    *mPerformanceLibExitBootServicesRegistration;
+
+/**
+  This is the Event call back function is triggered in SMM to notify the Library
+  the system is entering runtime phase.
+
+  @param[in] Protocol   Points to the protocol's unique identifier
+  @param[in] Interface  Points to the interface instance
+  @param[in] Handle     The handle on which the interface was installed
+
+  @retval EFI_SUCCESS SmmAtRuntimeCallBack runs successfully
+ **/
+EFI_STATUS
+EFIAPI
+SmmPerformanceLibExitBootServicesCallback (
+  IN CONST EFI_GUID  *Protocol,
+  IN VOID            *Interface,
+  IN EFI_HANDLE      Handle
+  )
+{
+  //
+  // Disable performance measurement after ExitBootServices because
+  // 1. Performance measurement might impact SMI latency at runtime;
+  // 2. Performance log is copied to non SMRAM at ReadyToBoot so runtime performance
+  //    log is not useful.
+  //
+  mPerformanceMeasurementEnabled = FALSE;
+
+  return EFI_SUCCESS;
+}
 
 /**
   The constructor function initializes the Performance Measurement Enable flag
@@ -41,10 +70,48 @@ SmmPerformanceLibConstructor (
   IN EFI_SYSTEM_TABLE  *SystemTable
   )
 {
+  EFI_STATUS  Status;
 
-  mPerformanceMeasurementEnabled =  (BOOLEAN) ((PcdGet8(PcdPerformanceLibraryPropertyMask) & PERFORMANCE_LIBRARY_PROPERTY_MEASUREMENT_ENABLED) != 0);
+  mPerformanceMeasurementEnabled =  (BOOLEAN)((PcdGet8 (PcdPerformanceLibraryPropertyMask) & PERFORMANCE_LIBRARY_PROPERTY_MEASUREMENT_ENABLED) != 0);
 
-  return EFI_SUCCESS;
+  Status = gSmst->SmmRegisterProtocolNotify (
+                    &gEdkiiSmmExitBootServicesProtocolGuid,
+                    SmmPerformanceLibExitBootServicesCallback,
+                    &mPerformanceLibExitBootServicesRegistration
+                    );
+  ASSERT_EFI_ERROR (Status);
+
+  return Status;
+}
+
+/**
+  The destructor function frees resources allocated by constructor.
+
+  @param  ImageHandle   The firmware allocated handle for the EFI image.
+  @param  SystemTable   A pointer to the EFI System Table.
+
+  @retval EFI_SUCCESS   The destructor always returns EFI_SUCCESS.
+**/
+EFI_STATUS
+EFIAPI
+SmmPerformanceLibDestructor (
+  IN EFI_HANDLE        ImageHandle,
+  IN EFI_SYSTEM_TABLE  *SystemTable
+  )
+{
+  EFI_STATUS  Status;
+
+  //
+  // Unregister SmmExitBootServices notification.
+  //
+  Status = gSmst->SmmRegisterProtocolNotify (
+                    &gEdkiiSmmExitBootServicesProtocolGuid,
+                    NULL,
+                    &mPerformanceLibExitBootServicesRegistration
+                    );
+  ASSERT_EFI_ERROR (Status);
+
+  return Status;
 }
 
 /**
@@ -61,14 +128,14 @@ GetPerformanceMeasurementProtocol (
   VOID
   )
 {
-  EFI_STATUS                Status;
-  EDKII_PERFORMANCE_MEASUREMENT_PROTOCOL   *PerformanceMeasurement;
+  EFI_STATUS                              Status;
+  EDKII_PERFORMANCE_MEASUREMENT_PROTOCOL  *PerformanceMeasurement;
 
   if (mPerformanceMeasurement != NULL) {
     return EFI_SUCCESS;
   }
 
-  Status = gSmst->SmmLocateProtocol (&gEdkiiSmmPerformanceMeasurementProtocolGuid, NULL, (VOID **) &PerformanceMeasurement);
+  Status = gSmst->SmmLocateProtocol (&gEdkiiSmmPerformanceMeasurementProtocolGuid, NULL, (VOID **)&PerformanceMeasurement);
   if (!EFI_ERROR (Status)) {
     ASSERT (PerformanceMeasurement != NULL);
     //
@@ -77,6 +144,7 @@ GetPerformanceMeasurementProtocol (
     mPerformanceMeasurement = PerformanceMeasurement;
     return EFI_SUCCESS;
   }
+
   return EFI_NOT_FOUND;
 }
 
@@ -105,15 +173,15 @@ GetPerformanceMeasurementProtocol (
 RETURN_STATUS
 EFIAPI
 StartPerformanceMeasurementEx (
-  IN CONST VOID   *Handle,  OPTIONAL
-  IN CONST CHAR8  *Token,   OPTIONAL
-  IN CONST CHAR8  *Module,  OPTIONAL
+  IN CONST VOID   *Handle   OPTIONAL,
+  IN CONST CHAR8  *Token    OPTIONAL,
+  IN CONST CHAR8  *Module   OPTIONAL,
   IN UINT64       TimeStamp,
   IN UINT32       Identifier
   )
 {
-  EFI_STATUS    Status;
-  CONST CHAR8*  String;
+  EFI_STATUS   Status;
+  CONST CHAR8  *String;
 
   Status = GetPerformanceMeasurementProtocol ();
   if (EFI_ERROR (Status)) {
@@ -134,7 +202,7 @@ StartPerformanceMeasurementEx (
     ASSERT (FALSE);
   }
 
-  return (RETURN_STATUS) Status;
+  return (RETURN_STATUS)Status;
 }
 
 /**
@@ -164,15 +232,15 @@ StartPerformanceMeasurementEx (
 RETURN_STATUS
 EFIAPI
 EndPerformanceMeasurementEx (
-  IN CONST VOID   *Handle,  OPTIONAL
-  IN CONST CHAR8  *Token,   OPTIONAL
-  IN CONST CHAR8  *Module,  OPTIONAL
+  IN CONST VOID   *Handle   OPTIONAL,
+  IN CONST CHAR8  *Token    OPTIONAL,
+  IN CONST CHAR8  *Module   OPTIONAL,
   IN UINT64       TimeStamp,
   IN UINT32       Identifier
   )
 {
-  EFI_STATUS    Status;
-  CONST CHAR8*  String;
+  EFI_STATUS   Status;
+  CONST CHAR8  *String;
 
   Status = GetPerformanceMeasurementProtocol ();
   if (EFI_ERROR (Status)) {
@@ -193,7 +261,7 @@ EndPerformanceMeasurementEx (
     ASSERT (FALSE);
   }
 
-  return (RETURN_STATUS) Status;
+  return (RETURN_STATUS)Status;
 }
 
 /**
@@ -240,13 +308,13 @@ EndPerformanceMeasurementEx (
 UINTN
 EFIAPI
 GetPerformanceMeasurementEx (
-  IN  UINTN       LogEntryKey,
-  OUT CONST VOID  **Handle,
-  OUT CONST CHAR8 **Token,
-  OUT CONST CHAR8 **Module,
-  OUT UINT64      *StartTimeStamp,
-  OUT UINT64      *EndTimeStamp,
-  OUT UINT32      *Identifier
+  IN  UINTN        LogEntryKey,
+  OUT CONST VOID   **Handle,
+  OUT CONST CHAR8  **Token,
+  OUT CONST CHAR8  **Module,
+  OUT UINT64       *StartTimeStamp,
+  OUT UINT64       *EndTimeStamp,
+  OUT UINT32       *Identifier
   )
 {
   return 0;
@@ -275,9 +343,9 @@ GetPerformanceMeasurementEx (
 RETURN_STATUS
 EFIAPI
 StartPerformanceMeasurement (
-  IN CONST VOID   *Handle,  OPTIONAL
-  IN CONST CHAR8  *Token,   OPTIONAL
-  IN CONST CHAR8  *Module,  OPTIONAL
+  IN CONST VOID   *Handle   OPTIONAL,
+  IN CONST CHAR8  *Token    OPTIONAL,
+  IN CONST CHAR8  *Module   OPTIONAL,
   IN UINT64       TimeStamp
   )
 {
@@ -309,9 +377,9 @@ StartPerformanceMeasurement (
 RETURN_STATUS
 EFIAPI
 EndPerformanceMeasurement (
-  IN CONST VOID   *Handle,  OPTIONAL
-  IN CONST CHAR8  *Token,   OPTIONAL
-  IN CONST CHAR8  *Module,  OPTIONAL
+  IN CONST VOID   *Handle   OPTIONAL,
+  IN CONST CHAR8  *Token    OPTIONAL,
+  IN CONST CHAR8  *Module   OPTIONAL,
   IN UINT64       TimeStamp
   )
 {
@@ -360,12 +428,12 @@ EndPerformanceMeasurement (
 UINTN
 EFIAPI
 GetPerformanceMeasurement (
-  IN  UINTN       LogEntryKey,
-  OUT CONST VOID  **Handle,
-  OUT CONST CHAR8 **Token,
-  OUT CONST CHAR8 **Module,
-  OUT UINT64      *StartTimeStamp,
-  OUT UINT64      *EndTimeStamp
+  IN  UINTN        LogEntryKey,
+  OUT CONST VOID   **Handle,
+  OUT CONST CHAR8  **Token,
+  OUT CONST CHAR8  **Module,
+  OUT UINT64       *StartTimeStamp,
+  OUT UINT64       *EndTimeStamp
   )
 {
   return 0;
@@ -411,9 +479,9 @@ RETURN_STATUS
 EFIAPI
 LogPerformanceMeasurement (
   IN CONST VOID   *CallerIdentifier,
-  IN CONST VOID   *Guid,    OPTIONAL
-  IN CONST CHAR8  *String,  OPTIONAL
-  IN UINT64       Address, OPTIONAL
+  IN CONST VOID   *Guid     OPTIONAL,
+  IN CONST CHAR8  *String   OPTIONAL,
+  IN UINT64       Address  OPTIONAL,
   IN UINT32       Identifier
   )
 {
@@ -430,7 +498,7 @@ LogPerformanceMeasurement (
     ASSERT (FALSE);
   }
 
-  return (RETURN_STATUS) Status;
+  return (RETURN_STATUS)Status;
 }
 
 /**
@@ -448,14 +516,15 @@ LogPerformanceMeasurement (
 BOOLEAN
 EFIAPI
 LogPerformanceMeasurementEnabled (
-  IN  CONST UINTN        Type
+  IN  CONST UINTN  Type
   )
 {
   //
   // When Performance measurement is enabled and the type is not filtered, the performance can be logged.
   //
-  if (PerformanceMeasurementEnabled () && (PcdGet8(PcdPerformanceLibraryPropertyMask) & Type) == 0) {
+  if (PerformanceMeasurementEnabled () && ((PcdGet8 (PcdPerformanceLibraryPropertyMask) & Type) == 0)) {
     return TRUE;
   }
+
   return FALSE;
 }

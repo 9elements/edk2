@@ -20,7 +20,7 @@
  * Thus the application can use '-?' option to show help message in Shell.
  */
 GLOBAL_REMOVE_IF_UNREFERENCED
-EFI_STRING_ID mStringHelpTokenId = STRING_TOKEN (STR_GET_HELP_HTTP);
+EFI_STRING_ID  mStringHelpTokenId = STRING_TOKEN (STR_GET_HELP_HTTP);
 
 /**
   Entry point of Http standalone application.
@@ -28,19 +28,19 @@ EFI_STRING_ID mStringHelpTokenId = STRING_TOKEN (STR_GET_HELP_HTTP);
   @param ImageHandle            The image handle of the process.
   @param SystemTable            The EFI System Table pointer.
 
-  @retval EFI_SUCCESS           Http command is executed sucessfully.
+  @retval EFI_SUCCESS           Http command is executed successfully.
   @retval EFI_ABORTED           HII package was failed to initialize.
   @retval others                Other errors when executing http command.
 **/
 EFI_STATUS
 EFIAPI
 HttpAppInitialize (
-  IN EFI_HANDLE               ImageHandle,
-  IN EFI_SYSTEM_TABLE         *SystemTable
+  IN EFI_HANDLE        ImageHandle,
+  IN EFI_SYSTEM_TABLE  *SystemTable
   )
 {
-  EFI_STATUS                  Status;
-  SHELL_STATUS                ShellStatus;
+  EFI_STATUS    Status;
+  SHELL_STATUS  ShellStatus;
 
   mHttpHiiHandle = InitializeHiiPackage (ImageHandle);
   if (mHttpHiiHandle == NULL) {
