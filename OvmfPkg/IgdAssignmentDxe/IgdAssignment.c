@@ -390,8 +390,8 @@ SetupStolenMemory (
   //
   Status = PciIo->Pci.Write (
                         PciIo,
-                        EfiPciIoWidthUint32,
-                        ASSIGNED_IGD_PCI_BDSM_OFFSET,
+                        EfiPciIoWidthUint64,
+                        ASSIGNED_IGD_PCI_BDSM64_OFFSET,
                         1,                            // Count
                         &Address
                         );
