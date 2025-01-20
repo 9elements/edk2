@@ -261,6 +261,10 @@ UsbMassWriteBlocks (
     Status = EFI_INVALID_PARAMETER;
     goto ON_EXIT;
   }
+  if (Media->ReadOnly) {
+    Status = EFI_SUCCESS;
+    goto ON_EXIT;
+  }
 
   //
   // BufferSize must be a multiple of the intrinsic block size of the device.
