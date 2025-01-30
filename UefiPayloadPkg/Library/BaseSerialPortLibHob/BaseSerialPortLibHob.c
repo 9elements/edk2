@@ -48,6 +48,7 @@ typedef struct {
   UINTN      BaseAddress;
   BOOLEAN    UseMmio;
   UINT32     BaudRate;
+  UINT32     SerialClockRate;
   UINT8      RegisterStride;
 } UART_INFO;
 
@@ -135,6 +136,7 @@ SerialPortInitialize (
   UINT32                              Divisor;
   UINT32                              CurrentDivisor;
   UINT32                              BaudRate;
+  UINT32                              SerialClockRate;
   BOOLEAN                             Initialized;
   BOOLEAN                             MmioEnable;
   UINT8                               Value;
@@ -150,21 +152,26 @@ SerialPortInitialize (
     MmioEnable         = SerialPortInfo->UseMmio;
     BaudRate           = SerialPortInfo->BaudRate;
     RegisterStride     = SerialPortInfo->RegisterStride;
+    SerialClockRate    = SerialPortInfo->SerialClockRate;
 
     if (SerialRegisterBase == 0) {
       GuidHob = GET_NEXT_HOB (GuidHob);
       GuidHob = GetNextGuidHob (&gUniversalPayloadSerialPortInfoGuid, GuidHob);
       continue;
     }
+    if (SerialClockRate == 0) {
+      SerialClockRate = PcdGet32 (PcdSerialClockRate);
+    }
 
-    mUartInfo[mUartCount].BaseAddress    = SerialRegisterBase;
-    mUartInfo[mUartCount].UseMmio        = MmioEnable;
-    mUartInfo[mUartCount].BaudRate       = BaudRate;
-    mUartInfo[mUartCount].RegisterStride = RegisterStride;
+    mUartInfo[mUartCount].BaseAddress     = SerialRegisterBase;
+    mUartInfo[mUartCount].UseMmio         = MmioEnable;
+    mUartInfo[mUartCount].BaudRate        = BaudRate;
+    mUartInfo[mUartCount].RegisterStride  = RegisterStride;
+    mUartInfo[mUartCount].SerialClockRate = SerialClockRate;
     mUartCount++;
 
-    Divisor = PcdGet32 (PcdSerialClockRate) / (BaudRate * 16);
-    if ((PcdGet32 (PcdSerialClockRate) % (BaudRate * 16)) >= BaudRate * 8) {
+    Divisor = SerialClockRate / (BaudRate * 16);
+    if ((SerialClockRate % (BaudRate * 16)) >= BaudRate * 8) {
       Divisor++;
     }
 
@@ -832,8 +839,8 @@ SerialPortSetAttributes (
     // Calculate divisor for baud generator
     //    Ref_Clk_Rate / Baud_Rate / 16
     //
-    Divisor = PcdGet32 (PcdSerialClockRate) / (SerialBaudRate * 16);
-    if ((PcdGet32 (PcdSerialClockRate) % (SerialBaudRate * 16)) >= SerialBaudRate * 8) {
+    Divisor = mUartInfo[Count].SerialClockRate / (SerialBaudRate * 16);
+    if ((mUartInfo[Count].SerialClockRate % (SerialBaudRate * 16)) >= SerialBaudRate * 8) {
       Divisor++;
     }
 

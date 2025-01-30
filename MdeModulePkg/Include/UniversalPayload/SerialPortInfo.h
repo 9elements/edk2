@@ -20,6 +20,7 @@ typedef struct {
   UINT8                               RegisterStride;
   UINT32                              BaudRate;
   EFI_PHYSICAL_ADDRESS                RegisterBase;
+  UINT32                              SerialClockRate;
 } UNIVERSAL_PAYLOAD_SERIAL_PORT_INFO;
 #pragma pack()
 

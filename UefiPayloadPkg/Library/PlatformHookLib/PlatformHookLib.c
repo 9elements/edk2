@@ -90,6 +90,13 @@ PlatformHookSerialPortInitialize (
       return Status;
     }
 
+    if (SerialPortInfo->SerialClockRate != 0) {
+      Status = PcdSet32S (PcdSerialClockRate, SerialPortInfo->SerialClockRate);
+    }
+    if (RETURN_ERROR (Status)) {
+      return Status;
+    }
+
     return RETURN_SUCCESS;
   }
 

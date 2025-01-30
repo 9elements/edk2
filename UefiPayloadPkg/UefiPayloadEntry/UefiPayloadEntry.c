@@ -432,6 +432,7 @@ _ModuleEntryPoint (
     UniversalSerialPort->RegisterBase    = SerialPortInfo.BaseAddr;
     UniversalSerialPort->BaudRate        = SerialPortInfo.Baud;
     UniversalSerialPort->RegisterStride  = (UINT8)SerialPortInfo.RegWidth;
+    UniversalSerialPort->SerialClockRate = SerialPortInfo.InputHertz;
   }
 
   // The library constructors might depend on serial port, so call it after serial port hob
