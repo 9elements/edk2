@@ -240,8 +240,12 @@ PcRtcInit (
 
   //
   // Clear RTC register D
+  // The value of bit VRT must not change.
+  // On most platforms it's read-only, but when it's not preserved
+  // it to prevent failing in RtcWaitToUpdate().
   //
-  RegisterD.Data = FixedPcdGet8 (PcdInitialValueRtcRegisterD);
+  RegisterD.Data = RtcRead (RTC_ADDRESS_REGISTER_D);
+  RegisterD.Data = FixedPcdGet8 (PcdInitialValueRtcRegisterD) | (RegisterD.Data & BIT7);
   RtcWrite (RTC_ADDRESS_REGISTER_D, RegisterD.Data);
 
   //
