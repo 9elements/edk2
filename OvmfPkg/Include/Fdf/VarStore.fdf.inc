@@ -11,7 +11,7 @@
 !if ($(FD_SIZE_IN_KB) == 1024) || ($(FD_SIZE_IN_KB) == 2048)
 0x00000000|0x0000e000
 !endif
-!if $(FD_SIZE_IN_KB) == 4096
+!if ($(FD_SIZE_IN_KB) == 4096) || ($(FD_SIZE_IN_KB) == 16384)
 0x00000000|0x00040000
 !endif
 #NV_VARIABLE_STORE
@@ -29,7 +29,7 @@ DATA = {
   # FvLength: 0x20000
   0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00,
 !endif
-!if $(FD_SIZE_IN_KB) == 4096
+!if ($(FD_SIZE_IN_KB) == 4096) || ($(FD_SIZE_IN_KB) == 16384)
   # FvLength: 0x84000
   0x00, 0x40, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00,
 !endif
@@ -41,7 +41,7 @@ DATA = {
   # CheckSum
   0x19, 0xF9,
 !endif
-!if $(FD_SIZE_IN_KB) == 4096
+!if ($(FD_SIZE_IN_KB) == 4096) || ($(FD_SIZE_IN_KB) == 16384)
   # CheckSum
   0xAF, 0xB8,
 !endif
@@ -51,7 +51,7 @@ DATA = {
   # Blockmap[0]: 0x20 Blocks * 0x1000 Bytes / Block
   0x20, 0x00, 0x00, 0x00, 0x00, 0x10, 0x00, 0x00,
 !endif
-!if $(FD_SIZE_IN_KB) == 4096
+!if ($(FD_SIZE_IN_KB) == 4096) || ($(FD_SIZE_IN_KB) == 16384)
   # Blockmap[0]: 0x84 Blocks * 0x1000 Bytes / Block
   0x84, 0x00, 0x00, 0x00, 0x00, 0x10, 0x00, 0x00,
 !endif
@@ -70,7 +70,7 @@ DATA = {
   # This can speed up the Variable Dispatch a bit.
   0xB8, 0xDF, 0x00, 0x00,
 !endif
-!if $(FD_SIZE_IN_KB) == 4096
+!if ($(FD_SIZE_IN_KB) == 4096) || ($(FD_SIZE_IN_KB) == 16384)
   # Size: 0x40000 (gEfiMdeModulePkgTokenSpaceGuid.PcdFlashNvStorageVariableSize) -
   #          0x48 (size of EFI_FIRMWARE_VOLUME_HEADER) = 0x3ffb8
   # This can speed up the Variable Dispatch a bit.
@@ -83,7 +83,7 @@ DATA = {
 !if ($(FD_SIZE_IN_KB) == 1024) || ($(FD_SIZE_IN_KB) == 2048)
 0x0000e000|0x00001000
 !endif
-!if $(FD_SIZE_IN_KB) == 4096
+!if ($(FD_SIZE_IN_KB) == 4096) || ($(FD_SIZE_IN_KB) == 16384)
 0x00040000|0x00001000
 !endif
 #NV_EVENT_LOG
@@ -91,7 +91,7 @@ DATA = {
 !if ($(FD_SIZE_IN_KB) == 1024) || ($(FD_SIZE_IN_KB) == 2048)
 0x0000f000|0x00001000
 !endif
-!if $(FD_SIZE_IN_KB) == 4096
+!if ($(FD_SIZE_IN_KB) == 4096) || ($(FD_SIZE_IN_KB) == 16384)
 0x00041000|0x00001000
 !endif
 #NV_FTW_WORKING
@@ -109,7 +109,7 @@ DATA = {
 !if ($(FD_SIZE_IN_KB) == 1024) || ($(FD_SIZE_IN_KB) == 2048)
 0x00010000|0x00010000
 !endif
-!if $(FD_SIZE_IN_KB) == 4096
+!if ($(FD_SIZE_IN_KB) == 4096) || ($(FD_SIZE_IN_KB) == 16384)
 0x00042000|0x00042000
 !endif
 #NV_FTW_SPARE
