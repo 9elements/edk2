@@ -363,6 +363,63 @@ SetupStolenMemory (
   EFI_STATUS           Status;
   EFI_PHYSICAL_ADDRESS Address;
 
+#if 1
+  EFI_PHYSICAL_ADDRESS GttMmAddr;
+  UINT32 BdsmGttMmAddr, BgsmGttMmAddr;
+  #define R_SA_IGD_GTTMMADR 0x10
+  #define B_SA_GTTMMADR_BASE_ADDR_MASK_64B (0xFFFFFFFFFFFFFFF0ULL)
+  #define R_SA_GTTMMADR_BDSM_OFFSET  (0x1080C0)
+  #define R_SA_GTTMMADR_BGSM_OFFSET  (0x108100)
+  #define B_SA_BDSM_BDSM_MASK    (0xfff00000)
+  #define B_SA_BGSM_BGSM_MASK    (0xfff00000)
+
+  Status = PciIo->Pci.Read (
+    PciIo,
+    EfiPciIoWidthUint64,
+    R_SA_IGD_GTTMMADR,
+    1,
+    &GttMmAddr
+    );
+  if (EFI_ERROR (Status)) {
+    DEBUG ((DEBUG_ERROR, "%a: %a: failed to read GttMmAddr: %r\n",
+      __FUNCTION__, GetPciName (PciInfo), Status));
+    //goto FreeStolenMemory;
+  }
+  GttMmAddr &= B_SA_GTTMMADR_BASE_ADDR_MASK_64B;
+
+  Status = PciIo->Mem.Read(
+    PciIo,
+    EfiPciIoWidthUint32,
+    0,
+    R_SA_GTTMMADR_BDSM_OFFSET,
+    1,
+    &BdsmGttMmAddr
+  );
+  if (EFI_ERROR (Status)) {
+    DEBUG ((DEBUG_ERROR, "%a: %a: failed to read BdsmGttMmAddr: %r\n",
+      __FUNCTION__, GetPciName (PciInfo), Status));
+    //goto FreeStolenMemory;
+  }
+
+  Status = PciIo->Mem.Read(
+    PciIo,
+    EfiPciIoWidthUint32,
+    0,
+    R_SA_GTTMMADR_BGSM_OFFSET,
+    1,
+    &BgsmGttMmAddr
+  );
+  if (EFI_ERROR (Status)) {
+    DEBUG ((DEBUG_ERROR, "%a: %a: failed to read BgsmGttMmAddr: %r\n",
+      __FUNCTION__, GetPciName (PciInfo), Status));
+    //goto FreeStolenMemory;
+  }
+
+  DEBUG ((DEBUG_INFO, "%a: %a: GttMmAddr=0x%Lx BdsmGttMmAddr=0x%Lx BgsmGttMmAddr=0x%Lx\n",
+    __FUNCTION__, GetPciName (PciInfo), GttMmAddr, BdsmGttMmAddr, BgsmGttMmAddr));
+  ASSERT(0);
+#endif
+
   if (mBdsmSize == 0) {
     return EFI_INVALID_PARAMETER;
   }
