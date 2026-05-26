@@ -12,6 +12,8 @@
 #include <Library/BaseMemoryLib.h>
 #include <Library/BlParseLib.h>
 #include <Library/SerialPortLib.h>
+#include <Library/PrintLib.h>
+#include <Library/TimerLib.h>
 
 // Upper nibble contains flags
 #define CBMC_CURSOR_MASK  ((1 << 28) - 1)
@@ -68,6 +70,13 @@ SerialPortInitialize (
   return RETURN_SUCCESS;
 }
 
+static int printTimestamp(CHAR8 *Buffer)
+{
+ UINT64  Ticker  = GetPerformanceCounter ();
+  UINT64 TimeStamp = GetTimeInNanoSecond (Ticker);
+  UINT64 seconds = DivU64x32(TimeStamp, 1000000000);
+  return AsciiSPrint(Buffer, 16, "%3d.%06d |", (UINT32)seconds, (UINT32)DivU64x32((TimeStamp - (seconds * 1000000000)), 1000));
+}
 /**
   Write data from buffer to serial device.
 
@@ -123,14 +132,18 @@ SerialPortWrite (
     NumberOfBytes = mCbConsole->size;
   }
 
-  CopyMem (&mCbConsole->body[Cursor], Buffer, NumberOfBytes);
-  Cursor += NumberOfBytes;
+  for (int i = 0; i < NumberOfBytes; i++) {
+    if (Cursor > 0 && mCbConsole->body[Cursor-1] == '\n' && Cursor < (mCbConsole->size+ 16)) {
+      Cursor += printTimestamp((CHAR8 *)&mCbConsole->body[Cursor]);
+    }
 
-  if (Cursor == mCbConsole->size) {
-    // Next message will overflow, zero cursor.
-    // - Set flag preemptively. This could not be determined later.
-    Cursor = 0;
-    Flags |= CBMC_OVERFLOW;
+    mCbConsole->body[Cursor++] = Buffer[i];
+    if (Cursor == mCbConsole->size) {
+      // Next message will overflow, zero cursor.
+      // - Set flag preemptively. This could not be determined later.
+      Cursor = 0;
+      Flags |= CBMC_OVERFLOW;
+    }
   }
 
   mCbConsole->cursor = Flags | Cursor;

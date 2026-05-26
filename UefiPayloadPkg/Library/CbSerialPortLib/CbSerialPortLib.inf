@@ -23,6 +23,8 @@
 [LibraryClasses]
   BaseMemoryLib
   BlParseLib
+  PrintLib
+  TimerLib
 
 [Sources]
   CbSerialPortLib.c
