@@ -1,0 +1,38 @@
+## @file
+#
+#  Copyright (c) 2026, 9elements GmbH.<BR>
+#  SPDX-License-Identifier: BSD-2-Clause-Patent
+#
+##
+
+[Defines]
+  INF_VERSION                    = 0x00010005
+  BASE_NAME                      = DxeMpInitLibPlatformLib
+  FILE_GUID                      = 57461928-290D-4FEC-A439-377420A829BE
+  MODULE_TYPE                    = BASE
+  VERSION_STRING                 = 1.0
+  LIBRARY_CLASS                  = NULL
+  CONSTRUCTOR                    = MpInitLibPlatformLibEntryPoint
+
+[LibraryClasses]
+  BaseLib
+  PcdLib
+  DxeServicesTableLib
+  DebugLib
+
+[Packages]
+  MdePkg/MdePkg.dec
+  UefiCpuPkg/UefiCpuPkg.dec
+
+[Sources]
+  MpInitLibPlatformLib.c
+
+[Pcd]
+  gUefiCpuPkgTokenSpaceGuid.PcdCpuMaxLogicalProcessorNumber  ## SOMETIMES_PRODUCES
+  gUefiCpuPkgTokenSpaceGuid.PcdCpuBootLogicalProcessorNumber ## SOMETIMES_PRODUCES
+
+[Protocols]
+  gEfiSmbiosProtocolGuid                            ## CONSUMES
+
+[Depex]
+  gEfiSmbiosProtocolGuid
