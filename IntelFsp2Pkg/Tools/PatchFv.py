@@ -421,7 +421,7 @@ class Symbols:
         if reportLine.strip().find("Archive member included") != -1:
             #GCC
             #                0x0000000000001d55                IoRead8
-            patchMapFileMatchString = "\s+(0x[0-9a-fA-F]{16})\s+([^\s][^0x][_a-zA-Z0-9\-]+)\s"
+            patchMapFileMatchString = "\s+(0x[0-9a-fA-F]{8}|0x[0-9a-fA-F]{16})\s+([^\s][^0x][_a-zA-Z0-9\-]+)\s"
             matchKeyGroupIndex = 2
             matchSymbolGroupIndex  = 1
             prefix = '_'
