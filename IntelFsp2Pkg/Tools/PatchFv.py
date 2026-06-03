@@ -496,7 +496,7 @@ class Symbols:
         fdIn     = open(xrefFile, "r")
         rptLine  = fdIn.readline()
         while (rptLine != "" ):
-            match = re.match("([0-9a-fA-F\-]+)\s([_a-zA-Z0-9]+)", rptLine)
+            match = re.match("([0-9a-fA-F\-]+)\s([_a-zA-Z0-9/]+)", rptLine)
             if match is not None:
                 self.dictGuidNameXref[match.group(1).upper()] = match.group(2)
             rptLine  = fdIn.readline()
