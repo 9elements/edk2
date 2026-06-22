@@ -1,0 +1,28 @@
+## @file
+#  CBMEM console SerialPortLib instance with hardcoded address
+#
+#  Copyright (c) 2022, Baruch Binyamin Doron
+#  SPDX-License-Identifier: BSD-2-Clause-Patent
+#
+##
+
+[Defines]
+  INF_VERSION                    = 0x00010005
+  BASE_NAME                      = HardcodedCbSerialPortLib
+  FILE_GUID                      = A1B2C3D4-E5F6-7890-ABCD-EF1234567890
+  MODULE_TYPE                    = BASE
+  VERSION_STRING                 = 1.0
+  LIBRARY_CLASS                  = SerialPortLib
+  CONSTRUCTOR                    = SerialPortInitialize
+
+[Packages]
+  MdePkg/MdePkg.dec
+  MdeModulePkg/MdeModulePkg.dec
+
+[LibraryClasses]
+  BaseMemoryLib
+  PrintLib
+  TimerLib
+
+[Sources]
+  HardcodedCbSerialPortLib.c
