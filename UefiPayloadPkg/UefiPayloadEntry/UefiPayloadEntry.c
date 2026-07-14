@@ -335,7 +335,7 @@ MemInfoCallback (
 **/
 EFI_STATUS
 BuildHobFromBl (
-  VOID
+  IN OUT EFI_HOB_HANDOFF_INFO_TABLE          *HobInfo
   )
 {
   EFI_STATUS                        Status;
@@ -353,6 +353,7 @@ BuildHobFromBl (
   UNIVERSAL_PAYLOAD_SMBIOS_TABLE    *SmBiosTableHob;
   UNIVERSAL_PAYLOAD_ACPI_TABLE      *AcpiTableHob;
   UINT64                            SmBiosEntryPoint;
+  EFI_BOOT_MODE                     BootMode;
 
   //
   // First find TOLUD
@@ -424,6 +425,12 @@ BuildHobFromBl (
     ASSERT (NewPhysicalPresenceInfo != NULL);
     CopyMem (NewPhysicalPresenceInfo, &PhysicalPresenceInfo, sizeof (TCG_PHYSICAL_PRESENCE_INFO));
     DEBUG ((DEBUG_INFO, "Created Tcg Physical Presence info hob\n"));
+  }
+
+  Status = ParseBootMode (&BootMode);
+  if (!EFI_ERROR (Status)) {
+    HobInfo->BootMode = BootMode;
+    DEBUG ((DEBUG_INFO, "BootMode from payload: %x\n", BootMode));
   }
 
   //
@@ -605,7 +612,7 @@ _ModuleEntryPoint (
   DEBUG ((DEBUG_INFO, "HobMemBase    = 0x%llx\n", (UINT64)HobMemBase));
 
   // Build HOB based on information from Bootloader
-  Status = BuildHobFromBl ();
+  Status = BuildHobFromBl (HobInfo);
   if (EFI_ERROR (Status)) {
     DEBUG ((DEBUG_ERROR, "BuildHobFromBl Status = %r\n", Status));
     return Status;

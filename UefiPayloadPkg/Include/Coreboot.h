@@ -341,4 +341,32 @@ struct cb_tpm_physical_presence {
 	UINT8 ppi_version;	/* BCD encoded */
 } __attribute__((packed));
 
+#define CB_TAG_BOOT_MODE       0x00cd
+
+enum boot_mode_t {
+	/* Regular boot scenarios */
+	LB_BOOT_MODE_NORMAL,
+	/* Device is booting in low-batter w/o charger attached */
+	LB_BOOT_MODE_LOW_BATTERY,
+	/* Device is booting in low-batter w/ charger attached */
+	LB_BOOT_MODE_LOW_BATTERY_CHARGING,
+	/* Device is booting in due to charger insertion */
+	LB_BOOT_MODE_OFFMODE_CHARGING,
+	/* Device is booting in due to RTC alarm */
+	LB_BOOT_MODE_RTC_WAKE,
+	/* Device is booting in "no-battery" */
+	LB_BOOT_MODE_NO_BATTERY,
+	/* Device is booting with flash unlocked. */
+	LB_BOOT_MODE_FLASH_UPDATE,
+};
+
+/*
+ * Boot Mode: Passed the platform boot mode information to payload.
+ */
+struct lb_boot_mode {
+	UINT32 tag;
+	UINT32 size;
+
+	enum boot_mode_t boot_mode;
+};
 #endif // _COREBOOT_PEI_H_INCLUDED_
